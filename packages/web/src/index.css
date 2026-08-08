@@ -55,8 +55,10 @@
     @apply border-ink-800;
   }
 
+  /* ink-300 (#949494) clears ~5.6:1 on black. ink-400 sits near 3.2:1, which is
+     below readable for text this small — reserve it for large display type. */
   .label {
-    @apply font-mono text-[10px] uppercase tracking-[0.22em] text-ink-400;
+    @apply font-mono text-[10px] uppercase tracking-[0.22em] text-ink-300;
   }
 
   .btn {

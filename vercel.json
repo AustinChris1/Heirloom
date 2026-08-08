@@ -1,0 +1,8 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "pnpm install --filter @heirloom/web... --no-frozen-lockfile",
+  "buildCommand": "pnpm --filter @heirloom/web build",
+  "outputDirectory": "packages/web/dist",
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+}

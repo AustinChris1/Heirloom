@@ -31,7 +31,7 @@ export function VaultApp({ chain, refresh }: { chain: ChainSnapshot | null; refr
 
           <div className="flex flex-wrap items-center gap-3">
             {chain && (
-              <span className="hidden font-mono text-[11px] text-ink-400 sm:inline">
+              <span className="hidden font-mono text-[11px] text-ink-300 sm:inline">
                 XRP {chain.xrpUsdDisplay}
               </span>
             )}
@@ -51,7 +51,7 @@ export function VaultApp({ chain, refresh }: { chain: ChainSnapshot | null; refr
               href={`${EXPLORER}/address/${HEIRLOOM_VAULT}`}
               target="_blank"
               rel="noreferrer"
-              className="mt-3 inline-block break-all font-mono text-[11px] text-ink-400 underline-offset-4 hover:text-white hover:underline"
+              className="mt-3 inline-block break-all font-mono text-[11px] text-ink-300 underline-offset-4 hover:text-white hover:underline"
             >
               {HEIRLOOM_VAULT}
             </a>
@@ -162,12 +162,12 @@ export function VaultApp({ chain, refresh }: { chain: ChainSnapshot | null; refr
 
       <footer className="mt-20 border-t border-ink-800 px-5 py-8 md:px-8">
         <div className="mx-auto flex max-w-[1500px] flex-wrap items-center justify-between gap-4">
-          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">
+          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-300">
             Coston2 testnet · chain 114
           </p>
           <Link
             to="/"
-            className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-400 hover:text-white"
+            className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-300 hover:text-white"
           >
             ← Back to overview
           </Link>
@@ -196,7 +196,7 @@ function VaultGroup({
     <section>
       <p className="label mb-4">{title}</p>
       {vaults.length === 0 ? (
-        <p className="border border-ink-800 p-8 text-sm text-ink-400">{empty}</p>
+        <p className="border border-ink-800 p-8 text-sm text-ink-300">{empty}</p>
       ) : (
         <div className="grid gap-px bg-ink-800 sm:grid-cols-2 lg:grid-cols-3">
           {vaults.map((v: any) => (
@@ -210,7 +210,7 @@ function VaultGroup({
               <div className="flex w-full items-baseline justify-between">
                 <span
                   className={`font-mono text-[11px] uppercase tracking-[0.18em] ${
-                    selected === v.id ? "text-black/50" : "text-ink-500"
+                    selected === v.id ? "text-black/50" : "text-ink-300"
                   }`}
                 >
                   #{v.id}
@@ -224,7 +224,7 @@ function VaultGroup({
 
               <div
                 className={`font-mono text-[10px] uppercase tracking-wider ${
-                  selected === v.id ? "text-black/50" : "text-ink-500"
+                  selected === v.id ? "text-black/50" : "text-ink-300"
                 }`}
               >
                 tag {v.heartbeatTag} · {v.willAttested ? "sealed" : "unsealed"} · guardians {v.guardians}

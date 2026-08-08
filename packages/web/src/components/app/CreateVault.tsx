@@ -197,7 +197,7 @@ export function CreateVault({
                     </select>
                   </div>
                   <button
-                    className="pb-2.5 font-mono text-xs text-ink-500 hover:text-white"
+                    className="pb-2.5 font-mono text-xs text-ink-300 hover:text-white"
                     onClick={() => setBequests((bs) => bs.filter((_, j) => j !== i))}
                     aria-label={`Remove beneficiary ${i + 1}`}
                     disabled={bequests.length === 1}
@@ -239,7 +239,7 @@ export function CreateVault({
                   spellCheck={false}
                 />
                 <button
-                  className="pb-2.5 font-mono text-xs text-ink-500 hover:text-white"
+                  className="pb-2.5 font-mono text-xs text-ink-300 hover:text-white"
                   onClick={() => {
                     setGuardians((gs) => gs.filter((_, j) => j !== i));
                     setThreshold((t) => Math.min(t, guardians.length - 1));
@@ -279,7 +279,7 @@ export function CreateVault({
                 href={`${EXPLORER}/tx/${txHash}`}
                 target="_blank"
                 rel="noreferrer"
-                className="block break-all font-mono text-[11px] text-ink-400 underline-offset-4 hover:text-white hover:underline"
+                className="block break-all font-mono text-[11px] text-ink-300 underline-offset-4 hover:text-white hover:underline"
               >
                 {txHash}
               </a>
@@ -297,7 +297,7 @@ export function CreateVault({
         <p className="label mb-8">What gets stored on Flare</p>
 
         <div className="mb-9">
-          <div className="label mb-2 text-ink-500">Will commitment</div>
+          <div className="label mb-2 text-ink-300">Will commitment</div>
           {commitment ? (
             <motion.code
               key={commitment}
@@ -308,9 +308,9 @@ export function CreateVault({
               {commitment}
             </motion.code>
           ) : (
-            <p className="font-mono text-[11px] text-ink-500">Complete the will to compute it.</p>
+            <p className="font-mono text-[11px] text-ink-300">Complete the will to compute it.</p>
           )}
-          <p className="mt-3 max-w-[42ch] text-xs leading-relaxed text-ink-400">
+          <p className="mt-3 max-w-[42ch] text-xs leading-relaxed text-ink-300">
             This hash is all the chain ever learns. Beneficiaries and amounts stay off-chain — change any term and
             the hash changes, which is what stops a substituted will from settling.
           </p>
@@ -318,8 +318,8 @@ export function CreateVault({
 
         <div className="mb-6 border-t border-ink-800 pt-7">
           <div className="mb-4 flex items-baseline justify-between gap-4">
-            <div className="label text-ink-500">Distribution preview</div>
-            <label className="flex items-baseline gap-2 font-mono text-[11px] text-ink-400">
+            <div className="label text-ink-300">Distribution preview</div>
+            <label className="flex items-baseline gap-2 font-mono text-[11px] text-ink-300">
               <input
                 className="w-24 border-b border-ink-700 bg-transparent text-right tabular-nums text-white focus:border-white focus:outline-none"
                 inputMode="decimal"
@@ -345,7 +345,7 @@ export function CreateVault({
                       <td className="py-2.5 font-mono text-[11px] text-ink-300">
                         {a.beneficiary.slice(0, 10)}…
                       </td>
-                      <td className="py-2.5 font-mono text-[10px] uppercase tracking-wider text-ink-500">
+                      <td className="py-2.5 font-mono text-[10px] uppercase tracking-wider text-ink-300">
                         {a.source.replace("_", " ").toLowerCase()}
                       </td>
                       <td className="py-2.5 text-right font-mono tabular-nums text-white">
@@ -355,18 +355,18 @@ export function CreateVault({
                   ))}
                 </tbody>
               </table>
-              <p className="mt-4 font-mono text-[10px] uppercase tracking-wider text-ink-500">
+              <p className="mt-4 font-mono text-[10px] uppercase tracking-wider text-ink-300">
                 {(Number(preview.retainedDrops) / 1e6).toFixed(6)} XRP retained for reserve and fees
               </p>
             </>
           ) : (
-            <p className="font-mono text-[11px] text-ink-500">
+            <p className="font-mono text-[11px] text-ink-300">
               {validationError ? "Waiting for a valid will." : "Enter an estate size."}
             </p>
           )}
         </div>
 
-        <p className="max-w-[44ch] text-xs leading-relaxed text-ink-400">
+        <p className="max-w-[44ch] text-xs leading-relaxed text-ink-300">
           This preview runs the exact allocation engine that executes inside the enclave — not a reimplementation.
         </p>
       </div>
@@ -380,7 +380,7 @@ function Section({ title, hint, children }: { title: string; hint?: string; chil
   return (
     <div className="mb-10">
       <h3 className="mb-1 text-base font-semibold tracking-tight">{title}</h3>
-      {hint && <p className="mb-5 max-w-[52ch] text-xs leading-relaxed text-ink-400">{hint}</p>}
+      {hint && <p className="mb-5 max-w-[52ch] text-xs leading-relaxed text-ink-300">{hint}</p>}
       {children}
     </div>
   );
@@ -409,7 +409,7 @@ function NumberField({
           value={value}
           onChange={(e) => onChange(Math.max(min, Number(e.target.value) || 0))}
         />
-        <span className="font-mono text-[11px] text-ink-400">{unit}</span>
+        <span className="font-mono text-[11px] text-ink-300">{unit}</span>
       </span>
     </label>
   );

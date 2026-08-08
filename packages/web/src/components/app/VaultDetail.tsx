@@ -74,7 +74,7 @@ export function VaultDetail({
           <Row label="Owner">
             <span className="font-mono">
               {vault.owner.slice(0, 10)}…{vault.owner.slice(-6)}
-              {isOwner && <span className="ml-2 text-ink-400">(you)</span>}
+              {isOwner && <span className="ml-2 text-ink-300">(you)</span>}
             </span>
           </Row>
           <Row label="Will">{vault.willAttested ? "Sealed and attested" : "Not sealed yet"}</Row>
@@ -86,7 +86,7 @@ export function VaultDetail({
 
         {/* ---- actions ---- */}
         <div className="mt-8 flex flex-wrap gap-3 border-t border-ink-800 pt-6">
-          {!signer && <p className="font-mono text-[11px] text-ink-400">Connect a wallet to act on this vault.</p>}
+          {!signer && <p className="font-mono text-[11px] text-ink-300">Connect a wallet to act on this vault.</p>}
 
           {signer && isOwner && vault.state === "Dormant" && (
             <button className="btn btn-solid" disabled={!!busy} onClick={() => run("revoke", (c) => c.revokeDormancy(vault.id))}>
@@ -113,7 +113,7 @@ export function VaultDetail({
             href={`${EXPLORER}/tx/${txHash}`}
             target="_blank"
             rel="noreferrer"
-            className="mt-5 block break-all font-mono text-[10px] text-ink-400 underline-offset-4 hover:text-white hover:underline"
+            className="mt-5 block break-all font-mono text-[10px] text-ink-300 underline-offset-4 hover:text-white hover:underline"
           >
             ✓ {txHash}
           </a>
@@ -134,7 +134,7 @@ export function VaultDetail({
           <CopyField label="Amount (minimum)" value={`${Number(HEARTBEAT_DROPS) / 1e6} XRP`} />
         </div>
 
-        <p className="mt-7 max-w-[44ch] text-xs leading-relaxed text-ink-400">
+        <p className="mt-7 max-w-[44ch] text-xs leading-relaxed text-ink-300">
           The destination tag is what identifies your vault. A payment without it — or with someone else's — will
           not count, and the same tag is what lets the network later prove that no heartbeat arrived.
         </p>
@@ -143,7 +143,7 @@ export function VaultDetail({
           href={`${XRPL_TESTNET_EXPLORER}/accounts/${BEACON_XRPL_ADDRESS}`}
           target="_blank"
           rel="noreferrer"
-          className="mt-6 inline-block font-mono text-[11px] uppercase tracking-[0.16em] text-ink-400 underline-offset-4 hover:text-white hover:underline"
+          className="mt-6 inline-block font-mono text-[11px] uppercase tracking-[0.16em] text-ink-300 underline-offset-4 hover:text-white hover:underline"
         >
           Beacon on XRPL testnet ↗
         </a>
@@ -158,7 +158,7 @@ export function VaultDetail({
             <Step live>Cancel dormancy, guardian confirmation</Step>
             <Step>Seal and execute the will — needs the TEE extension registered</Step>
           </ul>
-          <p className="mt-4 max-w-[44ch] text-xs leading-relaxed text-ink-500">
+          <p className="mt-4 max-w-[44ch] text-xs leading-relaxed text-ink-300">
             The final step calls into Flare Confidential Compute. The extension is written and tested but not yet
             registered on live FCC infrastructure, so those two actions revert on this deployment.
           </p>
@@ -172,7 +172,7 @@ export function VaultDetail({
 
 function Step({ children, live = false }: { children: React.ReactNode; live?: boolean }) {
   return (
-    <li className={`flex items-baseline gap-3 ${live ? "text-ink-100" : "text-ink-500"}`}>
+    <li className={`flex items-baseline gap-3 ${live ? "text-ink-100" : "text-ink-300"}`}>
       <span className="font-mono text-[10px]">{live ? "●" : "○"}</span>
       <span>{children}</span>
     </li>
@@ -217,7 +217,7 @@ function CopyField({ label, value, emphasise = false }: { label: string; value: 
         }}
       >
         <span className={`break-all font-mono ${emphasise ? "text-xl" : "text-sm"}`}>{value}</span>
-        <span className="shrink-0 font-mono text-[10px] uppercase tracking-wider text-ink-500 group-hover:text-white">
+        <span className="shrink-0 font-mono text-[10px] uppercase tracking-wider text-ink-300 group-hover:text-white">
           {copied ? "copied" : "copy"}
         </span>
       </button>

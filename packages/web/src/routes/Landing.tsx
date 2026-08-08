@@ -1,5 +1,5 @@
-import { motion, useScroll, useSpring, useTransform } from "framer-motion";
-import { useRef } from "react";
+import { AnimatePresence, motion, useMotionValueEvent, useScroll, useSpring, useTransform } from "framer-motion";
+import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Logo, LogoMark } from "../components/Logo";
 import { Ecg, EcgLive } from "../components/landing/Ecg";
@@ -75,7 +75,10 @@ function Hero({ chain }: { chain: ChainSnapshot | null }) {
         <h1 className="font-black uppercase leading-[0.82] tracking-crush text-[clamp(3.2rem,13vw,13rem)]">
           <WordReveal text="Your keys" delay={0.15} />
           <br />
-          <span className="text-ink-500">
+          {/* ink-400 on black is ~3.2:1 — under AA for body copy, but this is
+              display type at 13vw where 3:1 is the bar. Anything darker stops
+              reading as a second voice and starts reading as a rendering bug. */}
+          <span className="text-ink-400">
             <WordReveal text="outlive you." delay={0.3} />
           </span>
         </h1>
@@ -100,7 +103,7 @@ function Hero({ chain }: { chain: ChainSnapshot | null }) {
               href={`${EXPLORER}/address/${HEIRLOOM_VAULT}`}
               target="_blank"
               rel="noreferrer"
-              className="font-mono text-[11px] uppercase tracking-[0.16em] text-ink-400 underline-offset-4 hover:text-white hover:underline"
+              className="font-mono text-[11px] uppercase tracking-[0.16em] text-ink-300 underline-offset-4 hover:text-white hover:underline"
             >
               View contract
             </a>
@@ -116,7 +119,7 @@ function Hero({ chain }: { chain: ChainSnapshot | null }) {
           <Stat label="XRP / USD · FTSO" value={chain?.xrpUsdDisplay ?? "—"} />
           <Stat label="Vaults registered" value={chain ? String(chain.vaultCount) : "—"} />
           <Stat label="Coston2 block" value={chain ? chain.blockNumber.toLocaleString() : "—"} />
-          <Stat label="Test suite" value="49 passing" />
+          <Stat label="Test suite" value="65 passing" />
         </motion.div>
       </motion.div>
     </section>
@@ -197,47 +200,78 @@ function Problem() {
  * The page's central gesture: scrolling this section is what flatlines the
  * trace. The reader performs the silence the protocol detects.
  */
+const BEATS = [
+  {
+    label: "While you live",
+    body: "A dust payment on the XRP Ledger, carrying a tag unique to your vault. That is your heartbeat.",
+  },
+  {
+    label: "Silence",
+    body: "You stop. Nothing happens automatically — silence is not yet proof.",
+  },
+  {
+    label: "FDC · XRPPaymentNonexistence 0x09",
+    body: "Then anyone can prove, cryptographically, that across an entire ledger range no heartbeat exists.",
+  },
+];
+
 function Flatline() {
   const ref = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end end"] });
 
-  const flat = useTransform(scrollYProgress, [0.1, 0.62], [0, 1]);
-  const aliveOpacity = useTransform(scrollYProgress, [0.05, 0.35], [1, 0]);
-  const silentOpacity = useTransform(scrollYProgress, [0.45, 0.7], [0, 1]);
-  const proofOpacity = useTransform(scrollYProgress, [0.72, 0.88], [0, 1]);
-  const proofY = useTransform(scrollYProgress, [0.72, 0.88], [40, 0]);
+  // The trace dies across the middle of the section, so the flatline lands as
+  // the copy reaches "silence" rather than before the reader gets there.
+  const flat = useTransform(scrollYProgress, [0.12, 0.55], [0, 1]);
+
+  // One caption is mounted at a time, chosen by scroll position.
+  //
+  // The previous version cross-faded three absolutely-positioned captions with
+  // independent opacity ramps. Any drift between those ranges — or a viewport
+  // short enough to compress them — put two on screen at once, unreadable. With
+  // a single index and AnimatePresence, overlap is structurally impossible
+  // rather than merely tuned away.
+  const [step, setStep] = useState(0);
+  useMotionValueEvent(scrollYProgress, "change", (p) => {
+    const next = p < 0.36 ? 0 : p < 0.68 ? 1 : 2;
+    setStep((current) => (current === next ? current : next));
+  });
+
+  const beat = BEATS[step];
 
   return (
     <section ref={ref} className="relative h-[320vh]">
-      <div className="sticky top-0 flex h-screen flex-col items-center justify-center overflow-hidden px-6">
-        <div className="w-full max-w-[1400px]">
-          <div className="relative h-[36vh] w-full text-white">
-            <Ecg progress={flat} className="h-full w-full" beats={5} />
-          </div>
+      <div className="sticky top-0 flex h-screen flex-col items-center justify-center gap-8 overflow-hidden px-6 py-16">
+        <div className="w-full max-w-[1400px] shrink text-white">
+          <Ecg progress={flat} className="h-[22vh] w-full md:h-[26vh]" beats={5} />
+        </div>
 
-          <div className="relative mt-14 h-32 text-center">
-            <motion.div style={{ opacity: aliveOpacity }} className="absolute inset-x-0">
-              <p className="label mb-4">Step 02 — while you live</p>
-              <p className="mx-auto max-w-[46ch] text-2xl leading-snug md:text-4xl">
-                A dust payment on the XRP Ledger, carrying a tag unique to your vault. That is your heartbeat.
+        {/* Reserved height keeps the sticky frame from jumping as captions swap,
+            and survives three wrapped lines on a short viewport. */}
+        <div className="flex min-h-[11rem] w-full max-w-[52ch] items-start justify-center text-center md:min-h-[12rem]">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={step}
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -18 }}
+              transition={{ duration: 0.4, ease: EASE }}
+            >
+              <p className="label mb-4">{beat.label}</p>
+              <p className="text-balance text-2xl leading-snug text-white md:text-[2.15rem] md:leading-[1.25]">
+                {beat.body}
               </p>
             </motion.div>
+          </AnimatePresence>
+        </div>
 
-            <motion.div style={{ opacity: silentOpacity }} className="absolute inset-x-0">
-              <p className="label mb-4">Step 03 — silence</p>
-              <p className="mx-auto max-w-[46ch] text-2xl leading-snug md:text-4xl">
-                You stop. Nothing happens automatically — silence is not yet proof.
-              </p>
-            </motion.div>
-
-            <motion.div style={{ opacity: proofOpacity, y: proofY }} className="absolute inset-x-0">
-              <p className="label mb-4">FDC · XRPPaymentNonexistence 0x09</p>
-              <p className="mx-auto max-w-[52ch] text-2xl leading-snug md:text-4xl">
-                Then anyone can prove, cryptographically, that{" "}
-                <span className="text-ink-400">across an entire ledger range no heartbeat exists.</span>
-              </p>
-            </motion.div>
-          </div>
+        {/* Which of the three you are on — otherwise a slow scroll feels stuck. */}
+        <div className="flex gap-2" aria-hidden="true">
+          {BEATS.map((_, i) => (
+            <span
+              key={i}
+              className={`h-px w-8 transition-colors duration-300 ${i === step ? "bg-white" : "bg-ink-700"}`}
+            />
+          ))}
         </div>
       </div>
     </section>
@@ -342,7 +376,7 @@ function Protocols() {
 
         <h2 className="max-w-[24ch] font-black uppercase leading-[0.88] tracking-tightest text-[clamp(2rem,6.5vw,5.5rem)]">
           <WordReveal text="Proving a payment happened is common." />{" "}
-          <span className="text-ink-500">
+          <span className="text-ink-400">
             <WordReveal text="Proving none exists is not." delay={0.2} />
           </span>
         </h2>
@@ -359,7 +393,7 @@ function Protocols() {
           {PROTOCOLS.map(([proto, surface, why], i) => (
             <Rise key={surface} delay={i * 0.05}>
               <div className="group grid grid-cols-1 items-baseline gap-2 border-t border-ink-800 py-7 transition-colors duration-300 hover:border-white md:grid-cols-[110px_1fr_1.3fr] md:gap-8">
-                <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-400 transition-colors group-hover:text-white">
+                <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-300 transition-colors group-hover:text-white">
                   {proto}
                 </span>
                 <span className="font-mono text-sm text-white">{surface}</span>
@@ -377,14 +411,19 @@ function Protocols() {
 /* ------------------------------------------------------------------ */
 
 function Closing() {
-  const ref = useRef<HTMLElement>(null);
-  const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end end"] });
-  const scale = useTransform(scrollYProgress, [0, 1], [0.7, 1]);
-  const opacity = useTransform(scrollYProgress, [0, 0.6], [0, 1]);
-
+  // Deliberately not scroll-linked. Tying opacity to scrollYProgress over a
+  // tall section meant the content sat centred and fully visible while progress
+  // was still near zero — so it rendered invisible exactly when you were
+  // looking at it. A viewport trigger fires when it is actually on screen.
   return (
-    <section ref={ref} className="relative flex min-h-screen flex-col items-center justify-center px-6 py-32">
-      <motion.div style={{ scale, opacity }} className="flex flex-col items-center text-center">
+    <section className="relative flex min-h-screen flex-col items-center justify-center px-6 py-32">
+      <motion.div
+        className="flex flex-col items-center text-center"
+        initial={{ opacity: 0, scale: 0.94, y: 24 }}
+        whileInView={{ opacity: 1, scale: 1, y: 0 }}
+        viewport={{ once: true, amount: 0.3 }}
+        transition={{ duration: 1, ease: EASE }}
+      >
         <LogoMark size={72} className="mb-12 text-white" />
 
         <h2 className="max-w-[16ch] font-black uppercase leading-[0.85] tracking-crush text-[clamp(2.6rem,10vw,9rem)]">
@@ -412,8 +451,8 @@ function Closing() {
       </motion.div>
 
       <footer className="mt-32 flex w-full max-w-[1400px] flex-wrap items-center justify-between gap-4 border-t border-ink-800 pt-8">
-        <Logo size={20} className="text-ink-400" />
-        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-500">
+        <Logo size={20} className="text-ink-300" />
+        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-300">
           Flare Summer Signal 2026 · Coston2 · chain 114
         </p>
       </footer>

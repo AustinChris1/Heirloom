@@ -1,0 +1,14 @@
+# Heirloom TEE extension proxy.
+#
+# Flare's data providers push instructions to whatever URL is recorded on-chain,
+# so this hostname has to stay stable across restarts. It is an Azure DNS label
+# on a *static* public IP, which is exactly why this works where a quick tunnel
+# does not — rotating hostnames are the usual cause of a machine stuck at
+# INITIALIZED forever.
+#
+# Port 6674 is deliberately NOT exposed to the internet. The proxy's HTTP API is
+# unauthenticated, so Caddy terminates TLS on 443 and reaches it over loopback,
+# and the Azure NSG only ever needs 80/443 open.
+sly.southafricanorth.cloudapp.azure.com {
+	reverse_proxy 127.0.0.1:6674
+}

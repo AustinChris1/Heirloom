@@ -75,9 +75,11 @@ For a simulated TEE against real Coston2, the whole stack is free:
 | Requirement | Cost |
 |---|---|
 | Docker + Compose | Free |
-| A stable public hostname | Free on a VPS you already have; otherwise a *named* cloudflared tunnel or reserved ngrok domain |
+| A stable public hostname | Free — an Azure VM's built-in `*.cloudapp.azure.com` DNS label works; otherwise a *named* cloudflared tunnel or reserved ngrok domain |
 | Coston2 gas | Free from the faucet |
 | Indexer-DB credentials | Free — **check the hackathon Telegram's pinned messages**, they are posted there. The `indexer-reader` credentials in the older docs are dead. |
+
+The serving box is smaller than it looks: the three containers total roughly **150–240 MB resident**. The heavy part is *building* the image, and that should happen on your workstation and be shipped over — so even a 1 GB VPS is enough to run it.
 
 `SIMULATED_TEE=true` on Coston2 is explicitly fine for judging; GCP Confidential Space is **not** required.
 

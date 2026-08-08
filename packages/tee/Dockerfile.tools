@@ -1,0 +1,31 @@
+# Toolchain for the FCC deploy CLIs.
+#
+# The scaffold's deploy commands are Go and need Foundry + jq to generate the
+# contract bindings they import transitively. Rather than installing Go and
+# Foundry on the workstation, run them here — the image is throwaway and keeps
+# the host clean. Nothing from this image ships to the VPS.
+#
+#   docker build -f Dockerfile.tools -t heirloom-tools .
+#   docker run --rm -v "$PWD:/w" -w /w heirloom-tools ./scripts/heirloom-register.sh
+
+# 1.25.8 rather than the scaffold's 1.25.1 — the same floor tee-proxy's develop
+# go.mod declares, and go-ethereum's newer releases want it too.
+FROM golang:1.25.8-trixie
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends jq git ca-certificates curl bash \
+    && rm -rf /var/lib/apt/lists/*
+
+# Foundry provides `forge`, used by generate-bindings.sh to compile
+# InstructionSender.sol before abigen turns the ABI into Go.
+RUN curl -L https://foundry.paradigm.xyz | bash \
+    && /root/.foundry/bin/foundryup
+ENV PATH="/root/.foundry/bin:${PATH}"
+
+# abigen is deliberately NOT installed here. pkg/contracts/sign has a
+# `//go:generate go run github.com/ethereum/go-ethereum/cmd/abigen ...`
+# directive, so `go generate` builds it from the version already pinned in
+# go.mod. Installing a second copy just risks a version skew against it.
+
+WORKDIR /w
+CMD ["bash"]

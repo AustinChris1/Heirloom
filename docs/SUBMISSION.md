@@ -81,6 +81,12 @@ Everything in this repository was written during the hackathon. There is no pre-
 
 Target network: **Coston2** (chain ID 114).
 
+| Contract | Address |
+|---|---|
+| **HeirloomVault** | [`0x250B6F94F8779a9CfbD826FD6CCF0a9845DcEb3A`](https://coston2-explorer.flare.network/address/0x250B6F94F8779a9CfbD826FD6CCF0a9845DcEb3A) |
+
+Beacon configured with XRPL address `rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh` (hash `0x22b55aa7…13f6`), heartbeat minimum 1000 drops. Vault `#0` is registered and Active with heartbeat tag `700000000`.
+
 Live protocol dependencies, verified answering:
 
 | Contract | Address |
@@ -90,14 +96,13 @@ Live protocol dependencies, verified answering:
 | FdcHub | `0x48aC463d7975828989331F4De43341627b9c5f1D` |
 | FtsoV2 | `0xC4e9c78EA53db782E28f28Fdf80BaF59336B304d` |
 
-`HeirloomVault` deployment is pending faucet funding for the deployer; the deploy script writes the resulting address to `packages/contracts/deployments/coston2.json`.
+Full deployment record: `packages/contracts/deployments/coston2.json`.
 
 ## Known limitations
 
 Stated up front rather than left to be discovered:
 
-- The TEE extension is **not yet registered on live FCC infrastructure** — that needs Docker, a public tunnel, and indexer-DB credentials from Flare. The extension logic is complete and tested, and the contract-side verification is byte-compatible with what TEE nodes sign (the tests produce real signatures under that scheme and the contract accepts them).
-- `HeirloomVault` is **not yet deployed** to Coston2, pending faucet funding.
+- The TEE extension is **not yet registered on live FCC infrastructure** — that needs Docker, a public tunnel, and indexer-DB credentials from Flare. The extension logic is complete and tested, and the contract-side verification is byte-compatible with what TEE nodes sign (the tests produce real signatures under that scheme and the contract accepts them). See [HOSTING.md](HOSTING.md).
 - The encrypted will currently travels in the instruction payload; the production path is an off-chain blob with only the commitment on-chain, which is what settlement already checks.
 - FXRP delivery is modelled and recorded but the transfer is not implemented.
 

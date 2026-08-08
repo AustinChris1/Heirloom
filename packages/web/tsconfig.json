@@ -10,7 +10,12 @@
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "noEmit": true
+    "noEmit": true,
+    "types": ["vite/client"],
+    "baseUrl": ".",
+    "paths": {
+      "@heirloom/extension/*": ["../extension/src/*"]
+    }
   },
-  "include": ["src"]
+  "include": ["src", "vite.config.ts"]
 }

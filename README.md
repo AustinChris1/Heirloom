@@ -59,12 +59,14 @@ Connected to Coston2 (chainId 114), head block 33,767,053
   FCC extensions:  485 public extension(s) registered
 ```
 
+**`HeirloomVault` is deployed and live on Coston2:**
+[`0x250B6F94F8779a9CfbD826FD6CCF0a9845DcEb3A`](https://coston2-explorer.flare.network/address/0x250B6F94F8779a9CfbD826FD6CCF0a9845DcEb3A)
+
 | Component | State |
 |---|---|
-| `HeirloomVault.sol` — full lifecycle, FDC + FTSO + FCC integration | Complete, 30 tests passing |
+| `HeirloomVault.sol` — full lifecycle, FDC + FTSO + FCC integration | Deployed on Coston2, 30 tests passing |
 | TEE extension — will schema, allocation engine, SEAL/EXECUTE handlers | Complete, 19 tests passing |
-| Demo app — live FTSO reads, allocation preview | Complete, builds clean |
-| Coston2 deployment | Pending faucet funding for the deployer |
+| Demo app — reads the live contract and the live FTSO feed | Complete, builds clean |
 | TEE extension registered on live FCC infrastructure | Not yet — see *Honest limitations* |
 
 ## Repository layout
@@ -73,8 +75,12 @@ Connected to Coston2 (chainId 114), head block 33,767,053
 packages/
   contracts/      Solidity — HeirloomVault, TEE result verification, tests, deploy scripts
   extension/      Flare Compute Extension — will schema, allocation engine, handlers
-  web/            Demo app — live Coston2 reads, interactive will and distribution preview
+  web/            React app — landing page at /, working vault client at /app
 ```
+
+The web app is two surfaces on purpose. `/` is a scroll-driven landing page; `/app` is the working client where you connect a wallet, build a will, create a vault, and act on it. A page that is read and a dashboard that is operated want different designs, so they get different routes.
+
+**What you can actually do at `/app` right now:** connect a wallet and switch to Coston2, compose a will with fixed-dollar, fixed-XRP and percentage bequests, watch the commitment and the full distribution recompute live against the real allocation engine, create a vault on-chain, read every vault's live state, copy the exact XRPL heartbeat payment your vault needs, confirm as a guardian, and cancel a dormancy claim as the owner. Sealing and executing the will call into Flare Confidential Compute and revert until the TEE extension is registered — the UI says so plainly rather than hiding the step.
 
 ## Running it
 
@@ -116,8 +122,7 @@ pnpm exec hardhat run scripts/deploy.ts --network coston2
 
 Stated plainly, because the alternative is a judge discovering them.
 
-- **The TEE extension is not yet registered on live FCC infrastructure.** Registering a Flare Compute Extension requires Docker, an ngrok tunnel, indexer-DB credentials obtained on request from Flare, and a TEE machine registration round-trip. The extension's logic is complete and tested, and the contract's verification of TEE-signed results is byte-compatible with `go-flare-common`'s `signing.TEEActionResult` — the tests sign real ECDSA signatures under that exact scheme and the contract accepts them. What has not happened is running the container against Flare's TEE nodes.
-- **Coston2 deployment is pending faucet funding.** All the code paths are exercised in tests against mocked protocol contracts, and every live protocol dependency has been verified to exist and answer on Coston2.
+- **The TEE extension is not yet registered on live FCC infrastructure.** Registering a Flare Compute Extension requires Docker, a public tunnel to the extension proxy, indexer-DB credentials obtained on request from Flare, and a TEE machine registration round-trip. The extension's logic is complete and tested, and the contract's verification of TEE-signed results is byte-compatible with `go-flare-common`'s `signing.TEEActionResult` — the tests sign real ECDSA signatures under that exact scheme and the contract accepts them. What has not happened is running the container against Flare's TEE nodes. See [docs/HOSTING.md](docs/HOSTING.md).
 - **The encrypted will currently rides in the instruction payload.** Flare's own guidance is explicit that on-chain storage of encrypted secrets is unsuitable for production. The production path is an off-chain blob with only the commitment on-chain; the contract is already structured for it, since the commitment is what settlement checks.
 - **FXRP delivery is modelled but not wired.** `Bequest.flareRecipient` is carried end-to-end and recorded on settlement; the actual FXRP transfer is not implemented.
 

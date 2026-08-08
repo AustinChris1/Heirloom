@@ -1,0 +1,669 @@
+<title>Heirloom — confidential inheritance for XRP</title>
+
+<style>
+  /* ---- tokens: complete light palette on bare :root ---- */
+  :root {
+    --paper: #f6f5f3;
+    --raised: #fffefc;
+    --ink: #16181f;
+    --ink-soft: #464b58;
+    --muted: #6e7382;
+    --rule: #dcd9d4;
+    --rule-soft: #e8e5e0;
+
+    --garnet: #8c2f39;   /* wax seal — the accent */
+    --garnet-wash: rgba(140, 47, 57, 0.07);
+    --brass: #8a6c33;    /* attestation */
+    --brass-wash: rgba(154, 123, 63, 0.1);
+    --sage: #3a6a49;     /* alive */
+    --sage-wash: rgba(64, 112, 79, 0.09);
+
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, "Cascadia Mono", Menlo, Consolas, monospace;
+
+    --measure: 63ch;
+    --shadow: 0 1px 2px rgba(22, 24, 31, 0.05), 0 8px 24px rgba(22, 24, 31, 0.05);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #12141a;
+      --raised: #191c24;
+      --ink: #e9e7e3;
+      --ink-soft: #b3b1ae;
+      --muted: #8a8f9d;
+      --rule: #2b2f3a;
+      --rule-soft: #23272f;
+
+      --garnet: #c95c66;
+      --garnet-wash: rgba(201, 92, 102, 0.12);
+      --brass: #c6a15e;
+      --brass-wash: rgba(198, 161, 94, 0.12);
+      --sage: #6fa981;
+      --sage-wash: rgba(111, 169, 129, 0.12);
+
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper: #12141a;
+    --raised: #191c24;
+    --ink: #e9e7e3;
+    --ink-soft: #b3b1ae;
+    --muted: #8a8f9d;
+    --rule: #2b2f3a;
+    --rule-soft: #23272f;
+
+    --garnet: #c95c66;
+    --garnet-wash: rgba(201, 92, 102, 0.12);
+    --brass: #c6a15e;
+    --brass-wash: rgba(198, 161, 94, 0.12);
+    --sage: #6fa981;
+    --sage-wash: rgba(111, 169, 129, 0.12);
+
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--serif);
+    font-size: 17px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 940px;
+    margin: 0 auto;
+    padding: 0 28px 96px;
+  }
+
+  /* ---- ledger rule: a hairline margin column, like a register ---- */
+  .section {
+    display: grid;
+    grid-template-columns: 152px minmax(0, 1fr);
+    gap: 0 36px;
+    padding: 44px 0;
+    border-top: 1px solid var(--rule);
+  }
+
+  .section > .marker {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding-top: 5px;
+  }
+
+  .section > .body { min-width: 0; }
+
+  @media (max-width: 760px) {
+    .section { grid-template-columns: 1fr; gap: 12px; }
+    .section > .marker { padding-top: 0; }
+  }
+
+  p { margin: 0 0 1em; max-width: var(--measure); color: var(--ink-soft); }
+  p.lead { color: var(--ink); font-size: 19px; }
+  p:last-child { margin-bottom: 0; }
+
+  h2 {
+    font-size: 27px;
+    line-height: 1.24;
+    letter-spacing: -0.014em;
+    margin: 0 0 0.55em;
+    text-wrap: balance;
+    font-weight: 600;
+  }
+
+  h3 {
+    font-size: 17px;
+    margin: 0 0 0.4em;
+    font-weight: 600;
+    text-wrap: balance;
+  }
+
+  code, .mono { font-family: var(--mono); font-size: 0.855em; }
+
+  code {
+    background: var(--rule-soft);
+    padding: 0.1em 0.36em;
+    border-radius: 3px;
+    color: var(--ink);
+  }
+
+  em { font-style: italic; }
+  strong { font-weight: 600; color: var(--ink); }
+
+  /* ---- masthead ---- */
+  .masthead { padding: 76px 0 52px; }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--garnet);
+    margin: 0 0 22px;
+  }
+
+  h1 {
+    font-size: clamp(44px, 7vw, 76px);
+    line-height: 1.02;
+    letter-spacing: -0.032em;
+    margin: 0 0 0.28em;
+    font-weight: 600;
+  }
+
+  .standfirst {
+    font-size: clamp(20px, 2.6vw, 26px);
+    line-height: 1.42;
+    color: var(--ink);
+    max-width: 30ch;
+    margin: 0 0 26px;
+    text-wrap: balance;
+  }
+
+  .deck { max-width: var(--measure); font-size: 17.5px; }
+
+  .bounties {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 30px;
+  }
+
+  .tag {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.05em;
+    padding: 5px 11px;
+    border-radius: 3px;
+    border: 1px solid var(--rule);
+    color: var(--muted);
+  }
+
+  .tag.on { border-color: var(--garnet); color: var(--garnet); background: var(--garnet-wash); }
+
+  /* ---- the four bad options ---- */
+  .options { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); border-radius: 5px; overflow: hidden; margin-bottom: 26px; }
+  .option { background: var(--raised); padding: 15px 18px; display: grid; grid-template-columns: 190px minmax(0, 1fr); gap: 18px; align-items: baseline; }
+  .option dt { font-weight: 600; font-size: 15.5px; }
+  .option dd { margin: 0; color: var(--ink-soft); font-size: 15.5px; }
+  @media (max-width: 620px) { .option { grid-template-columns: 1fr; gap: 3px; } }
+
+  /* ---- lifecycle: genuinely sequential, so genuinely numbered ---- */
+  .lifecycle { display: grid; gap: 0; margin: 4px 0 0; }
+
+  .stage {
+    display: grid;
+    grid-template-columns: 30px minmax(0, 1fr);
+    gap: 20px;
+    padding: 0 0 26px;
+    position: relative;
+  }
+
+  .stage:not(:last-child)::before {
+    content: "";
+    position: absolute;
+    left: 14px;
+    top: 26px;
+    bottom: 0;
+    width: 1px;
+    background: var(--rule);
+  }
+
+  .step-n {
+    font-family: var(--mono);
+    font-size: 11px;
+    width: 29px;
+    height: 29px;
+    border-radius: 50%;
+    border: 1px solid var(--rule);
+    background: var(--raised);
+    color: var(--muted);
+    display: grid;
+    place-items: center;
+    position: relative;
+    z-index: 1;
+  }
+
+  .stage.alive .step-n { border-color: var(--sage); color: var(--sage); background: var(--sage-wash); }
+  .stage.seal  .step-n { border-color: var(--garnet); color: var(--garnet); background: var(--garnet-wash); }
+
+  .stage h3 { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+
+  .proof {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.04em;
+    padding: 3px 8px;
+    border-radius: 3px;
+    background: var(--brass-wash);
+    color: var(--brass);
+    font-weight: 400;
+    white-space: nowrap;
+  }
+
+  .stage p { font-size: 16px; margin-bottom: 0; }
+
+  .reversal {
+    margin-top: 12px;
+    padding: 12px 16px;
+    border-left: 2px solid var(--sage);
+    background: var(--sage-wash);
+    border-radius: 0 4px 4px 0;
+  }
+  .reversal p { color: var(--ink); margin: 0; font-size: 15.5px; }
+
+  /* ---- the seal: one flourish, spent here ---- */
+  .seal-block {
+    display: grid;
+    grid-template-columns: 108px minmax(0, 1fr);
+    gap: 26px;
+    align-items: center;
+    padding: 24px;
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    background: var(--raised);
+    box-shadow: var(--shadow);
+    margin-top: 8px;
+  }
+  @media (max-width: 620px) { .seal-block { grid-template-columns: 1fr; justify-items: start; } }
+
+  .seal { width: 108px; height: 108px; display: block; }
+  .seal-block p { font-size: 15.5px; margin-bottom: 0.7em; }
+  .seal-block .hash {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--garnet);
+    word-break: break-all;
+    line-height: 1.5;
+    display: block;
+  }
+
+  /* ---- integration ledger ---- */
+  .ledger { border: 1px solid var(--rule); border-radius: 5px; overflow: hidden; }
+  .row {
+    display: grid;
+    grid-template-columns: 92px 1fr 1.55fr;
+    gap: 20px;
+    padding: 16px 18px;
+    background: var(--raised);
+    border-bottom: 1px solid var(--rule-soft);
+    align-items: start;
+  }
+  .row:last-child { border-bottom: 0; }
+
+  .proto {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.07em;
+    color: var(--garnet);
+    padding-top: 2px;
+  }
+  .row .what { font-weight: 600; font-size: 15.5px; }
+  .row .what .surface { display: block; font-family: var(--mono); font-size: 11px; font-weight: 400; color: var(--muted); margin-top: 3px; letter-spacing: 0.01em; }
+  .row .why { color: var(--ink-soft); font-size: 15.5px; }
+
+  @media (max-width: 760px) {
+    .row { grid-template-columns: 1fr; gap: 6px; }
+  }
+
+  /* ---- pull quote for the key insight ---- */
+  .insight {
+    border-left: 2px solid var(--garnet);
+    padding: 4px 0 4px 22px;
+    margin: 0 0 22px;
+  }
+  .insight p { font-size: 19.5px; line-height: 1.46; color: var(--ink); max-width: 46ch; text-wrap: balance; }
+
+  /* ---- status ---- */
+  .status { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); border-radius: 5px; overflow: hidden; }
+  .st {
+    background: var(--raised);
+    padding: 13px 18px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 16px;
+    align-items: center;
+    font-size: 15.5px;
+  }
+  .pill {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.05em;
+    padding: 3px 9px;
+    border-radius: 3px;
+    white-space: nowrap;
+    border: 1px solid currentColor;
+  }
+  .pill.done { color: var(--sage); background: var(--sage-wash); }
+  .pill.wait { color: var(--brass); background: var(--brass-wash); }
+
+  .readout {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    line-height: 1.85;
+    background: var(--raised);
+    border: 1px solid var(--rule);
+    border-radius: 5px;
+    padding: 16px 18px;
+    overflow-x: auto;
+    color: var(--ink-soft);
+    margin-top: 18px;
+  }
+  .readout .k { color: var(--sage); }
+  .readout .v { color: var(--garnet); }
+
+  .limits { margin: 0; padding: 0; list-style: none; display: grid; gap: 13px; }
+  .limits li { padding-left: 18px; position: relative; color: var(--ink-soft); max-width: var(--measure); font-size: 16px; }
+  .limits li::before { content: "—"; position: absolute; left: 0; color: var(--brass); }
+
+  footer {
+    border-top: 1px solid var(--rule);
+    padding-top: 22px;
+    margin-top: 44px;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--muted);
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  a { color: var(--garnet); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  a:focus-visible, .tag:focus-visible { outline: 2px solid var(--garnet); outline-offset: 3px; border-radius: 2px; }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="eyebrow">Flare Summer Signal</p>
+    <h1>Heirloom</h1>
+    <p class="standfirst">Confidential inheritance and programmable custody for native XRP.</p>
+    <p class="deck">
+      A trustless dead-man's switch. The will is sealed inside a Flare Confidential Compute enclave, the heartbeat
+      is proven by the Flare Data Connector, and the XRP never has to leave the XRP Ledger.
+    </p>
+    <div class="bounties">
+      <span class="tag on">Interoperable Asset Products</span>
+      <span class="tag on">Confidential Compute Apps</span>
+      <span class="tag">Coston2</span>
+      <span class="tag">49 tests passing</span>
+    </div>
+  </header>
+
+  <section class="section">
+    <div class="marker">The problem</div>
+    <div class="body">
+      <h2>Nobody has a safe answer to “what happens if I'm not here?”</h2>
+      <p class="lead">
+        Billions in crypto are lost forever when holders die. XRP's holder base skews long-term retail — people who
+        bought years ago and hold in self-custody. It is exactly the population least likely to have an estate plan,
+        and every option available to them today is bad.
+      </p>
+      <dl class="options">
+        <div class="option">
+          <dt>Give someone your keys</dt>
+          <dd>They can take everything today, while you are alive and well.</dd>
+        </div>
+        <div class="option">
+          <dt>Use a custodian</dt>
+          <dd>You stop self-custodying, which is the thing you were doing on purpose.</dd>
+        </div>
+        <div class="option">
+          <dt>Write a legal will</dt>
+          <dd>The seed phrase ends up in a document handled by people you did not choose. Probate is public.</dd>
+        </div>
+        <div class="option">
+          <dt>Do nothing</dt>
+          <dd>The coins are lost forever. This is what almost everyone does.</dd>
+        </div>
+      </dl>
+      <p>
+        What is missing is a way to say <em>“if I am gone, distribute my XRP like this”</em> that nobody can act on
+        early, nobody can read while you are alive, and nobody has to be trusted to carry out.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="marker">How it works</div>
+    <div class="body">
+      <h2>Four stages, and only one of them is irreversible</h2>
+
+      <div class="lifecycle">
+        <div class="stage seal">
+          <div class="step-n">1</div>
+          <div>
+            <h3>Seal <span class="proof">FCC · HEIRLOOM/SEAL</span></h3>
+            <p>
+              Alice writes her will and it is encrypted to the enclave's key before it leaves her browser. Flare
+              stores only a commitment. The enclave then decrypts it <em>while she is alive</em> and attests that it
+              is readable — because a corrupt ciphertext discovered at execution is discovered too late to fix.
+            </p>
+          </div>
+        </div>
+
+        <div class="stage alive">
+          <div class="step-n">2</div>
+          <div>
+            <h3>Live <span class="proof">FDC · XRPPayment 0x08</span></h3>
+            <p>
+              She sends a periodic dust payment on the XRP Ledger to a shared beacon, carrying a destination tag
+              unique to her vault. It costs a fraction of a cent and needs no Flare-side key. Anyone may relay the
+              proof, so a holder who is alive but offline stays protected.
+            </p>
+          </div>
+        </div>
+
+        <div class="stage">
+          <div class="step-n">3</div>
+          <div>
+            <h3>Silence <span class="proof">FDC · XRPPaymentNonexistence 0x09</span></h3>
+            <p>
+              She stops. Anyone can now prove, cryptographically, that across an entire ledger range no tagged
+              heartbeat reached the beacon. This opens a grace window. It releases nothing.
+            </p>
+            <div class="reversal">
+              <p>
+                One late heartbeat — or Alice's own transaction — returns the vault to living and clears every
+                guardian approval. Dormancy is a claim, not a verdict.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="stage">
+          <div class="step-n">4</div>
+          <div>
+            <h3>Distribute <span class="proof">FCC · TEE-signed settlement</span></h3>
+            <p>
+              Only after the grace window elapses <em>and</em> guardians confirm does the enclave decrypt the will,
+              price it against FTSO, and sign the XRPL payments. Flare verifies the signature and the commitment
+              before recording the estate as settled. No custodian, no lawyer, no key handover — and nobody ever
+              saw the will.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="seal-block">
+        <svg class="seal" viewBox="0 0 108 108" role="img" aria-label="Wax seal representing the on-chain will commitment">
+          <circle cx="54" cy="54" r="41" fill="var(--garnet-wash)" stroke="var(--garnet)" stroke-width="1.25"/>
+          <circle cx="54" cy="54" r="33" fill="none" stroke="var(--garnet)" stroke-width="0.6" stroke-dasharray="2 3.5" opacity="0.7"/>
+          <text x="54" y="52" text-anchor="middle" font-family="ui-monospace, monospace" font-size="15" font-weight="600" fill="var(--garnet)">0x9f</text>
+          <text x="54" y="67" text-anchor="middle" font-family="ui-monospace, monospace" font-size="7.5" letter-spacing="1.4" fill="var(--garnet)" opacity="0.85">SEALED</text>
+        </svg>
+        <div>
+          <h3>All the chain ever learns</h3>
+          <p>
+            A single hash over the will's canonical encoding. Change one beneficiary, one dollar, one basis point,
+            and it changes — which is precisely what stops a substituted will from settling.
+          </p>
+          <span class="hash">0x9f3c…a417 &nbsp;·&nbsp; keccak256(vaultId, estate, bequests[])</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="marker">Why Flare</div>
+    <div class="body">
+      <h2>This product is not portable to another chain</h2>
+
+      <div class="insight">
+        <p>
+          Proving a payment happened is common. Proving that across an entire ledger range <em>no</em> matching
+          payment exists is a fundamentally harder claim — and FDC is the only oracle that makes it verifiable
+          on-chain.
+        </p>
+      </div>
+
+      <p>
+        Without <code>XRPPaymentNonexistence</code> there is no trustless dead-man's switch, only a keeper you have
+        to trust to tell the truth about silence. Four enshrined protocols each carry weight nothing else provides:
+      </p>
+
+      <div class="ledger">
+        <div class="row">
+          <div class="proto">FDC</div>
+          <div class="what">Proof of life<span class="surface">XRPPayment · 0x08</span></div>
+          <div class="why">Verified against the estate's own XRPL source address, so nobody can heartbeat on a dead holder's behalf.</div>
+        </div>
+        <div class="row">
+          <div class="proto">FDC</div>
+          <div class="what">Proof of silence<span class="surface">XRPPaymentNonexistence · 0x09</span></div>
+          <div class="why">The dead-man's switch itself. The contract pins the search range and amount bound rather than trusting the claimant's parameters.</div>
+        </div>
+        <div class="row">
+          <div class="proto">FCC</div>
+          <div class="what">The sealed will<span class="surface">TEE extension · HEIRLOOM</span></div>
+          <div class="why">Decrypts, allocates, and signs inside hardware isolation. The chain verifies the enclave's signature without ever seeing a beneficiary.</div>
+        </div>
+        <div class="row">
+          <div class="proto">FTSO</div>
+          <div class="what">Fiat-denominated bequests<span class="surface">XRP/USD block-latency feed</span></div>
+          <div class="why">Lets a will say “$50,000 to my daughter” rather than a drop count fixed years earlier. Re-checked on-chain at settlement.</div>
+        </div>
+        <div class="row">
+          <div class="proto">FAssets</div>
+          <div class="what">Optional delivery rail<span class="surface">FXRP</span></div>
+          <div class="why">A beneficiary may elect FXRP on Flare instead of native XRP, landing directly in XRPFi rather than on a ledger they have never used.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="marker">Safety</div>
+    <div class="body">
+      <h2>The dangerous failure is not theft — it is a false positive</h2>
+      <p>
+        Distributing a living person's estate is worse than failing to distribute a dead one's, so every design
+        decision leans that way. <strong>Guardians confirm; they never seize</strong> — they cannot read the will,
+        alter a term, or move funds. The worst a fully colluding guardian set can do is fail to slow down a claim
+        that was already cryptographically proven.
+      </p>
+      <p>
+        Three independent gates gate every settlement. The signature must recover to the registered TEE address,
+        proving an attested enclave produced it. The revealed commitment must match what was sealed, proving it
+        executed <em>this</em> will. And the price the enclave used must sit within 5% of the live FTSO feed,
+        bounding how far a stale price could skew a fiat bequest.
+      </p>
+      <p>
+        When the estate cannot cover every fixed bequest, the bequests <strong>abate proportionally</strong> rather
+        than being paid in list order until the money runs out. That is how estates actually settle — and the
+        alternative silently rewrites the testator's intent based on an arbitrary ordering.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="marker">Status</div>
+    <div class="body">
+      <h2>Built during the program, verified against live Coston2</h2>
+
+      <div class="status">
+        <div class="st"><span>Vault contract — deployed and answering on Coston2</span><span class="pill done">live</span></div>
+        <div class="st"><span>Vault contract — full lifecycle, FDC + FTSO + FCC integration</span><span class="pill done">30 tests</span></div>
+        <div class="st"><span>TEE extension — will schema, allocation engine, SEAL/EXECUTE</span><span class="pill done">19 tests</span></div>
+        <div class="st"><span>Demo app — reads the deployed contract and the live FTSO feed</span><span class="pill done">builds clean</span></div>
+        <div class="st"><span>Extension registered on live FCC infrastructure</span><span class="pill wait">not yet</span></div>
+      </div>
+
+      <div class="readout">
+<span class="k">HeirloomVault</span> @ <span class="v">0x250B6F94F8779a9CfbD826FD6CCF0a9845DcEb3A</span>
+
+  beaconHash:      0x22b55aa701468fed59df32fa0b7c86a7d73469e97c06f7ce24777c9433be13f6
+  heartbeatDrops:  1000
+  FTSO XRP/USD:    <span class="v">$1.034178</span>
+  100,000 XRP  =   <span class="v">$103,417.80</span>
+
+  vault 0
+    state:         <span class="k">Active</span>
+    heartbeatTag:  <span class="v">700000000</span>
+    due in:        90 days
+    overdue:       false
+      </div>
+
+      <p style="margin-top:18px">
+        Live protocol dependencies all verified answering on Coston2: <code>FlareTeeManager</code>,
+        <code>FdcVerification</code>, <code>FdcHub</code>, <code>FtsoV2</code> — with
+        <strong>485 public FCC extensions</strong> already registered on the network.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="marker">Limitations</div>
+    <div class="body">
+      <h2>Stated up front, because the alternative is a judge finding them</h2>
+      <ul class="limits">
+        <li>
+          The TEE extension is <strong>not yet registered on live FCC infrastructure</strong> — that needs Docker, a
+          public tunnel, and indexer-DB credentials from Flare. The logic is complete and tested, and the
+          contract-side verification is byte-compatible with what TEE nodes actually sign: the tests produce real
+          ECDSA signatures under that scheme and the contract accepts them.
+        </li>
+        <li>The encrypted will currently rides in the instruction payload. The production path is an off-chain blob with only the commitment on-chain — which is already what settlement checks.</li>
+        <li>FXRP delivery is modelled and recorded end-to-end, but the transfer itself is not wired.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="marker">What's next</div>
+    <div class="body">
+      <h2>Inheritance is the demo, not the product</h2>
+      <p class="lead">
+        The primitive underneath is private, programmable rules governing native XRP, enforced by an enclave and
+        triggered by provable on-ledger facts. The same machinery covers social recovery, vesting and savings locks,
+        and corporate treasury continuity when a signer goes dark.
+      </p>
+      <p>
+        The allocation engine is deterministic precisely so independent enclaves can be cross-checked rather than
+        trusted individually — <code>getRandomTeeIds</code> already supports fanning one instruction out to several.
+      </p>
+      <p>
+        Flare is working to bring more than two billion idle XRP into programmable finance. A meaningful share of it
+        is idle precisely because its owners have no safe answer to <em>what happens if I am not here</em>. Heirloom
+        is a reason for that XRP to touch Flare that has nothing to do with yield — which is what makes it durable
+        in a way yield products are not.
+      </p>
+    </div>
+  </section>
+
+  <footer>
+    <span>Heirloom · Flare Summer Signal 2026</span>
+    <span>Coston2 · chain ID 114</span>
+  </footer>
+
+</div>

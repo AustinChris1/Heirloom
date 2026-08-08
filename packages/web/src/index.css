@@ -1,0 +1,91 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    @apply bg-black text-white font-sans antialiased;
+    /* The whole product is monochrome; nothing should introduce hue. */
+  }
+
+  ::selection {
+    @apply bg-white text-black;
+  }
+
+  /* Focus is visible and unmistakable in a palette with no accent colour. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-white ring-offset-2 ring-offset-black;
+  }
+
+  input,
+  select,
+  textarea {
+    @apply bg-transparent;
+  }
+
+  /* Kill the number-input spinners; they break the typographic rhythm. */
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
+}
+
+@layer components {
+  /* Film grain. Sells the monochrome as a deliberate material rather than an
+     absence of colour. Pure CSS so nothing external is fetched. */
+  .grain::before {
+    content: "";
+    position: fixed;
+    inset: -50%;
+    z-index: 50;
+    pointer-events: none;
+    opacity: 0.035;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .rule {
+    @apply border-ink-800;
+  }
+
+  .label {
+    @apply font-mono text-[10px] uppercase tracking-[0.22em] text-ink-400;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 font-mono text-[11px] uppercase tracking-[0.16em]
+           px-5 py-3 border border-white/25 text-white transition-colors duration-200
+           hover:bg-white hover:text-black disabled:opacity-30 disabled:pointer-events-none;
+  }
+
+  .btn-solid {
+    @apply bg-white text-black border-white hover:bg-ink-100;
+  }
+
+  .field {
+    @apply w-full border-b border-ink-700 py-2.5 text-white placeholder:text-ink-500
+           focus:border-white focus:outline-none focus:ring-0 transition-colors;
+  }
+
+  .card {
+    @apply border border-ink-800 bg-ink-900/40 backdrop-blur-sm;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

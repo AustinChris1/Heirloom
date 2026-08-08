@@ -1,0 +1,21 @@
+{
+  "network": "coston2",
+  "chainId": 114,
+  "deployedAt": "2026-08-08T05:22:52.105Z",
+  "deployer": "0xe15c11b07C0f7954A7CAD170B39B49661A4db59C",
+  "contracts": {
+    "HeirloomVault": "0x250B6F94F8779a9CfbD826FD6CCF0a9845DcEb3A"
+  },
+  "flareContracts": {
+    "FlareTeeManager": "0x1a9C4A0f9D76c0b1D91d22E24E573a9b377618aE",
+    "FdcVerification": "0x906507E0B64bcD494Db73bd0459d1C667e14B933",
+    "FdcHub": "0x48aC463d7975828989331F4De43341627b9c5f1D",
+    "FtsoV2": "0xC4e9c78EA53db782E28f28Fdf80BaF59336B304d"
+  },
+  "beacon": {
+    "xrplAddress": "rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh",
+    "addressHash": "0x22b55aa701468fed59df32fa0b7c86a7d73469e97c06f7ce24777c9433be13f6",
+    "heartbeatDrops": "1000"
+  },
+  "explorer": "https://coston2-explorer.flare.network/address/0x250B6F94F8779a9CfbD826FD6CCF0a9845DcEb3A"
+}

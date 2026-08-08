@@ -1,0 +1,22 @@
+{
+  "name": "@heirloom/extension",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Heirloom Flare Compute Extension — runs inside a TEE, decrypts the sealed will, and returns a signed XRPL distribution.",
+  "type": "commonjs",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "start": "node dist/server.js"
+  },
+  "dependencies": {
+    "ethers": "^6.13.4",
+    "ripple-address-codec": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.5"
+  }
+}

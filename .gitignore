@@ -1,0 +1,17 @@
+node_modules/
+dist/
+build/
+.env
+.env.local
+*.local
+
+# Hardhat
+artifacts/
+cache/
+typechain-types/
+
+# Reference clone of flare-foundation/flare-ai-skills, not part of this project
+.flare-ref/
+
+.DS_Store
+*.log

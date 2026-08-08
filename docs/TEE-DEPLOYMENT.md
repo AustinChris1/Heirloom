@@ -152,13 +152,28 @@ If that returns `machineData` with a `codeHash`, the URL you are about to write 
 
 The notice warns that a node older than v0.0.22 has **every data-provider vote rejected**, so the instruction queue stays empty forever and the stack looks merely slow rather than broken. The scaffold ships below that floor in two places, and neither is reachable from `.env` as delivered:
 
-| Where | Shipped default | Upstream latest | Fixed to |
-|---|---|---|---|
-| `typescript/Dockerfile` — `ARG TEE_NODE_VERSION` | `v0.0.21` | `v0.0.25` | `develop` |
-| `proxy/Dockerfile` — `ARG TEE_PROXY_VERSION` | `v0.0.18` | `v0.0.21` | `develop` |
-| `proxy/Dockerfile` — Go base image | `golang:1.25.1-alpine` | — | `golang:1.25.8-alpine` |
+| Where | Shipped default | Fixed to |
+|---|---|---|
+| `typescript/Dockerfile` — `ARG TEE_NODE_VERSION` | `v0.0.21` | `v0.0.23` |
+| `go/go.mod` and `go/tools/go.mod` — `tee-node` | `v0.0.21-0.2026…` | `v0.0.23` |
+| `go/go.mod` and `go/tools/go.mod` — `go-flare-common` | `…20260623…` | `…20260727094511-09a10067e6a4` |
+| `proxy/Dockerfile` — `ARG TEE_PROXY_VERSION` | `v0.0.18` | `develop` |
+| `proxy/Dockerfile` — Go base image | `golang:1.25.1-alpine` | `golang:1.25.8-alpine` |
 
-The Go bump is a consequence of the first two: tee-proxy's `develop` declares `go >= 1.25.8` in its `go.mod`, and the golang base image sets `GOTOOLCHAIN=local`, so building `develop` on 1.25.1 dies at `go mod download` with `go.mod requires go >= 1.25.8` instead of fetching a newer toolchain. Anyone following the notice's "track develop" instruction on a stock checkout hits this immediately.
+**Newest is not the same as aligned.** tee-node and tee-proxy share a wire format that is still moving, so the node has to match what the proxy expects rather than lead it. The authority is tee-proxy's own `go.mod`:
+
+```
+# https://raw.githubusercontent.com/flare-foundation/tee-proxy/develop/go.mod
+go 1.25.8
+github.com/flare-foundation/tee-node v0.0.23
+github.com/flare-foundation/go-flare-common v1.2.2-0.20260727094511-09a10067e6a4
+```
+
+So the aligned set is tee-proxy on `develop` with tee-node pinned to **v0.0.23** — above the v0.0.22 floor, and exactly what the proxy was built against. Tracking `develop` on *both* looks tidier but risks pulling a node newer than the proxy understands, which presents as instructions that register fine and then never relay. Bumping one side alone is the documented way to break this.
+
+Three files carry a tee-node version and all three must agree: the Dockerfile arg (the runtime binary), and the two `go.mod` files (the deploy CLIs). Run `go mod tidy` after changing them.
+
+The Go base-image bump follows from the same `go.mod`: it declares `go 1.25.8`, and the golang image sets `GOTOOLCHAIN=local`, so building on 1.25.1 dies at `go mod download` with `go.mod requires go >= 1.25.8` rather than fetching a newer toolchain.
 
 Worse, setting those as environment variables does nothing on a stock checkout: `docker-compose.yaml` only forwarded `SOURCE_DATE_EPOCH` as a build arg, and `start-services.sh` invoked `docker build` for the proxy with no `--build-arg` at all. Both now forward the refs, and `.env.local.coston2` pins `TEE_NODE_VERSION=develop` / `TEE_PROXY_VERSION=develop`.
 
@@ -274,6 +289,29 @@ cast send 0x250B6F94F8779a9CfbD826FD6CCF0a9845DcEb3A "setTeeAddress(address)" <t
 `setExtensionId()` scans the registry from `0x10000` for the extension bound to the vault's address and caches it. It is set-once, so it will revert if called twice — and it will revert with `ExtensionNotFound` if step 5 registered against the wrong sender.
 
 `setTeeAddress` registers the key that settlements must recover to. Until it is set, `sealWill` and `requestExecution` route fine but `confirmSeal` / `settleEstate` reject everything with `TeeNotConfigured`.
+
+## TEE identity does not survive a container restart
+
+Confirmed by Flare in the hackathon group: the runtime generates a **new TEE identity** every time the container restarts, and there is no supported way to restore the old one. The sanctioned recovery is to register a *replacement* machine, not to resurrect the previous `teeId`. Reusing the same public URL is fine as long as it now resolves to the replacement.
+
+That has a direct consequence for Heirloom, and the contract is already built for it:
+
+- `setExtensionId()` is **set-once** — correct, because the extension id is stable across restarts.
+- `setTeeAddress(address)` is **owner-only and re-callable** — also correct, because it has to be updated after every restart.
+
+So the restart drill is: bring the container back, re-run `post-build.sh` to register the replacement machine, then call `setTeeAddress` with the new `teeId`. Skip that last step and every settlement reverts with `UnauthorizedTee`, because the contract is still checking signatures against a machine that no longer exists.
+
+Before a demo, check what the chain thinks is live rather than what your container thinks:
+
+- <https://coston2-systems-explorer.flare.network/tee/objects> — filter to the extension id and read the STATUS column. Repeated `register-tee` runs leave dead machines behind.
+- `getTeeMachineStatus(teeId)` → `1` = INITIALIZED, `2` = PRODUCTION.
+- `getTeeMachine(teeId)` → confirm the recorded URL is the one you are actually serving.
+
+## If instructions register but never relay
+
+A team hit this with a custom op named `VRF`/`PROVE`. Anything starting with `F_` is reserved, and reusing a system command word (`PAY`, `REISSUE`, `VRF`, `PROVE`, `KEY_GENERATE`, `TEE_INFO`) can stop an instruction being relayed.
+
+Heirloom uses `HEIRLOOM` / `SEAL` and `HEIRLOOM` / `EXECUTE`. The opType is unmistakably ours and none of the strings appear on that reserved list, so the risk is low — but `EXECUTE` is generic enough to be worth ruling out early. The cheap test is to send a `SEAL` instruction as soon as the proxy is live and watch whether it reaches `POST /instruction`. If it does not, renaming means changing the `bytes32` constants in `HeirloomVault.sol`, which are compile-time — that is a redeploy plus re-registration, so find out before demo day rather than during it.
 
 ## What lights up when this works
 

@@ -156,11 +156,12 @@ export function VaultDetail({
             <Step live>Heartbeat on XRPL, proven via FDC XRPPayment</Step>
             <Step live>Dormancy via FDC XRPPaymentNonexistence</Step>
             <Step live>Cancel dormancy, guardian confirmation</Step>
-            <Step>Seal and execute the will — needs the TEE extension registered</Step>
+            <Step live>Route SEAL / EXECUTE to the enclave via Confidential Compute</Step>
           </ul>
           <p className="mt-4 max-w-[44ch] text-xs leading-relaxed text-ink-300">
-            The final step calls into Flare Confidential Compute. The extension is written and tested but not yet
-            registered on live FCC infrastructure, so those two actions revert on this deployment.
+            The enclave is registered and serving at status PRODUCTION on extension 66025, and instructions from
+            this vault reach it. Sealing additionally needs the will encrypted to the enclave's public key — that
+            client-side step is the one piece still to land.
           </p>
         </div>
       </div>

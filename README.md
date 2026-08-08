@@ -59,15 +59,23 @@ Connected to Coston2 (chainId 114), head block 33,767,053
   FCC extensions:  485 public extension(s) registered
 ```
 
-**`HeirloomVault` is deployed and live on Coston2:**
-[`0x250B6F94F8779a9CfbD826FD6CCF0a9845DcEb3A`](https://coston2-explorer.flare.network/address/0x250B6F94F8779a9CfbD826FD6CCF0a9845DcEb3A)
+**Live on Coston2, end to end.**
+
+| | |
+|---|---|
+| `HeirloomVault` | [`0x250B6F94F8779a9CfbD826FD6CCF0a9845DcEb3A`](https://coston2-explorer.flare.network/address/0x250B6F94F8779a9CfbD826FD6CCF0a9845DcEb3A) |
+| FCC extension id | `66025` — registered with the vault itself as the InstructionSender |
+| TEE machine | `0xb1c696717eedEb7e215f381d81f8edaA185eE60c` — on-chain status **2 (PRODUCTION)** |
+| Enclave endpoint | `https://sly.southafricanorth.cloudapp.azure.com` |
+
+A `HEIRLOOM`/`SEAL` instruction sent from the vault has been observed arriving at the enclave through Flare's data providers — the confidential-compute path is not a diagram, it runs.
 
 | Component | State |
 |---|---|
 | `HeirloomVault.sol` — full lifecycle, FDC + FTSO + FCC integration | Deployed on Coston2, 30 tests passing |
 | TEE extension — will schema, allocation engine, SEAL/EXECUTE handlers | Complete, 19 tests passing |
 | Demo app — reads the live contract and the live FTSO feed | Complete, builds clean |
-| TEE extension registered on live FCC infrastructure | Not yet — see *Honest limitations* |
+| TEE extension registered on live FCC infrastructure | **Live** — extension 66025, TEE machine `0xb1c6…E60c` at status 2 (PRODUCTION) |
 
 ## Repository layout
 
@@ -122,7 +130,7 @@ pnpm exec hardhat run scripts/deploy.ts --network coston2
 
 Stated plainly, because the alternative is a judge discovering them.
 
-- **The TEE extension is not yet registered on live FCC infrastructure.** Registering a Flare Compute Extension requires Docker, a public tunnel to the extension proxy, indexer-DB credentials obtained on request from Flare, and a TEE machine registration round-trip. The extension's logic is complete and tested, and the contract's verification of TEE-signed results is byte-compatible with `go-flare-common`'s `signing.TEEActionResult` — the tests sign real ECDSA signatures under that exact scheme and the contract accepts them. What has not happened is running the container against Flare's TEE nodes. See [docs/HOSTING.md](docs/HOSTING.md).
+- **Sealing a will still needs the payload ECIES-encrypted to the enclave's public key.** The relay itself is proven: a `HEIRLOOM`/`SEAL` instruction sent from the deployed vault reached the enclave through Flare's data providers and was rejected at exactly the right step — `node returned 400: can not decrypt` — because the test payload was deliberate junk. Everything up to and including the enclave's decrypt call is live; what remains is the client-side encryption step, so the demo currently seals against a payload the enclave cannot open.
 - **The encrypted will currently rides in the instruction payload.** Flare's own guidance is explicit that on-chain storage of encrypted secrets is unsuitable for production. The production path is an off-chain blob with only the commitment on-chain; the contract is already structured for it, since the commitment is what settlement checks.
 - **FXRP delivery is modelled but not wired.** `Bequest.flareRecipient` is carried end-to-end and recorded on settlement; the actual FXRP transfer is not implemented.
 

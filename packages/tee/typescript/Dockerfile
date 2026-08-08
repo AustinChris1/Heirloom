@@ -23,7 +23,15 @@ WORKDIR /build
 
 # tee-node is cloned from the published GitHub repo at build time — no on-disk
 # sibling checkout required. Override the ref with the TEE_NODE_VERSION build arg.
-ARG TEE_NODE_VERSION=v0.0.21
+# v0.0.23, not v0.0.21 and not develop.
+#
+# The floor is v0.0.22 (older nodes get every data-provider vote rejected), but
+# "newest" is the wrong target: tee-node and tee-proxy share a wire format that
+# is still moving, so the node must match what the proxy expects rather than
+# lead it. tee-proxy@develop pins `tee-node v0.0.23` in its own go.mod, so that
+# is the aligned version. Keep this in step with proxy/Dockerfile and the two
+# go.mod files — bumping one side alone is the documented way to break relaying.
+ARG TEE_NODE_VERSION=v0.0.23
 RUN git clone --depth 1 --branch ${TEE_NODE_VERSION} https://github.com/flare-foundation/tee-node.git ./tee-node
 
 WORKDIR /build/tee-node

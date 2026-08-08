@@ -25,6 +25,7 @@ export function Landing({ chain }: { chain: ChainSnapshot | null }) {
       <Flatline />
       <Lifecycle />
       <Protocols />
+      <Boundaries />
       <Closing />
     </div>
   );
@@ -409,6 +410,69 @@ function Protocols() {
 }
 
 /* ------------------------------------------------------------------ */
+
+const CANNOT = [
+  ["Move funds early", "Settlement requires a proof of silence covering the full interval. There is no code path from a live vault to a payout."],
+  ["Pay someone else", "The distribution must hash to the commitment the owner sealed. A substituted will produces a different hash and is rejected on-chain."],
+  ["Act alone", "Flare verifies the enclave's signature, the commitment, and that the price used sits within 5% of the live FTSO feed — three independent checks, none of which the enclave supplies."],
+  ["Outvote the owner", "One late heartbeat returns the vault to living and clears every guardian approval. The owner overrules everyone, right up to execution."],
+  ["Read anything twice", "The will is encrypted to the enclave before it leaves the browser. Flare stores a hash. Nothing recoverable is ever published."],
+];
+
+/**
+ * Pre-empts the sharpest question a technical reader has: the enclave is a
+ * trusted component, so why trust it? The honest answer is that it is trusted
+ * with confidentiality but not with authority.
+ */
+function Boundaries() {
+  return (
+    <section className="relative border-t border-ink-800 px-6 py-32 md:px-10 md:py-44">
+      <div className="mx-auto max-w-[1400px]">
+        <Rise>
+          <p className="label mb-10">The trust boundary</p>
+        </Rise>
+
+        <h2 className="max-w-[22ch] font-black uppercase leading-[0.88] tracking-tightest text-[clamp(2rem,6.5vw,5.5rem)]">
+          <WordReveal text="The enclave holds your secret." />{" "}
+          <span className="text-ink-400">
+            <WordReveal text="It does not hold your money." delay={0.2} />
+          </span>
+        </h2>
+
+        <Rise delay={0.1} className="mt-10">
+          <p className="max-w-[62ch] text-lg leading-relaxed text-ink-200">
+            A hardware enclave is still a component you have to trust, and any honest reading of this design has
+            to say what happens if that trust is misplaced. So the enclave was given exactly one power — reading a
+            will nobody else can read — and no authority over whether, when, or to whom anything moves.
+          </p>
+        </Rise>
+
+        <div className="mt-16">
+          {CANNOT.map(([title, body], i) => (
+            <Rise key={title} delay={i * 0.05}>
+              <div className="grid grid-cols-1 gap-3 border-t border-ink-800 py-8 md:grid-cols-[minmax(0,20rem)_1fr] md:gap-12">
+                <h3 className="text-xl font-semibold tracking-tight md:text-2xl">
+                  <span className="text-ink-500">It cannot </span>
+                  {title.toLowerCase()}
+                </h3>
+                <p className="max-w-[58ch] leading-relaxed text-ink-200">{body}</p>
+              </div>
+            </Rise>
+          ))}
+          <DrawRule />
+        </div>
+
+        <Rise delay={0.1} className="mt-14">
+          <p className="max-w-[62ch] text-lg leading-relaxed text-ink-200">
+            A compromised enclave leaks the contents of a will. That is a real and serious failure — and it is
+            strictly smaller than the failure every alternative already accepts, where somebody can simply take
+            the coins.
+          </p>
+        </Rise>
+      </div>
+    </section>
+  );
+}
 
 function Closing() {
   // Deliberately not scroll-linked. Tying opacity to scrollYProgress over a

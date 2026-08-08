@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <!--
+    The Heirloom mark: a seal crossed by a cardiac pulse that beats once and
+    goes flat. Drawn on a solid ground rather than transparent so it stays
+    legible on both light and dark browser chrome, and stroked thicker than the
+    in-app logo because favicons render at 16px.
+  -->
+  <rect width="48" height="48" rx="10" fill="#000000"/>
+  <circle cx="24" cy="24" r="17" fill="none" stroke="#ffffff" stroke-width="1.75" opacity="0.45"/>
+  <circle cx="24" cy="24" r="13" fill="none" stroke="#ffffff" stroke-width="1" stroke-dasharray="1.5 3" opacity="0.55"/>
+  <path d="M5 24 H15 L17.5 24 L20 13 L24 35 L26.5 24 L29 24 H43"
+        fill="none" stroke="#ffffff" stroke-width="2.75"
+        stroke-linecap="square" stroke-linejoin="miter"/>
+</svg>

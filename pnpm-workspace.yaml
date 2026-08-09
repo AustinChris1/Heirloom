@@ -2,3 +2,6 @@ packages:
   - "packages/contracts"
   - "packages/extension"
   - "packages/web"
+  # Remotion compositions for the submission video. Not part of the deployed
+  # app — Vercel installs with --filter @heirloom/web... and never sees this.
+  - "packages/video"

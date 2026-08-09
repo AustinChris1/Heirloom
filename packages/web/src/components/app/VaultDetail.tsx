@@ -1,6 +1,7 @@
 import { Contract, JsonRpcProvider, JsonRpcSigner } from "ethers";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
+import { AttestationFlow } from "./AttestationFlow";
 import { COSTON2_RPC } from "../../lib/chain";
 import { HEIRLOOM_VAULT, VAULT_ABI } from "../../lib/deployment";
 import { LiveVault } from "../../lib/chain";
@@ -180,6 +181,8 @@ export function VaultDetail({
         >
           Beacon on XRPL testnet ↗
         </a>
+
+        <AttestationFlow vault={vault} signer={signer} onChanged={onChanged} />
 
         {/* What is live on this deployment, and what still needs infrastructure. */}
         <div className="mt-9 border-t border-ink-800 pt-6">

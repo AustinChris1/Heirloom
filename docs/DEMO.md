@@ -68,6 +68,17 @@ Submit. Show the transaction confirming.
 
 **This is the centrepiece. Both legs are real attestations, not mocks.**
 
+> **Do this in the web app, not the terminal.** The vault panel now has a
+> **Prove life** field and a **Claim dormancy** button that run the whole FDC
+> flow in the browser: prepare → submit (wallet signs) → wait for the round →
+> fetch the proof → submit it. A five-step progress strip and a real progress
+> bar show the round finalising.
+>
+> Judges will not run scripts. Showing it clickable is worth far more than
+> showing it in a terminal — and the wait is the same either way, so cut it in
+> the edit and say you did. The scripts below remain the fallback if a wallet
+> misbehaves on the day.
+
 > "To stay alive I send a dust payment on the XRP Ledger carrying the destination tag unique to my vault. A fraction of a cent, no Flare-side key, and anyone can relay the proof for me."
 
 ```bash
@@ -118,7 +129,15 @@ pnpm exec hardhat run scripts/health.ts --network coston2
 
 > "Status 2 — production. Registered TEE machine on extension 66025, wired to the vault, serving over TLS from my own box. All systems go."
 
-## 2:45 — The trust boundary (15s)
+## 2:40 — Dormancy is a claim, not a verdict (15s)
+
+The vault you just made dormant is still sitting there. Click **I'm alive — cancel**.
+
+> "And here is the safety valve. The owner overrules everyone. One late heartbeat — or this button — returns the vault to living and clears every guardian approval. Nothing about this is a countdown to death."
+
+That is a single click, it already works, and it answers the question every judge is forming.
+
+## 2:55 — The trust boundary (15s)
 
 Scroll the landing page to **The enclave holds your secret. It does not hold your money.**
 

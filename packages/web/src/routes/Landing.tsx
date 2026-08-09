@@ -91,9 +91,8 @@ function Hero({ chain }: { chain: ChainSnapshot | null }) {
           transition={{ delay: 1.05, duration: 1, ease: EASE }}
         >
           <p className="max-w-[54ch] text-lg leading-relaxed text-ink-200 md:text-xl">
-            Heirloom is a trustless dead-man's switch for XRP. Your will is sealed inside a hardware enclave,
-            your heartbeat is proven on the XRP Ledger, and your estate is distributed only after you have
-            genuinely gone silent. Nobody holds your keys. Nobody reads your will.
+            A trustless dead-man's switch for XRP. Your will stays sealed inside a hardware enclave until the
+            ledger itself proves you have gone silent.
           </p>
 
           <div className="flex flex-wrap items-center gap-4">

@@ -45,3 +45,6 @@ packages/tee/lib/
 
 # Node deps inside the vendored scaffold
 packages/tee/typescript/node_modules/
+
+# Rendered video output — large binaries, regenerate with pnpm remotion render
+packages/video/out/

@@ -79,29 +79,36 @@ Keep that transaction hash — proving life needs it.
 
 ## 3. Prove you're alive
 
-The payment alone doesn't reset the clock; Flare has to be *shown* it happened. That means an FDC attestation:
+The payment alone doesn't reset the clock; Flare has to be *shown* it happened. That means an FDC attestation — and the app runs the whole thing for you.
 
-1. Ask the FDC verifier to prepare an `XRPPayment` request for your transaction hash (source `testXRP`).
-2. Submit it to `FdcHub.requestAttestation`, paying the fee.
-3. Wait for the voting round to finalise (90–180 seconds).
-4. Fetch the Merkle proof from the DA Layer.
-5. Call `proveLife(vaultId, proof)` on the vault.
+Open your vault, find **Attestations → Prove life**, paste the XRPL transaction hash from step 2, and click **Attest and submit**. The app then:
+
+1. Asks the verifier to encode an `XRPPayment` request.
+2. Submits it to `FdcHub.requestAttestation` — **your wallet signs this**, and pays a fee of roughly 10⁻¹⁵ C2FLR.
+3. Waits for the voting round to finalise. **This takes 90–180 seconds** and is shown as a real progress bar. That wait is data providers reaching consensus, not the page hanging.
+4. Fetches the Merkle proof from the DA Layer.
+5. Calls `proveLife`, which your wallet also signs.
 
 The contract verifies the proof, checks the payment went to the beacon with *your* tag from *your* account, and resets `lastHeartbeat`.
 
-Anyone can relay this for you — the proof is self-contained, so being offline never puts you at risk.
-
-> **Note:** the verifier needs a real API key. The all-zeros default returns 401. Request one in the Flare hackathon Telegram.
+**Anyone can relay this** — it does not have to be the owner. The proof is self-contained, so being offline never puts you at risk.
 
 ## 4. Claim dormancy
 
-Once the interval has elapsed with no heartbeat, anyone can prove the *absence* of one:
+Once the interval has elapsed with no heartbeat, anyone can prove the *absence* of one. In the app: **Attestations → Claim dormancy**. The button only enables when the vault is Active *and* overdue.
 
-1. Prepare an `XRPPaymentNonexistence` request covering the ledger range of the whole interval, with your vault's destination tag.
-2. Submit, wait, fetch the proof as above.
-3. Call `claimDormancy(vaultId, proof)`.
+Same five steps, but the request is an `XRPPaymentNonexistence` over a 400-ledger range carrying your vault's destination tag. The app reads the ledger range from XRPL itself and pins the amount to `heartbeatDrops - 1`, which is what the contract requires.
 
 The vault moves to **Dormant** and the grace window opens. Nothing has moved yet.
+
+### From the command line instead
+
+Both flows also exist as scripts, which is useful for scripted demos or if a wallet misbehaves:
+
+```bash
+pnpm exec hardhat run scripts/live-heartbeat.ts --network coston2
+VAULT_ID=<n> pnpm exec hardhat run scripts/claim-dormancy.ts --network coston2
+```
 
 ## 5. Cancel — the important one
 
@@ -140,8 +147,8 @@ So a guardian's only power is to *withhold* confirmation. Colluding guardians ca
 | Create vault, guardians, commitment | **Live on Coston2** — verified |
 | FTSO XRP/USD pricing | **Live** — verified |
 | Distribution preview (real allocation engine) | **Live** — verified |
-| **`proveLife` via real FDC `XRPPayment` proof** | **Live** — real XRPL payment attested and accepted on-chain |
-| **`claimDormancy` via real FDC `XRPPaymentNonexistence` proof** | **Live** — vault driven Active → Dormant by a real nonexistence attestation |
+| **`proveLife` via real FDC `XRPPayment` proof** | **Live, and clickable in the app** — real XRPL payment attested and accepted on-chain |
+| **`claimDormancy` via real FDC `XRPPaymentNonexistence` proof** | **Live, and clickable in the app** — vault driven Active → Dormant by a real nonexistence attestation |
 | Cancel dormancy, guardian confirmation | **Live** |
 | Confidential Compute routing (`HEIRLOOM`/`SEAL`) | **Live** — instruction observed reaching the enclave |
 | TEE machine | **Live** — status 2 (PRODUCTION), extension 66025 |

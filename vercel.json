@@ -4,5 +4,15 @@
   "installCommand": "pnpm install --filter @heirloom/web... --no-frozen-lockfile",
   "buildCommand": "pnpm --filter @heirloom/web build",
   "outputDirectory": "packages/web/dist",
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "rewrites": [
+    {
+      "source": "/da/:path*",
+      "destination": "https://ctn2-data-availability.flare.network/:path*"
+    },
+    {
+      "source": "/xrpl",
+      "destination": "https://s.altnet.rippletest.net:51234/"
+    },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
 }

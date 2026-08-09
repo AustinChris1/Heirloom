@@ -15,7 +15,14 @@ export function VaultApp({ chain, refresh }: { chain: ChainSnapshot | null; refr
   const [tab, setTab] = useState<Tab>("vaults");
   const [selected, setSelected] = useState<number | null>(null);
 
-  const vaults = chain?.vaults ?? [];
+  // Closed vaults stay on-chain forever, but showing them clutters the list —
+  // especially after a round of testing. Hidden by default, revealable.
+  const [showClosed, setShowClosed] = useState(false);
+  const allVaults = chain?.vaults ?? [];
+  const closedCount = allVaults.filter((v) => v.state === "Revoked" || v.state === "Settled").length;
+  const vaults = showClosed
+    ? allVaults
+    : allVaults.filter((v) => v.state !== "Revoked" && v.state !== "Settled");
   const mine = wallet.address
     ? vaults.filter((v) => v.owner.toLowerCase() === wallet.address!.toLowerCase())
     : [];
@@ -143,6 +150,15 @@ export function VaultApp({ chain, refresh }: { chain: ChainSnapshot | null; refr
                 onSelect={setSelected}
                 empty="No vaults registered yet. Create the first one."
               />
+
+              {closedCount > 0 && (
+                <button
+                  className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-300 underline-offset-4 hover:text-white hover:underline"
+                  onClick={() => setShowClosed((s) => !s)}
+                >
+                  {showClosed ? "Hide" : "Show"} {closedCount} closed vault{closedCount === 1 ? "" : "s"}
+                </button>
+              )}
 
               <AnimatePresence>
                 {shown && (

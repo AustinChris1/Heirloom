@@ -23,6 +23,8 @@ export const VAULT_ABI = [
   "function heartbeatDrops() view returns (uint256)",
   "function beaconAddressHash() view returns (bytes32)",
   "function heartbeatTag(uint256) pure returns (uint32)",
+  "function isGuardian(uint256, address) view returns (bool)",
+  "function hasApproved(uint256, address) view returns (bool)",
   "function xrpUsdPrice() view returns (uint256, uint64)",
   "function timeUntilHeartbeatDue(uint256) view returns (uint64)",
   "function isHeartbeatOverdue(uint256) view returns (bool)",

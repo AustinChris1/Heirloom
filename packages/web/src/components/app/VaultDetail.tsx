@@ -1,6 +1,8 @@
-import { JsonRpcSigner } from "ethers";
+import { Contract, JsonRpcProvider, JsonRpcSigner } from "ethers";
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { COSTON2_RPC } from "../../lib/chain";
+import { HEIRLOOM_VAULT, VAULT_ABI } from "../../lib/deployment";
 import { LiveVault } from "../../lib/chain";
 import {
   BEACON_XRPL_ADDRESS,
@@ -30,6 +32,25 @@ export function VaultDetail({
   const [txHash, setTxHash] = useState<string | null>(null);
 
   const isOwner = !!address && address.toLowerCase() === vault.owner.toLowerCase();
+
+  // Guardianship is independent of ownership — the contract lets an owner also
+  // be a guardian — so this has to be read per address rather than inferred
+  // from "not the owner", which is what the first version got wrong.
+  const [role, setRole] = useState({ guardian: false, approved: false });
+  useEffect(() => {
+    if (!address) {
+      setRole({ guardian: false, approved: false });
+      return;
+    }
+    let cancelled = false;
+    const read = new Contract(HEIRLOOM_VAULT, VAULT_ABI, new JsonRpcProvider(COSTON2_RPC));
+    Promise.all([read.isGuardian(vault.id, address), read.hasApproved(vault.id, address)])
+      .then(([guardian, approved]) => !cancelled && setRole({ guardian, approved }))
+      .catch(() => !cancelled && setRole({ guardian: false, approved: false }));
+    return () => {
+      cancelled = true;
+    };
+  }, [address, vault.id, vault.guardianApprovals, vault.state]);
 
   async function run(name: string, fn: (c: ReturnType<typeof vaultWithSigner>) => Promise<any>) {
     if (!signer) return;
@@ -94,10 +115,22 @@ export function VaultDetail({
             </button>
           )}
 
-          {signer && vault.state === "Dormant" && !isOwner && (
+          {signer && vault.state === "Dormant" && role.guardian && !role.approved && (
             <button className="btn" disabled={!!busy} onClick={() => run("approve", (c) => c.guardianApprove(vault.id))}>
               {busy === "approve" ? "Confirming…" : "Confirm as guardian"}
             </button>
+          )}
+
+          {signer && role.guardian && role.approved && vault.state === "Dormant" && (
+            <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-ink-300">
+              ✓ You have confirmed
+            </span>
+          )}
+
+          {signer && role.guardian && vault.state === "Active" && (
+            <span className="font-mono text-[11px] text-ink-300">
+              You are a guardian here. Nothing to confirm while the vault is alive.
+            </span>
           )}
 
           {signer && isOwner && vault.state !== "Settled" && vault.state !== "Revoked" && (

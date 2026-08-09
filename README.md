@@ -70,6 +70,8 @@ Connected to Coston2 (chainId 114), head block 33,767,053
 
 A `HEIRLOOM`/`SEAL` instruction sent from the vault has been observed arriving at the enclave through Flare's data providers — the confidential-compute path is not a diagram, it runs.
 
+**→ [How to use it](docs/USAGE.md)** · **[Demo script](docs/DEMO.md)** · **[TEE deployment](docs/TEE-DEPLOYMENT.md)**
+
 | Component | State |
 |---|---|
 | `HeirloomVault.sol` — full lifecycle, FDC + FTSO + FCC integration | Deployed on Coston2, 30 tests passing |
@@ -130,7 +132,7 @@ pnpm exec hardhat run scripts/deploy.ts --network coston2
 
 Stated plainly, because the alternative is a judge discovering them.
 
-- **Sealing a will still needs the payload ECIES-encrypted to the enclave's public key.** The relay itself is proven: a `HEIRLOOM`/`SEAL` instruction sent from the deployed vault reached the enclave through Flare's data providers and was rejected at exactly the right step — `node returned 400: can not decrypt` — because the test payload was deliberate junk. Everything up to and including the enclave's decrypt call is live; what remains is the client-side encryption step, so the demo currently seals against a payload the enclave cannot open.
+- **Sealing a will still needs the payload ECIES-encrypted to the enclave's public key.** *(The two FDC legs — `proveLife` and `claimDormancy` — now run against live attestations, not mocks; see [USAGE.md](docs/USAGE.md) for transaction hashes.)* The relay itself is proven: a `HEIRLOOM`/`SEAL` instruction sent from the deployed vault reached the enclave through Flare's data providers and was rejected at exactly the right step — `node returned 400: can not decrypt` — because the test payload was deliberate junk. Everything up to and including the enclave's decrypt call is live; what remains is the client-side encryption step, so the demo currently seals against a payload the enclave cannot open.
 - **The encrypted will currently rides in the instruction payload.** Flare's own guidance is explicit that on-chain storage of encrypted secrets is unsuitable for production. The production path is an off-chain blob with only the commitment on-chain; the contract is already structured for it, since the commitment is what settlement checks.
 - **FXRP delivery is modelled but not wired.** `Bequest.flareRecipient` is carried end-to-end and recorded on settlement; the actual FXRP transfer is not implemented.
 

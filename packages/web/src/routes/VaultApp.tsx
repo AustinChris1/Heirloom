@@ -37,6 +37,12 @@ export function VaultApp({ chain, refresh }: { chain: ChainSnapshot | null; refr
           </Link>
 
           <div className="flex flex-wrap items-center gap-3">
+            <Link
+              to="/docs"
+              className="font-mono text-[11px] uppercase tracking-[0.16em] text-ink-300 underline-offset-4 hover:text-white hover:underline"
+            >
+              Docs
+            </Link>
             {chain && (
               <span className="hidden font-mono text-[11px] text-ink-300 sm:inline">
                 XRP {chain.xrpUsdDisplay}

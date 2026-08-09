@@ -73,18 +73,14 @@ export function vaultWithSigner(signer: JsonRpcSigner): Contract {
   return new Contract(HEIRLOOM_VAULT, VAULT_ABI_WRITE, signer);
 }
 
-/** Write surface. Kept separate from the read ABI so intent is obvious at the call site. */
-export const VAULT_ABI_WRITE = [
-  ...VAULT_ABI,
-  "function createVault(bytes32 _xrplAccountHash, uint64 _heartbeatInterval, uint64 _graceWindow, address[] _guardians, uint32 _guardianThreshold, bytes32 _willCommitment) returns (uint256)",
-  "function sealWill(uint256 _vaultId, bytes _encryptedWill) payable returns (bytes32)",
-  "function revokeDormancy(uint256 _vaultId)",
-  "function revokeVault(uint256 _vaultId)",
-  "function guardianApprove(uint256 _vaultId)",
-  "function requestExecution(uint256 _vaultId, bytes _encryptedWill, uint256 _estateDrops) payable returns (bytes32)",
-  "function guardiansOf(uint256) view returns (address[])",
-  "event VaultCreated(uint256 indexed vaultId, address indexed owner, bytes32 xrplAccountHash, uint32 heartbeatTag)",
-] as const;
+/**
+ * Reads and writes share one generated ABI.
+ *
+ * They were split when the ABI was hand-written, which is how `proveLife` and
+ * `claimDormancy` ended up missing from both lists. The generated artifact
+ * covers the whole contract, so there is nothing left to keep in sync.
+ */
+export const VAULT_ABI_WRITE = VAULT_ABI;
 
 /** FDC's standard address hash: keccak256 over the address string, not lowercased. */
 export function xrplAddressHash(address: string): string {

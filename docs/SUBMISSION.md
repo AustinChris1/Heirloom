@@ -2,7 +2,7 @@
 
 Filled against the required fields from the [hackathon brief](https://dorahacks.io/hackathon/flaresummersignal/detail).
 
-> **Status:** live on Coston2 and XRPL testnet. Both FDC attestation legs — proof of life and **proof of silence** — have been executed against real infrastructure and accepted on-chain. A Flare Compute Extension is registered (id `66025`) with a self-hosted TEE machine at status **PRODUCTION**, and `HEIRLOOM/SEAL` instructions from the vault have been observed arriving at the enclave. Transaction hashes are in [Demo](#demo); remaining gaps are in [Known limitations](#known-limitations).
+> **Status:** live on Coston2 and XRPL testnet. Both FDC attestation legs — proof of life and **proof of silence** — have been executed against real infrastructure and accepted on-chain, **including from the web app itself**, where a visitor can run a full attestation with their own wallet. A Flare Compute Extension is registered (id `66025`) with a self-hosted TEE machine at status **PRODUCTION**, and `HEIRLOOM/SEAL` instructions from the vault have been observed arriving at the enclave. Transaction hashes are in [Demo](#demo); remaining gaps are in [Known limitations](#known-limitations).
 
 ---
 
@@ -46,8 +46,12 @@ Everything below runs against live Coston2 and live XRPL testnet. Nothing is moc
 | | |
 |---|---|
 | XRPL heartbeat payment | [`84C0227…EDB8D`](https://testnet.xrpl.org/transactions/84C022779EF8DE35134FFB4C263A6A81CF150DE6C4BFFAE0D6DD4D369A7EDB8D) |
-| `proveLife` accepted | `0xeafa132a60f30289001fda05debbc40b99c19230cc263d911c095ccd4c3f5d1b` |
-| `claimDormancy` accepted | `0x2f4bf71b10d33e43f65843e144c144ef68a9fdd2e567efa24a0f2f97f2949ee7` |
+| `proveLife` accepted (script) | `0xeafa132a60f30289001fda05debbc40b99c19230cc263d911c095ccd4c3f5d1b` |
+| `claimDormancy` accepted (script) | `0x2f4bf71b10d33e43f65843e144c144ef68a9fdd2e567efa24a0f2f97f2949ee7` |
+| **`proveLife` accepted — driven entirely from the web app** | `0x432299785c27536c48a0594e83cf064cb2f9eaec5f2bbd583d68b1dd4a3f30a9` |
+| **`claimDormancy` accepted — driven entirely from the web app** | `0x2203734cb790196287e1b6b2f2a53fdf5d756df53c4178883bf4335b8bd63c26` |
+
+That last one matters: a visitor pasted an XRPL transaction hash into the app and the browser ran the whole attestation — encoded the request at the verifier, submitted it to `FdcHub` with their own wallet, waited out the voting round, pulled the Merkle proof from the DA Layer, and submitted it to the vault. No terminal, no operator keys. Proving life and proving silence are permissionless by design, and the app demonstrates that rather than describing it.
 | `SEAL` reaching the enclave | proxy log: `opType HEIRLOOM, opCommand SEAL … node returned 400: can not decrypt` — the instruction arrived and failed at the decrypt step, as designed for a deliberately junk payload |
 
 ## GitHub repo

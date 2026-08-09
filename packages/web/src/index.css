@@ -81,6 +81,110 @@
   }
 }
 
+@layer components {
+  /* Markdown rendering for /docs. Written by hand rather than via a typography
+     plugin, because the defaults introduce colour and this site has none. */
+  .prose-mono {
+    @apply max-w-[78ch] text-[15px] leading-relaxed text-ink-200;
+  }
+
+  .prose-mono h1 {
+    @apply mb-6 mt-0 font-black uppercase leading-[0.95] tracking-tightest text-white text-[clamp(2rem,4.5vw,3.2rem)];
+  }
+  .prose-mono h2 {
+    @apply mb-4 mt-14 border-t border-ink-800 pt-8 text-2xl font-semibold tracking-tight text-white;
+  }
+  .prose-mono h3 {
+    @apply mb-3 mt-9 text-lg font-semibold tracking-tight text-white;
+  }
+  .prose-mono h4 {
+    @apply mb-2 mt-7 text-base font-semibold text-white;
+  }
+
+  .prose-mono p {
+    @apply my-4;
+  }
+  .prose-mono strong {
+    @apply font-semibold text-white;
+  }
+  .prose-mono em {
+    @apply italic text-ink-100;
+  }
+
+  .prose-mono a {
+    @apply text-white underline decoration-ink-500 underline-offset-4 transition-colors hover:decoration-white;
+  }
+
+  .prose-mono ul,
+  .prose-mono ol {
+    @apply my-4 space-y-2 pl-5;
+  }
+  .prose-mono ul {
+    @apply list-disc marker:text-ink-500;
+  }
+  .prose-mono ol {
+    @apply list-decimal marker:text-ink-500;
+  }
+  .prose-mono li > ul,
+  .prose-mono li > ol {
+    @apply my-2;
+  }
+
+  .prose-mono code {
+    @apply rounded-sm bg-ink-900 px-1.5 py-0.5 font-mono text-[0.85em] text-white;
+  }
+  .prose-mono pre {
+    @apply my-6 overflow-x-auto border border-ink-800 bg-ink-900/60 p-5;
+  }
+  .prose-mono pre code {
+    @apply bg-transparent p-0 text-[13px] leading-relaxed text-ink-100;
+  }
+
+  .prose-mono blockquote {
+    @apply my-6 border-l-2 border-ink-600 py-1 pl-5 text-ink-300;
+  }
+
+  /* Tables carry a lot of this project's evidence, so they get real attention. */
+  .prose-mono table {
+    @apply my-6 w-full border-collapse text-sm;
+  }
+  .prose-mono thead {
+    @apply border-b border-ink-600;
+  }
+  .prose-mono th {
+    @apply px-3 py-2.5 text-left font-mono text-[10px] uppercase tracking-[0.14em] text-ink-300;
+  }
+  .prose-mono td {
+    @apply border-b border-ink-800 px-3 py-2.5 align-top;
+  }
+  .prose-mono td code {
+    @apply whitespace-nowrap;
+  }
+
+  .prose-mono hr {
+    @apply my-12 border-ink-800;
+  }
+
+  .prose-mono img {
+    @apply max-w-full;
+  }
+
+  /* Wide content must scroll inside itself, never the page. */
+  .prose-mono > * {
+    @apply max-w-full;
+  }
+  .prose-mono table {
+    @apply block overflow-x-auto md:table;
+  }
+
+  .prose-mono details {
+    @apply my-5 border border-ink-800 p-4;
+  }
+  .prose-mono summary {
+    @apply cursor-pointer font-mono text-[11px] uppercase tracking-[0.14em] text-ink-300 hover:text-white;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

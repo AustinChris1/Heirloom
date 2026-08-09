@@ -20,8 +20,10 @@ Target: **3 minutes of finished video**. Every beat below is something that genu
       `pnpm exec hardhat run scripts/health.ts --network coston2` → must end `✓ ALL SYSTEMS GO`.
       If the TEE is not status 2, the VPS container restarted and **the TEE identity changed**: re-run `post-build.sh`, then `set-tee-address.ts`.
 - [ ] **Create a fresh vault for the dormancy demo**, because a vault can only go dormant once:
-      `INTERVAL=120 pnpm exec hardhat run scripts/create-short-vault.ts --network coston2` → note the `VAULT_ID`.
-      Wait 120 seconds before running `claim-dormancy.ts` against it.
+      `pnpm exec hardhat run scripts/create-short-vault.ts --network coston2` → note the `VAULT_ID`.
+      Defaults to a 120-second interval; wait that long before claiming.
+- [ ] **Shell note (PowerShell):** `VAR=value command` is bash syntax and is a parse error in PowerShell.
+      Use `$env:VAR="value"; command` instead — e.g. `$env:VAULT_ID="5"; pnpm exec hardhat run ...`
 - [ ] Deployer has C2FLR.
 - [ ] Browser at 1280×720 or larger, zoom 100%, dark room for the black UI.
 - [ ] Proxy logs tailing in a second window — you will want them live on camera.
@@ -78,6 +80,20 @@ Submit. Show the transaction confirming.
 > showing it in a terminal — and the wait is the same either way, so cut it in
 > the edit and say you did. The scripts below remain the fallback if a wallet
 > misbehaves on the day.
+>
+> **Verified working end to end from the browser:** `proveLife` tx
+> `0x43229978…30a9` advanced vault #1's heartbeat by a full interval.
+>
+> **Send the heartbeat with a script, not a wallet.** The destination tag hides
+> behind an "advanced" toggle in most extensions, and Crossmark on Windows
+> cannot reliably scroll to it. A payment without the tag succeeds on XRPL and
+> silently fails to count — a miserable thing to hit on camera.
+>
+> ```bash
+> VAULT_ID=<n> pnpm exec hardhat run scripts/send-heartbeat.ts --network coston2
+> ```
+>
+> It prints the hash to paste straight into **Prove life**.
 
 > "To stay alive I send a dust payment on the XRP Ledger carrying the destination tag unique to my vault. A fraction of a cent, no Flare-side key, and anyone can relay the proof for me."
 
@@ -96,6 +112,14 @@ VAULT_ID=<your fresh id> pnpm exec hardhat run scripts/claim-dormancy.ts --netwo
 ```
 
 > "Now the hard direction. This proves that across four hundred ledgers, *no* payment carrying my tag reached the beacon. Proving something happened is easy. Proving nothing happened is the whole problem — and it's why this is on Flare."
+
+**Narrate over the round wait — this is the most valuable 30 seconds in the video:**
+
+> "And this wait is the point. My request is sitting in a voting round while Flare's data providers — the same validator set that secures the price feeds — each independently go and read the XRP Ledger themselves, and each satisfy themselves that no payment with my tag exists in that range. Consensus needs more than half the network's total weight. Only the Merkle root of what they agreed goes on-chain.
+>
+> So nobody asserts that I've gone silent. Not me, not a keeper, not Flare. A majority of the network's economic weight independently looked, and agreed."
+
+That answers "why not just use a keeper or a multisig?" before a judge asks it.
 
 Land on `state 1 → 2` and `DORMANCY PROVEN ON-CHAIN`.
 

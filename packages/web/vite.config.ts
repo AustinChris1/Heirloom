@@ -22,7 +22,8 @@ export default defineConfig({
   },
   server: {
     port: 5173,
-    fs: { allow: [path.resolve(__dirname, "..")] },
+    // Repo root, so `?raw` imports of docs/*.md and the root README resolve.
+    fs: { allow: [path.resolve(__dirname, "../..")] },
     proxy: {
       "/da": {
         target: "https://ctn2-data-availability.flare.network",

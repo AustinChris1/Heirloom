@@ -39,9 +39,17 @@ function Nav() {
       <Link to="/" aria-label="Heirloom home">
         <Logo size={26} animate />
       </Link>
-      <Link to="/app" className="btn border-white/40 px-4 py-2">
-        Open app
-      </Link>
+      <div className="flex items-center gap-3">
+        <Link
+          to="/docs"
+          className="font-mono text-[11px] uppercase tracking-[0.16em] text-white/70 underline-offset-4 hover:text-white hover:underline"
+        >
+          Docs
+        </Link>
+        <Link to="/app" className="btn border-white/40 px-4 py-2">
+          Open app
+        </Link>
+      </div>
     </nav>
   );
 }
@@ -501,6 +509,9 @@ function Closing() {
         <div className="mt-14 flex flex-wrap items-center justify-center gap-4">
           <Link to="/app" className="btn btn-solid px-9 py-4 text-xs">
             Open the app
+          </Link>
+          <Link to="/docs" className="btn px-7 py-4">
+            Read the docs
           </Link>
           <a
             href={`${EXPLORER}/address/${HEIRLOOM_VAULT}`}

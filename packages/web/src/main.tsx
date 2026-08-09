@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
+import { Docs } from "./routes/Docs";
 import { Landing } from "./routes/Landing";
 import { VaultApp } from "./routes/VaultApp";
 import { ChainSnapshot, readChain } from "./lib/chain";
@@ -39,6 +40,8 @@ function Root() {
       <Routes>
         <Route path="/" element={<Landing chain={chain} />} />
         <Route path="/app" element={<VaultApp chain={chain} refresh={refresh} />} />
+        <Route path="/docs" element={<Docs />} />
+        <Route path="/docs/:slug" element={<Docs />} />
         <Route path="*" element={<Landing chain={chain} />} />
       </Routes>
     </>

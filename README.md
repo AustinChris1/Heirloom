@@ -70,6 +70,8 @@ Connected to Coston2 (chainId 114), head block 33,767,053
 
 A `HEIRLOOM`/`SEAL` instruction sent from the vault has been observed arriving at the enclave through Flare's data providers — the confidential-compute path is not a diagram, it runs.
 
+Both FDC attestation legs run against live infrastructure — including **from the web app itself**, where a visitor signs the attestation request with their own wallet, waits out the voting round, and submits the Merkle proof without ever opening a terminal.
+
 **→ [How to use it](docs/USAGE.md)** · **[Demo script](docs/DEMO.md)** · **[TEE deployment](docs/TEE-DEPLOYMENT.md)**
 
 | Component | State |

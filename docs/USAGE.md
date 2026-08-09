@@ -77,6 +77,39 @@ await client.disconnect();
 
 Keep that transaction hash — proving life needs it.
 
+### Easier: let the repo send it
+
+Browser wallets are the weak link. The destination tag usually sits behind an "advanced" toggle, and some extensions (Crossmark on Windows, for one) cannot scroll to it — so the payment goes out **without a tag**, succeeds on XRPL, and silently fails to count.
+
+```bash
+cd packages/contracts
+VAULT_ID=5 pnpm exec hardhat run scripts/send-heartbeat.ts --network coston2
+```
+
+<details>
+<summary>PowerShell (Windows)</summary>
+
+PowerShell has no inline env-var prefix — `VAULT_ID=5 cmd` is a parse error. Set it first:
+
+```powershell
+$env:VAULT_ID="5"; pnpm exec hardhat run scripts/send-heartbeat.ts --network coston2
+```
+
+The same applies to every `VAR=value` command in this document.
+</details>
+
+It sends from the cached testnet wallet with the tag set, and prints the hash to paste into **Prove life**. If the vault is not registered to that wallet it says so *before* spending anything, and prints the address to use when creating one.
+
+To find out what went wrong with a payment you already sent:
+
+```bash
+VAULT_ID=<n> pnpm exec hardhat run scripts/find-heartbeat.ts --network coston2
+```
+
+It lists payments carrying that vault's tag and tells you whether the sender matches the registered estate account — the two things that make a heartbeat count.
+
+> **Faucet payments never count.** The XRPL faucet has no destination-tag field, and the funds come from the faucet's account rather than yours. A heartbeat has to come *from the estate account* **with the tag** — that is what stops anyone else keeping your vault alive against your wishes.
+
 ## 3. Prove you're alive
 
 The payment alone doesn't reset the clock; Flare has to be *shown* it happened. That means an FDC attestation — and the app runs the whole thing for you.

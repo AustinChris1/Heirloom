@@ -55,7 +55,7 @@ export function plain(value: any): any {
   return value;
 }
 
-async function xrplRequest(body: unknown): Promise<any> {
+export async function xrplRequest(body: unknown): Promise<any> {
   const res = await fetch(XRPL_RPC, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

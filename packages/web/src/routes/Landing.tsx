@@ -315,28 +315,58 @@ const STAGES = [
   },
 ];
 
-/** Horizontal scroll driven by vertical scroll. */
+/**
+ * Horizontal scroll driven by vertical scroll — on desktop only.
+ *
+ * That idiom depends on viewport height being stable, which it is not on mobile
+ * (browser chrome collapses as you scroll, so the sticky frame and the transform
+ * disagree and the track stalls part-way). Rather than fight it, small screens
+ * get a plain vertical stack: same content, no cleverness, nothing to break.
+ */
 function Lifecycle() {
   const ref = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end end"] });
   const x = useTransform(scrollYProgress, [0, 1], ["2%", "-72%"]);
 
   return (
-    <section ref={ref} className="relative h-[400vh] bg-white text-black">
-      <div className="sticky top-0 flex h-screen flex-col justify-center overflow-hidden">
-        <div className="px-6 md:px-10">
+    <section ref={ref} className="relative bg-white text-black md:h-[400vh]">
+      {/* ---- mobile: vertical stack ---- */}
+      <div className="px-6 py-24 md:hidden">
+        <p className="label mb-3 text-ink-500">How it works</p>
+        <h2 className="mb-12 font-black uppercase leading-none tracking-tightest text-[clamp(2rem,9vw,3rem)]">
+          Four stages. One is irreversible.
+        </h2>
+
+        <div className="space-y-12">
+          {STAGES.map((s) => (
+            <Rise key={s.n}>
+              <article className="border-t-2 border-black pt-5">
+                <div className="flex items-baseline justify-between gap-4">
+                  <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">{s.n}</span>
+                  <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500">{s.proof}</span>
+                </div>
+                <h3 className="mt-4 font-black uppercase leading-none tracking-tightest text-[clamp(2.4rem,13vw,3.5rem)]">
+                  {s.title}
+                </h3>
+                <p className="mt-4 leading-relaxed text-ink-600">{s.body}</p>
+              </article>
+            </Rise>
+          ))}
+        </div>
+      </div>
+
+      {/* ---- desktop: the horizontal track ---- */}
+      <div className="sticky top-0 hidden h-screen flex-col justify-center overflow-hidden md:flex">
+        <div className="px-10">
           <p className="label mb-3 text-ink-500">How it works</p>
           <h2 className="mb-12 font-black uppercase leading-none tracking-tightest text-[clamp(2rem,6vw,5rem)]">
             Four stages. One is irreversible.
           </h2>
         </div>
 
-        <motion.div style={{ x }} className="flex gap-6 pl-6 md:gap-10 md:pl-10">
+        <motion.div style={{ x }} className="flex gap-10 pl-10">
           {STAGES.map((s) => (
-            <article
-              key={s.n}
-              className="w-[82vw] shrink-0 border-t-2 border-black pt-6 md:w-[46vw] lg:w-[34vw]"
-            >
+            <article key={s.n} className="w-[46vw] shrink-0 border-t-2 border-black pt-6 lg:w-[34vw]">
               <div className="flex items-baseline justify-between">
                 <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">{s.n}</span>
                 <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500">{s.proof}</span>

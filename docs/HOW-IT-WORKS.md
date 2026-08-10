@@ -62,6 +62,19 @@ that nothing was altered.
 So the network knows *a will exists*. It does not know who is in it, or for how
 much. Your heirs do not know they are heirs.
 
+### A thing worth being clear about: you never deposit anything
+
+There is no pot to fill. Your XRP stays in **your own account, under your own
+key**, from the day you set this up until the day your wishes are carried out.
+
+The heartbeat payments described below go to a **beacon** — an address used only
+as a signpost, so the network has something to point at. It is not a safe and it
+is not a deposit. Send the minimum; anything more is simply spent for nothing.
+
+If that seems obvious, it is worth saying anyway: the natural assumption is that
+a system handling your inheritance must be *holding* it somewhere. This one
+never does, and that is the entire point.
+
 ### Step 2 — You check in, now and then
 
 Every so often — you choose how often, say every 90 days — you send a tiny
@@ -143,27 +156,31 @@ Then it locks again. Your wishes are never revealed to anyone.
 
 ## Will it pay my family automatically? — the honest answer
 
-**Not yet. This is a working demonstration, not a finished product.**
+**Yes — the whole journey now runs, on real test networks, end to end.**
 
-Everything up to the final payment works today, on real networks, and you can
-watch it happen:
+Every step works today and you can watch it happen:
 
 - Creating a vault and locking your wishes ✅
 - Sending heartbeats and having the network verify them ✅
 - The network proving, independently, that you have gone silent ✅
 - The waiting period, the reset button, and guardian approval ✅
 - Your instructions reaching the sealed computer ✅
+- The sealed computer unlocking them — and only it can ✅
+- The payments arriving in the beneficiaries' XRP Ledger accounts ✅
 
-**What is not finished:** two things.
+A complete run exists on the public test networks: a vault was created, its
+will sealed so that only the enclave could read it, silence proven by the
+network, the will opened and priced inside the sealed computer, and three real
+payments delivered on the XRP Ledger. The transaction trail is in
+[Usage](USAGE.md).
 
-The sealed computer can receive your instructions but **cannot yet unlock them**
-— the step that scrambles them specifically for that machine is not wired up.
-And once it has prepared the payments to your family, **nothing yet sends them**
-to the XRP Ledger.
-
-So today the system can prove you are gone, but it cannot yet hand over the
-money. That is the remaining work, and it is deliberately stated plainly rather
-than glossed over.
+**One honest caveat remains.** The final signature on the outgoing payments —
+the estate account's own key — is held by the demonstration operator on the
+test network, not yet delegated to the sealed computer itself. In the finished
+product the estate would grant the enclave a *regular key* (XRPL's built-in way
+to authorise a second signer without handing over your master key), making
+even the last step something no human performs. Everything else already works
+exactly as the finished product would.
 
 ---
 

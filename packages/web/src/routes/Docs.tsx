@@ -1,23 +1,35 @@
 import { marked } from "marked";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { Logo } from "../components/Logo";
 import { DOCS, findDoc } from "../lib/docs";
 
 /**
  * Documentation, rendered from the repository's own markdown.
+ *
+ * The index is a retractable sidebar rather than a block above/beside the
+ * content: on desktop it is sticky with its own scrollbar, so switching
+ * documents never requires scrolling back to the top; on mobile it slides in
+ * as a drawer over the page. One toggle in the header drives both.
  */
+
+const DESKTOP = "(min-width: 768px)";
+
 export function Docs() {
   const { slug } = useParams();
   const doc = findDoc(slug);
   const contentRef = useRef<HTMLDivElement>(null);
 
+  // Open by default where there is room for it, closed where there is not.
+  const [navOpen, setNavOpen] = useState(() => window.matchMedia(DESKTOP).matches);
+  const isDesktop = () => window.matchMedia(DESKTOP).matches;
+
   const html = useMemo(() => marked.parse(doc.body, { async: false }) as string, [doc.body]);
 
   // Links between docs are written as relative markdown paths (USAGE.md,
-  // docs/DEMO.md). Rewrite them to in-app routes so they don't 404, and send
-  // genuinely external links to a new tab.
+  // docs/ARCHITECTURE.md). Rewrite them to in-app routes so they don't 404,
+  // and send genuinely external links to a new tab.
   useEffect(() => {
     const root = contentRef.current;
     if (!root) return;
@@ -37,13 +49,49 @@ export function Docs() {
     window.scrollTo(0, 0);
   }, [html]);
 
+  const index = (
+    <nav className="flex flex-col gap-px">
+      {DOCS.map((d) => {
+        const active = d.slug === doc.slug;
+        return (
+          <Link
+            key={d.slug}
+            to={`/docs/${d.slug}`}
+            onClick={() => {
+              // A drawer that stays open after choosing covers what you chose.
+              if (!isDesktop()) setNavOpen(false);
+            }}
+            className={`border-l-2 py-2.5 pl-4 text-sm transition-colors ${
+              active
+                ? "border-white text-white"
+                : "border-ink-800 text-ink-300 hover:border-ink-500 hover:text-white"
+            }`}
+          >
+            {d.title}
+            <span className="mt-1 block text-[11px] leading-snug text-ink-500">{d.blurb}</span>
+          </Link>
+        );
+      })}
+    </nav>
+  );
+
   return (
     <div className="grain min-h-screen bg-black">
-      <header className="sticky top-0 z-30 border-b border-ink-800 bg-black/85 backdrop-blur-md">
-        <div className="mx-auto flex max-w-[1500px] flex-wrap items-center justify-between gap-4 px-5 py-4 md:px-8">
-          <Link to="/" aria-label="Heirloom home">
-            <Logo size={24} />
-          </Link>
+      <header className="sticky top-0 z-50 border-b border-ink-800 bg-black/85 backdrop-blur-md">
+        <div className="mx-auto flex max-w-[1500px] items-center justify-between gap-4 px-5 py-4 md:px-8">
+          <div className="flex items-center gap-4">
+            <button
+              className="btn px-3 py-2 font-mono text-[11px] uppercase tracking-[0.14em]"
+              onClick={() => setNavOpen((o) => !o)}
+              aria-expanded={navOpen}
+              aria-controls="docs-index"
+            >
+              {navOpen ? "✕ Contents" : "☰ Contents"}
+            </button>
+            <Link to="/" aria-label="Heirloom home">
+              <Logo size={24} />
+            </Link>
+          </div>
           <nav className="flex items-center gap-4">
             <Link to="/app" className="btn px-4 py-2">
               Open app
@@ -52,39 +100,65 @@ export function Docs() {
         </div>
       </header>
 
-      <div className="mx-auto flex max-w-[1500px] flex-col gap-10 px-5 py-10 md:flex-row md:gap-16 md:px-8 md:py-14">
-        {/* ---- index ---- */}
-        <aside className="md:w-64 md:shrink-0">
-          <p className="label mb-5">Documentation</p>
-          <nav className="flex flex-col gap-px">
-            {DOCS.map((d) => {
-              const active = d.slug === doc.slug;
-              return (
-                <Link
-                  key={d.slug}
-                  to={`/docs/${d.slug}`}
-                  className={`border-l-2 py-2.5 pl-4 text-sm transition-colors ${
-                    active
-                      ? "border-white text-white"
-                      : "border-ink-800 text-ink-300 hover:border-ink-500 hover:text-white"
-                  }`}
-                >
-                  {d.title}
-                  <span className="mt-1 block text-[11px] leading-snug text-ink-500">{d.blurb}</span>
-                </Link>
-              );
-            })}
-          </nav>
-
-          <a
-            href="https://github.com/AustinChris1/Heirloom"
-            target="_blank"
-            rel="noreferrer"
-            className="mt-8 inline-block font-mono text-[10px] uppercase tracking-[0.18em] text-ink-400 underline-offset-4 hover:text-white hover:underline"
+      {/* Mobile: drawer over the page, with a backdrop that closes it. */}
+      <AnimatePresence>
+        {navOpen && (
+          <motion.div
+            key="backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-30 bg-black/60 md:hidden"
+            onClick={() => setNavOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+      <AnimatePresence initial={false}>
+        {navOpen && (
+          <motion.aside
+            key="drawer"
+            id="docs-index"
+            initial={{ x: -300 }}
+            animate={{ x: 0 }}
+            exit={{ x: -300 }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
+            className="fixed inset-y-0 left-0 z-40 w-72 overflow-y-auto border-r border-ink-800 bg-black px-5 pb-10 pt-24 md:hidden"
           >
-            Source on GitHub ↗
-          </a>
-        </aside>
+            <p className="label mb-5">Documentation</p>
+            {index}
+          </motion.aside>
+        )}
+      </AnimatePresence>
+
+      <div className="mx-auto flex max-w-[1500px] gap-10 px-5 py-10 md:gap-16 md:px-8 md:py-14">
+        {/* Desktop: sticky column with its own scrollbar — always reachable,
+            never scrolled away, collapsible from the header. */}
+        <AnimatePresence initial={false}>
+          {navOpen && (
+            <motion.aside
+              key="sidebar"
+              initial={{ width: 0, opacity: 0 }}
+              animate={{ width: 256, opacity: 1 }}
+              exit={{ width: 0, opacity: 0 }}
+              transition={{ duration: 0.25, ease: "easeOut" }}
+              className="hidden shrink-0 overflow-hidden md:block"
+            >
+              <div className="sticky top-24 max-h-[calc(100vh-7rem)] w-64 overflow-y-auto pr-2">
+                <p className="label mb-5">Documentation</p>
+                {index}
+                <a
+                  href="https://github.com/AustinChris1/Heirloom"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-8 inline-block font-mono text-[10px] uppercase tracking-[0.18em] text-ink-400 underline-offset-4 hover:text-white hover:underline"
+                >
+                  Source on GitHub ↗
+                </a>
+              </div>
+            </motion.aside>
+          )}
+        </AnimatePresence>
 
         {/* ---- content ---- */}
         <motion.main

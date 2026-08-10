@@ -52,7 +52,10 @@ Open your vault from the list. The **Stay alive** panel gives you three copyable
 
 Send that payment from your estate account. **The destination tag is what identifies your vault** — a payment without it, or with somebody else's, does not count.
 
-The beacon is a destination marker, not a custodian: nobody needs its keys, and the dust you send is genuinely spent. At 0.001 XRP that's a fraction of a cent, and on testnet it's free.
+> **This is a signal, not a deposit.** There is no pot to fund. Your estate stays
+> in your own XRPL account the whole time; the beacon is only a marker the
+> network can point at. **Send the minimum.** Anything above `0.001 XRP` is spent
+> for nothing and is not recoverable — the beacon is not an account you control.
 
 With `xrpl.js`:
 
@@ -185,8 +188,9 @@ So a guardian's only power is to *withhold* confirmation. Colluding guardians ca
 | Cancel dormancy, guardian confirmation | **Live** |
 | Confidential Compute routing (`HEIRLOOM`/`SEAL`) | **Live** — instruction observed reaching the enclave |
 | TEE machine | **Live** — status 2 (PRODUCTION), extension 66025 |
-| Sealing a will the enclave can open | Blocked on client-side ECIES to the enclave's public key |
-| XRPL payout broadcasting | Not implemented — the enclave signs, nothing submits |
+| Sealing a will the enclave can open | **Live** — browser-grade ECIES to the enclave's attested key, decrypted and attested by the live enclave, `confirmSeal` recorded on-chain |
+| Executing a will | **Live** — enclave decrypts, prices at the FTSO snapshot, returns a signed distribution `settleEstate` verifies on-chain |
+| XRPL payout broadcasting | **Live** — settled distribution broadcast as real XRPL payments, `tesSUCCESS` on testnet |
 
 Both FDC legs now run against live attestations, not mocks. Reproduce them yourself:
 
@@ -195,6 +199,13 @@ cd packages/contracts
 pnpm exec hardhat run scripts/live-heartbeat.ts --network coston2    # XRPL payment → attestation → proveLife
 pnpm exec hardhat run scripts/create-short-vault.ts --network coston2 # 120s interval
 VAULT_ID=<id> pnpm exec hardhat run scripts/claim-dormancy.ts --network coston2
+
+# The confidential third, end to end: creates a vault with a real will,
+# encrypts it to the enclave, seals, then (after claim-dormancy) executes,
+# settles the enclave's signed distribution, and pays out on XRPL.
+pnpm exec hardhat run scripts/seal-live.ts --network coston2         # prints VAULT_ID
+VAULT_ID=<id> pnpm exec hardhat run scripts/claim-dormancy.ts --network coston2
+VAULT_ID=<id> pnpm exec hardhat run scripts/execute-live.ts --network coston2
 ```
 
 `live-heartbeat.ts` funds its own XRPL testnet wallet from the faucet, so it needs nothing but a funded Coston2 deployer.
@@ -206,3 +217,15 @@ Evidence from the runs above:
 | XRPL heartbeat | [`84C0227…EDB8D`](https://testnet.xrpl.org/transactions/84C022779EF8DE35134FFB4C263A6A81CF150DE6C4BFFAE0D6DD4D369A7EDB8D) |
 | `proveLife` | `0xeafa132a60f30289001fda05debbc40b99c19230cc263d911c095ccd4c3f5d1b` |
 | `claimDormancy` | `0x2f4bf71b10d33e43f65843e144c144ef68a9fdd2e567efa24a0f2f97f2949ee7` |
+
+Evidence from the full confidential lifecycle (vault #6, run 10 Aug 2026):
+
+| | |
+|---|---|
+| `sealWill` (431-byte ECIES blob) | `0xe563a4a16e89871d8b1cdc73549365135b94594c26a0fce25c41e703be7fc9ad` |
+| `confirmSeal` — enclave decrypted, attested, recorded | `0xb95033e4ec91f2723d4b592159cac5b291a7f65ab49046c4dd800ec7de6032c9` |
+| `claimDormancy` — FDC nonexistence proof, round 1421449 | `0x782dcae4b1688eb579341fb1b9c27bda9eaa3d241df82373aff19f8fa9f02328` |
+| `settleEstate` — TEE-signed distribution at $1.031901/XRP | `0xdd1f3deaaafe0d2fba67cd2b94f10851b2f64d263cba43b9efee96847381561f` |
+| Payout: 2 XRP fixed bequest | [`67E981D0…CE563`](https://testnet.xrpl.org/transactions/67E981D0812F1BD2826D51A815DC10F4A5E8D1ECD1A76E04E810B7434CCCE563) |
+| Payout: 48.49897 XRP (50% share) | [`EE2F3648…51982`](https://testnet.xrpl.org/transactions/EE2F3648F5DF36ACDEBEF0D0245F584229C9EFFCAC6AA9D2E39D2AC4B3251982) |
+| Payout: 48.49897 XRP (residue) | [`D1DB7CE6…EDE1C0`](https://testnet.xrpl.org/transactions/D1DB7CE62A543338C9BB09765B1D7B4D984B7FF94102DFBA0299EEECCAEDE1C0) |

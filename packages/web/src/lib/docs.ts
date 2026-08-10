@@ -1,6 +1,5 @@
 import architecture from "../../../../docs/ARCHITECTURE.md?raw";
 import howItWorks from "../../../../docs/HOW-IT-WORKS.md?raw";
-import demo from "../../../../docs/DEMO.md?raw";
 import hosting from "../../../../docs/HOSTING.md?raw";
 import submission from "../../../../docs/SUBMISSION.md?raw";
 import teeDeployment from "../../../../docs/TEE-DEPLOYMENT.md?raw";
@@ -64,12 +63,8 @@ export const DOCS: Doc[] = [
     blurb: "What needs a server, what does not, and what it costs.",
     body: hosting,
   },
-  {
-    slug: "demo",
-    title: "Demo script",
-    blurb: "A beat-by-beat script for the submission video.",
-    body: demo,
-  },
+  // docs/DEMO.md is deliberately NOT listed — it is the private run-of-show
+  // for recording the demo video, not documentation for a visitor.
 ];
 
 export const findDoc = (slug?: string): Doc =>

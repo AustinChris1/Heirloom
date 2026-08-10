@@ -138,8 +138,7 @@ Full deployment record: `packages/contracts/deployments/coston2.json`.
 
 Stated up front rather than left to be discovered.
 
-- **Sealing a will the enclave can actually open still needs client-side ECIES** to the enclave's public key. The transport is proven — a `SEAL` instruction reaches the enclave and is rejected at the decrypt step — but the browser does not yet encrypt to the TEE key, so the seal → confirm leg is incomplete.
-- **XRPL payout broadcasting is not implemented.** The enclave assembles and signs the distribution; nothing submits those transactions to the ledger. Everything up to and including proven dormancy runs; the final settlement leg does not.
+- **Payout signing is not yet delegated to the enclave.** The full lifecycle — client-side ECIES seal, enclave attestation, FDC-proven dormancy, enclave execution, on-chain settlement of the TEE-signed distribution, and real XRPL payouts — has run end to end on this deployment (transaction trail in [Usage](USAGE.md)). But the estate account's XRPL signature on the final payments comes from the demo operator's testnet seed. The production design delegates an XRPL *regular key* to a TEE-held wallet so the enclave signs the payouts too; that delegation is not wired.
 - **The encrypted will travels in the instruction payload.** Flare's own guidance is explicit that on-chain storage of encrypted secrets is unsuitable for production. The production path is an off-chain blob with only the commitment on-chain — the contract is already structured for it, since the commitment is what settlement checks.
 - **FXRP delivery is modelled and recorded but the transfer is not wired.**
 - **Attestation is simulated, not hardware-backed.** `SIMULATED_TEE=true` is accepted on Coston2 and is the sanctioned path for testnet, but it is not a real Confidential Space measurement. Production would require `MODE=0` on a GCP Confidential Space VM.
@@ -147,7 +146,7 @@ Stated up front rather than left to be discovered.
 
 ## Roadmap
 
-**Immediate (days).** Wire client-side ECIES so a will can be sealed and attested by the enclave, closing the seal → confirm leg. Then broadcast the enclave-signed XRPL payments to complete the cycle end to end.
+**Immediate (days).** Delegate an XRPL regular key to a TEE-held wallet so the enclave signs the payout transactions itself, removing the last human signature from the lifecycle.
 
 **Near (weeks).** Move the encrypted will off-chain to a commitment-only design. Wire FXRP delivery through FAssets. Ship a heartbeat relayer so holders never think about Flare gas. Add multi-TEE fan-out — `getRandomTeeIds` already supports routing one instruction to several enclaves, and the allocation engine is deterministic precisely so independent enclaves can be cross-checked rather than trusted individually.
 

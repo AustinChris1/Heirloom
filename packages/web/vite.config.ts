@@ -37,6 +37,12 @@ export default defineConfig({
         secure: true,
         rewrite: () => "/",
       },
+      "/enclave": {
+        target: "https://sly.southafricanorth.cloudapp.azure.com",
+        changeOrigin: true,
+        secure: true,
+        rewrite: (p) => p.replace(/^\/enclave/, ""),
+      },
     },
   },
 });

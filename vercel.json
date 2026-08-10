@@ -13,6 +13,10 @@
       "source": "/xrpl",
       "destination": "https://s.altnet.rippletest.net:51234/"
     },
+    {
+      "source": "/enclave/:path*",
+      "destination": "https://sly.southafricanorth.cloudapp.azure.com/:path*"
+    },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

@@ -34,6 +34,11 @@ export interface LiveVault {
   guardians: string;
   guardianApprovals: number;
   guardianThreshold: number;
+  willCommitment: string;
+  dormantSince: number;
+  graceWindow: number;
+  /** Contract view: dormant + attested + grace elapsed + guardians satisfied. */
+  canExecute: boolean;
 }
 
 export interface ChainSnapshot {
@@ -61,11 +66,12 @@ export async function readChain(): Promise<ChainSnapshot> {
 
   const vaults = await Promise.all(
     ids.map(async (id): Promise<LiveVault> => {
-      const [v, tag, dueIn, overdue] = await Promise.all([
+      const [v, tag, dueIn, overdue, canExecute] = await Promise.all([
         vaultContract.vaults(id),
         vaultContract.heartbeatTag(id) as Promise<bigint>,
         vaultContract.timeUntilHeartbeatDue(id) as Promise<bigint>,
         vaultContract.isHeartbeatOverdue(id) as Promise<boolean>,
+        vaultContract.canExecute(id) as Promise<boolean>,
       ]);
       return {
         id,
@@ -79,6 +85,10 @@ export async function readChain(): Promise<ChainSnapshot> {
         guardians: `${v.guardianApprovals}/${v.guardianThreshold}`,
         guardianApprovals: Number(v.guardianApprovals),
         guardianThreshold: Number(v.guardianThreshold),
+        willCommitment: v.willCommitment,
+        dormantSince: Number(v.dormantSince),
+        graceWindow: Number(v.graceWindow),
+        canExecute,
       };
     }),
   );

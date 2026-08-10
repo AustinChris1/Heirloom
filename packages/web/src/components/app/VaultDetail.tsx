@@ -2,6 +2,7 @@ import { Contract, JsonRpcProvider, JsonRpcSigner } from "ethers";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { AttestationFlow } from "./AttestationFlow";
+import { EnclaveFlow } from "./EnclaveFlow";
 import { COSTON2_RPC } from "../../lib/chain";
 import { HEIRLOOM_VAULT, VAULT_ABI } from "../../lib/deployment";
 import { LiveVault } from "../../lib/chain";
@@ -156,33 +157,56 @@ export function VaultDetail({
 
       {/* ---- how to stay alive ---- */}
       <div className="bg-black p-7 md:p-9">
-        <p className="label mb-6">Stay alive</p>
-        <p className="mb-7 max-w-[44ch] text-sm leading-relaxed text-ink-300">
-          Send this payment from your XRP Ledger account before the timer runs out. It costs a fraction of a cent
-          and needs no Flare transaction — anyone can relay the proof for you.
+        <p className="label mb-3">Stay alive</p>
+
+        {/* One sentence, then the fields. The previous version stacked four
+            explanatory paragraphs around three inputs, which is how someone
+            reads "send a payment" and assumes it funds the estate. */}
+        <p className="mb-6 text-sm leading-relaxed text-ink-200">
+          Send this payment from your XRP Ledger account before the timer runs out.
+          <br />
+          <strong className="text-white">It is a signal, not a deposit</strong> — your estate never moves.
         </p>
 
         <div className="space-y-5">
           <CopyField label="To (beacon account)" value={BEACON_XRPL_ADDRESS} />
-          <CopyField label="Destination tag" value={String(vault.heartbeatTag)} emphasise />
-          <CopyField label="Amount (minimum)" value={`${Number(HEARTBEAT_DROPS) / 1e6} XRP`} />
+          <CopyField label="Destination tag — identifies your vault" value={String(vault.heartbeatTag)} emphasise />
+          <CopyField label="Amount — send exactly this" value={`${Number(HEARTBEAT_DROPS) / 1e6} XRP`} />
         </div>
 
-        <p className="mt-7 max-w-[44ch] text-xs leading-relaxed text-ink-300">
-          The destination tag is what identifies your vault. A payment without it — or with someone else's — will
-          not count, and the same tag is what lets the network later prove that no heartbeat arrived.
-        </p>
-
-        <a
-          href={`${XRPL_TESTNET_EXPLORER}/accounts/${BEACON_XRPL_ADDRESS}`}
-          target="_blank"
-          rel="noreferrer"
-          className="mt-6 inline-block font-mono text-[11px] uppercase tracking-[0.16em] text-ink-300 underline-offset-4 hover:text-white hover:underline"
-        >
-          Beacon on XRPL testnet ↗
-        </a>
+        {/* Detail belongs behind a disclosure, not in front of the fields. */}
+        <details className="mt-5 text-xs text-ink-300">
+          <summary className="cursor-pointer font-mono text-[10px] uppercase tracking-[0.16em] hover:text-white">
+            Why these three fields
+          </summary>
+          <div className="mt-3 space-y-2.5 leading-relaxed">
+            <p>
+              The <strong className="text-ink-100">tag</strong> is what identifies your vault. A payment without
+              it — or with someone else's — does not count, and the same tag is what later lets the network prove
+              no heartbeat arrived.
+            </p>
+            <p>
+              The <strong className="text-ink-100">beacon</strong> is a marker, not a safe. Nothing is stored
+              there. Sending more than the minimum buys you nothing and cannot be recovered.
+            </p>
+            <p>
+              No Flare transaction is needed to send it, and anyone can relay the proof on your behalf — so being
+              offline never puts you at risk.
+            </p>
+            <a
+              href={`${XRPL_TESTNET_EXPLORER}/accounts/${BEACON_XRPL_ADDRESS}`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-block pt-1 font-mono text-[10px] uppercase tracking-[0.16em] underline-offset-4 hover:text-white hover:underline"
+            >
+              Beacon on XRPL testnet ↗
+            </a>
+          </div>
+        </details>
 
         <AttestationFlow vault={vault} signer={signer} onChanged={onChanged} />
+
+        <EnclaveFlow vault={vault} signer={signer} onChanged={onChanged} />
 
         {/* What is live on this deployment, and what still needs infrastructure. */}
         <div className="mt-9 border-t border-ink-800 pt-6">
@@ -192,12 +216,14 @@ export function VaultDetail({
             <Step live>Heartbeat on XRPL, proven via FDC XRPPayment</Step>
             <Step live>Dormancy via FDC XRPPaymentNonexistence</Step>
             <Step live>Cancel dormancy, guardian confirmation</Step>
-            <Step live>Route SEAL / EXECUTE to the enclave via Confidential Compute</Step>
+            <Step live>Seal: browser-side ECIES to the enclave's attested key, attested via FCC</Step>
+            <Step live>Execute: enclave decrypts, prices via FTSO, contract verifies its signature</Step>
+            <Step live>Payout: settled distribution broadcast as real XRPL payments</Step>
           </ul>
           <p className="mt-4 max-w-[44ch] text-xs leading-relaxed text-ink-300">
-            The enclave is registered and serving at status PRODUCTION on extension 66025, and instructions from
-            this vault reach it. Sealing additionally needs the will encrypted to the enclave's public key — that
-            client-side step is the one piece still to land.
+            The enclave serves at status PRODUCTION on extension 66025. The one departure from the full design:
+            payout signing uses the estate's testnet seed here, where production would delegate a regular key to
+            the enclave itself.
           </p>
         </div>
       </div>

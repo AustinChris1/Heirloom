@@ -56,6 +56,8 @@ export function CreateVault({
   const [busy, setBusy] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  /** Snapshot of the will at creation time — offered as a download, since sealing needs this exact JSON. */
+  const [createdWill, setCreatedWill] = useState<Will | null>(null);
 
   // The will the contract will be committed to. Validated with the exact parser
   // the enclave runs, so anything accepted here is executable later.
@@ -108,6 +110,7 @@ export function CreateVault({
       );
       const receipt = await tx.wait();
       setTxHash(receipt.hash);
+      setCreatedWill(will);
       onCreated();
     } catch (err) {
       setError(humanError(err));
@@ -283,6 +286,28 @@ export function CreateVault({
               >
                 {txHash}
               </a>
+              {createdWill && (
+                <div className="space-y-2">
+                  <button
+                    className="btn px-4 py-2"
+                    onClick={() => {
+                      const blob = new Blob([JSON.stringify(createdWill, null, 2)], { type: "application/json" });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = `heirloom-will-vault-${createdWill.vaultId}.json`;
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    }}
+                  >
+                    Download will file
+                  </button>
+                  <p className="max-w-[42ch] text-xs leading-relaxed text-ink-300">
+                    Keep this file — sealing the will in the enclave, and later distributing the estate, both
+                    need this exact JSON. The chain holds only its hash.
+                  </p>
+                </div>
+              )}
             </motion.div>
           ) : (
             <button className="btn btn-solid w-full py-4" disabled={!canSubmit} onClick={submit}>

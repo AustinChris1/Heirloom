@@ -1,32 +1,30 @@
 # Demo video script
 
-Target: **3 minutes of finished video**. Every beat below is something that genuinely runs — no mock-ups, no "imagine if". Where a step isn't live yet, say so on camera; judges reward that far more than they punish it.
+*Private run-of-show for recording. Not listed on the docs site.*
 
-> ## Read this first: the scripts are slower than the video
+Target: **~3½ minutes of finished video**. Every beat below genuinely runs — no mock-ups, no "imagine if". The full lifecycle (seal → dormancy → execute → payout) has been run end to end on this deployment; the video's job is to show it happening, clickable, in the app.
+
+> ## Read this first: the waits are longer than the video
 >
-> An FDC round takes **90–180 seconds to finalise**, and you run two of them. Real elapsed time for the two attestation scripts is **four to six minutes**, not the 60 seconds they occupy on screen.
+> An FDC round takes **90–180 seconds to finalise**. The enclave itself is fast — seal and execute results arrive **within seconds** — so the only real waits are the FDC legs.
 >
-> So do **not** try to record those live in one take. Either:
->
-> **(a) Record them separately and cut the waits.** Start each script, record start and finish, edit the wait out. Say "this takes about two minutes, cut for time" — that is honest and every judge accepts it.
->
-> **(b) Run them before recording** and show the terminal output plus the explorer links on camera.
->
-> Option (a) is better: watching a round actually finalise is persuasive, you just don't need all of it.
+> Do **not** record the FDC waits in one take. Record start and finish, cut the middle, and say "this takes about two minutes, cut for time" — honest, and every judge accepts it. Watching a round begin to finalise is persuasive; you don't need all of it.
 
 ## Before recording
 
-- [ ] **Run the health check** — one command, verifies everything:
+- [ ] **Health check** — one command, verifies everything:
       `pnpm exec hardhat run scripts/health.ts --network coston2` → must end `✓ ALL SYSTEMS GO`.
-      If the TEE is not status 2, the VPS container restarted and **the TEE identity changed**: re-run `post-build.sh`, then `set-tee-address.ts`.
-- [ ] **Create a fresh vault for the dormancy demo**, because a vault can only go dormant once:
-      `pnpm exec hardhat run scripts/create-short-vault.ts --network coston2` → note the `VAULT_ID`.
-      Defaults to a 120-second interval; wait that long before claiming.
-- [ ] **Shell note (PowerShell):** `VAR=value command` is bash syntax and is a parse error in PowerShell.
-      Use `$env:VAR="value"; command` instead — e.g. `$env:VAULT_ID="5"; pnpm exec hardhat run ...`
-- [ ] Deployer has C2FLR.
+      If the TEE is not status 2, the VPS container restarted and **the TEE identity changed**: re-run `post-build.sh`, then `set-tee-address.ts`. A new TEE identity also means old vaults were sealed to a dead key — prepare the demo vault *after* this check passes.
+- [ ] **Prepare the dormancy → payout vault** (real will, 180-second interval, grace 0):
+      `pnpm exec hardhat run scripts/seal-live.ts --network coston2` → note the `VAULT_ID` it prints.
+      This creates the vault, encrypts the will to the enclave, seals it, and waits for the enclave's attestation — the same path the app runs. It saves the will to `packages/contracts/deployments/will-vault-<id>.json`.
+- [ ] **Keep two things open in an editor for the payout beat:** the will file above, and the estate seed from `packages/contracts/deployments/xrpl-testnet-wallet.json`.
+- [ ] **Click through the app once before recording.** The scripts and the app share the same code paths byte-for-byte, and the scripted run is proven — but rehearse the clicks: seal a throwaway vault from the app, and walk the prepared vault through claim → execute → payout. Anything that surprises you should surprise you now, not on camera.
+- [ ] **Shell note (PowerShell):** `VAR=value command` is bash syntax and a parse error in PowerShell.
+      Use `$env:VAULT_ID="7"; pnpm exec hardhat run ...` instead.
+- [ ] Deployer has C2FLR (each SEAL/EXECUTE instruction carries a 1 C2FLR fee).
 - [ ] Browser at 1280×720 or larger, zoom 100%, dark room for the black UI.
-- [ ] Proxy logs tailing in a second window — you will want them live on camera.
+- [ ] Proxy logs tailing in a second window — a real instruction arriving at a real enclave is your most credible shot.
 
 ---
 
@@ -44,7 +42,7 @@ Scroll into the flatline section slowly. Let the trace die as you scroll — the
 
 > "A dead-man's switch needs to prove something unusual: not that a payment happened, but that **none did**. Proving absence is the hard part. Flare's Data Connector has an attestation type for exactly that — `XRPPaymentNonexistence`. That's the whole reason this is built on Flare."
 
-## 0:45 — Create a vault (50s)
+## 0:45 — Create a vault and seal the will (60s)
 
 Go to `/app`. Connect wallet.
 
@@ -64,51 +62,33 @@ Drop the estate size below the fixed bequest so **abatement** kicks in.
 
 > "— every bequest abates proportionally, preserving the ratios that were written."
 
-Submit. Show the transaction confirming.
+Submit. Show the transaction confirming, then click **Download will file**.
 
-## 1:35 — Proof of life and proof of silence (60s on screen, ~5 min real time)
+> "The chain holds the hash; I hold the will."
 
-**This is the centrepiece. Both legs are real attestations, not mocks.**
+Now the seal — open the vault, paste the will file into **Seal the will**:
 
-> **Do this in the web app, not the terminal.** The vault panel now has a
-> **Prove life** field and a **Claim dormancy** button that run the whole FDC
-> flow in the browser: prepare → submit (wallet signs) → wait for the round →
-> fetch the proof → submit it. A five-step progress strip and a real progress
-> bar show the round finalising.
->
-> Judges will not run scripts. Showing it clickable is worth far more than
-> showing it in a terminal — and the wait is the same either way, so cut it in
-> the edit and say you did. The scripts below remain the fallback if a wallet
-> misbehaves on the day.
->
-> **Verified working end to end from the browser:** `proveLife` tx
-> `0x43229978…30a9` advanced vault #1's heartbeat by a full interval.
->
-> **Send the heartbeat with a script, not a wallet.** The destination tag hides
-> behind an "advanced" toggle in most extensions, and some cannot reliably reach it. A payment without the tag succeeds on XRPL and
-> silently fails to count — a miserable thing to hit on camera.
+> "Before anything is encrypted, the app fetches the enclave's public key from its attestation document and checks it derives to the exact address the contract verifies signatures against. A spoofed endpoint gets refused. Then the will is encrypted **in this browser** — ECIES to the enclave's key — and sealed."
+
+Click **Encrypt & seal in the enclave**. The enclave's attestation lands in seconds; cut to the proxy logs showing `HEIRLOOM / SEAL … ok`, then back to the app confirming on-chain.
+
+> "The enclave just proved it can decrypt and execute this will — and told the chain so, over its own signature — without revealing a single beneficiary. That's the dry run you do while you're alive, so a corrupt ciphertext can't surface after you're gone."
+
+## 1:45 — Proof of life and proof of silence (55s on screen, ~5 min real time)
+
+**Both legs are real attestations, not mocks. Do this in the web app, not the terminal** — the vault panel has a **Prove life** field and a **Claim dormancy** button that run the whole FDC flow in the browser: prepare → submit (wallet signs) → wait for the round → fetch the proof → submit it.
+
+> **Send the heartbeat with a script, not a wallet.** The destination tag hides behind an "advanced" toggle in most extensions, and a payment without the tag succeeds on XRPL and silently fails to count — a miserable thing to hit on camera.
 >
 > ```bash
-> VAULT_ID=<n> pnpm exec hardhat run scripts/send-heartbeat.ts --network coston2
+> $env:VAULT_ID="<n>"; pnpm exec hardhat run scripts/send-heartbeat.ts --network coston2
 > ```
 >
 > It prints the hash to paste straight into **Prove life**.
 
 > "To stay alive I send a dust payment on the XRP Ledger carrying the destination tag unique to my vault. A fraction of a cent, no Flare-side key, and anyone can relay the proof for me."
 
-```bash
-pnpm exec hardhat run scripts/live-heartbeat.ts --network coston2
-```
-
-Let it run — it funds an XRPL wallet, sends the payment, requests an FDC attestation, waits for the round to finalise, and submits the proof. Narrate over the wait.
-
-> "That's a real XRPL payment, a real FDC attestation, a real Merkle proof verified by Flare's own contract. Proof of life accepted."
-
-Then the one that matters. Use the **fresh** vault id from your pre-flight — a vault that is already Dormant will refuse, since dormancy can only be claimed from Active:
-
-```bash
-VAULT_ID=<your fresh id> pnpm exec hardhat run scripts/claim-dormancy.ts --network coston2
-```
+Then the one that matters. Switch to the **prepared vault** from your pre-flight (the one with the real will and the 180-second interval — it is overdue by now) and click **Claim dormancy**.
 
 > "Now the hard direction. This proves that across four hundred ledgers, *no* payment carrying my tag reached the beacon. Proving something happened is easy. Proving nothing happened is the whole problem — and it's why this is on Flare."
 
@@ -118,55 +98,33 @@ VAULT_ID=<your fresh id> pnpm exec hardhat run scripts/claim-dormancy.ts --netwo
 >
 > So nobody asserts that I've gone silent. Not me, not a keeper, not Flare. A majority of the network's economic weight independently looked, and agreed."
 
-That answers "why not just use a keeper or a multisig?" before a judge asks it.
+Land on the vault flipping to **DORMANT**.
 
-Land on `state 1 → 2` and `DORMANCY PROVEN ON-CHAIN`.
+## 2:40 — Execute and pay out (35s)
 
-Optionally cut to the app's **Stay alive** panel to show the human version of the same thing — beacon address, destination tag, amount, all copyable.
+The prepared vault is Dormant, its will attested, grace already elapsed. The **Execute the will** panel is showing.
 
-## 2:10 — Confidential compute (35s)
+Paste the estate's r-address into the estate field *(this vault never heartbeated, so there's nothing to auto-detect — a real vault's estate is found from its own heartbeats)*, click **Execute in the enclave**:
 
-This is the strongest section. Have proxy logs visible.
+> "Watch what it does: the sealed ciphertext comes back off the chain itself — it's public calldata, so execution needs no private copy of anything. The estate balance is read live from the XRP Ledger. And inside the enclave the will is decrypted and priced against the FTSO XRP/USD feed, so '$50,000 to my daughter' means the right amount of XRP *today*, not the day the will was written."
 
-> "The will itself is sealed to a hardware enclave. Let me show you that path is real."
+The enclave's signed distribution lands in seconds; the app settles it on-chain.
 
-Run:
+> "The contract just verified three things independently: the signature recovers to the registered enclave, the revealed commitment matches what I sealed, and the price sits within tolerance of the live feed. Only then is the distribution recorded."
 
-```bash
-pnpm exec hardhat run scripts/seal-e2e.ts --network coston2
-```
+The **Distribute the estate** panel appears. Paste the will file and the estate seed, click **Sign & broadcast**:
 
-Cut to the proxy logs:
+> "And there it is — the will, executed. Real payments, on the XRP Ledger, to the people it named."
 
-```
-opType HEIRLOOM, opCommand SEAL, ... node returned 400: can not decrypt
-```
+Click through to one `tesSUCCESS` on the XRPL explorer. This is the closing money shot.
 
-> "That instruction went from my contract, through Flare's data providers, into an enclave running on my own machine, and failed exactly where it should — because I deliberately sent it junk instead of a properly encrypted will. Everything up to the enclave's decrypt call is live. The client-side encryption is the one piece I haven't finished."
-
-Then show status — `health.ts` is the better shot, since it proves the whole system in one screen:
-
-```bash
-pnpm exec hardhat run scripts/health.ts --network coston2
-```
-
-> "Status 2 — production. Registered TEE machine on extension 66025, wired to the vault, serving over TLS from my own box. All systems go."
-
-## 2:40 — Dormancy is a claim, not a verdict (15s)
-
-The vault you just made dormant is still sitting there. Click **I'm alive — cancel**.
-
-> "And here is the safety valve. The owner overrules everyone. One late heartbeat — or this button — returns the vault to living and clears every guardian approval. Nothing about this is a countdown to death."
-
-That is a single click, it already works, and it answers the question every judge is forming.
-
-## 2:55 — The trust boundary (15s)
+## 3:15 — The trust boundary (15s)
 
 Scroll the landing page to **The enclave holds your secret. It does not hold your money.**
 
 > "The obvious objection is that the enclave is a trusted component. So it was given exactly one power — reading a will nobody else can read — and no authority over whether, when, or to whom anything moves. It can't move funds early, can't pay someone else, can't act alone, and can't outvote the owner. One late heartbeat returns the vault to living and clears every guardian approval."
 
-## 3:00 — Close (10s)
+## 3:30 — Close (10s)
 
 > "Inheritance is the demo. The primitive is private, programmable rules over native XRP, enforced by an enclave and triggered by provable on-ledger facts. Same machinery does social recovery, vesting, and savings locks — for the two billion XRP sitting idle that Flare is trying to activate."
 
@@ -176,14 +134,15 @@ Scroll the landing page to **The enclave holds your secret. It does not hold you
 
 Being explicit about limits is worth more than hiding them:
 
-- Timings are shortened for the demo — **1 day** on the vault you create on camera, **120 seconds** on the dormancy vault. Real vaults use 90 days with a 30-day grace window.
-- The attestation waits were **cut for time**. Say so; do not let it look instant.
-- `live-heartbeat.ts` uses its **own** cached XRPL wallet and vault, not the vault you created on camera. Either say "here's the same flow on a vault I prepared earlier", or skip creating one on camera and narrate over the script instead.
-- Sealing needs **client-side ECIES** to the enclave's public key. Transport is proven; encryption isn't wired.
-- XRPL payout **broadcasting** is future work — the enclave signs, nothing pushes it to the ledger.
+- Timings are shortened for the demo — **1 day** on the vault you create on camera, **180 seconds** on the prepared vault. Real vaults use 90 days with a 30-day grace window.
+- The FDC round waits were **cut for time**. Say so; do not let it look instant.
+- The payout signature comes from **the estate's testnet seed, held by me** — the one step a human still performs. In production the estate delegates an XRPL *regular key* to a wallet held inside the TEE, so the enclave signs the payouts too. Everything else already runs exactly as production would.
+- The encrypted will travels in the instruction payload; production would keep it off-chain with only the commitment on-chain — the contract is already structured for that.
 
 ## Don't
 
-- Don't claim a full seal → dormancy → **payout** cycle. Everything up to dormancy is real; the payout leg is not, and one follow-up question finds that out.
+- Don't skip the seal beat to save time. Browser-side encryption to an attested enclave key is the confidential-compute story — it's the difference between "routing works" and "the product works".
+- Don't demo dormancy on a vault you heartbeated in the last ~25 minutes — the nonexistence proof will (correctly) refuse. The prepared vault has never heartbeated; that's why it's the one you execute.
 - Don't scroll fast through the flatline section — it's the best thing on the page and it needs about four seconds.
 - Don't skip the proxy logs. A real instruction arriving at a real enclave is the single most credible thing you have.
+- Don't let the reveal go unremarked: the distribution appearing on-chain is the *first moment* the beneficiaries become public — and only because the will has legitimately executed. Say that.

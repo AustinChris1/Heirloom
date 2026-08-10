@@ -16,7 +16,9 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^7.18.2",
-    "ripple-address-codec": "^5.0.0"
+    "ripple-address-codec": "^5.0.0",
+    "ripple-binary-codec": "^2.8.0",
+    "ripple-keypairs": "^3.0.0"
   },
   "devDependencies": {
     "@types/react": "^18.3.12",

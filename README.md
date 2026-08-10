@@ -68,11 +68,11 @@ Connected to Coston2 (chainId 114), head block 33,767,053
 | TEE machine | `0xb1c696717eedEb7e215f381d81f8edaA185eE60c` — on-chain status **2 (PRODUCTION)** |
 | Enclave endpoint | `https://sly.southafricanorth.cloudapp.azure.com` |
 
-A `HEIRLOOM`/`SEAL` instruction sent from the vault has been observed arriving at the enclave through Flare's data providers — the confidential-compute path is not a diagram, it runs.
+**The full lifecycle has been run against this deployment** — vault created, will ECIES-encrypted in the client and sealed, the enclave decrypting and attesting it, dormancy proven by a real FDC nonexistence attestation, the will executed and priced inside the enclave at the FTSO snapshot, the TEE-signed distribution verified by `settleEstate`, and three real XRPL payments delivered `tesSUCCESS` on testnet. The transaction trail is in [Usage](docs/USAGE.md).
 
-Both FDC attestation legs run against live infrastructure — including **from the web app itself**, where a visitor signs the attestation request with their own wallet, waits out the voting round, and submits the Merkle proof without ever opening a terminal.
+Both FDC attestation legs run against live infrastructure — including **from the web app itself**, where a visitor signs the attestation request with their own wallet, waits out the voting round, and submits the Merkle proof without ever opening a terminal. The seal → execute → payout legs are equally clickable at `/app`.
 
-**→ [How to use it](docs/USAGE.md)** · **[Demo script](docs/DEMO.md)** · **[TEE deployment](docs/TEE-DEPLOYMENT.md)**
+**→ [How to use it](docs/USAGE.md)** · **[TEE deployment](docs/TEE-DEPLOYMENT.md)**
 
 | Component | State |
 |---|---|
@@ -80,6 +80,7 @@ Both FDC attestation legs run against live infrastructure — including **from t
 | TEE extension — will schema, allocation engine, SEAL/EXECUTE handlers | Complete, 19 tests passing |
 | Demo app — reads the live contract and the live FTSO feed | Complete, builds clean |
 | TEE extension registered on live FCC infrastructure | **Live** — extension 66025, TEE machine `0xb1c6…E60c` at status 2 (PRODUCTION) |
+| Seal → execute → settle → payout | **Live** — full run on vault #6: enclave-decrypted will, TEE-signed distribution, 3 XRPL payments `tesSUCCESS` |
 
 ## Repository layout
 
@@ -92,7 +93,7 @@ packages/
 
 The web app is two surfaces on purpose. `/` is a scroll-driven landing page; `/app` is the working client where you connect a wallet, build a will, create a vault, and act on it. A page that is read and a dashboard that is operated want different designs, so they get different routes.
 
-**What you can actually do at `/app` right now:** connect a wallet and switch to Coston2, compose a will with fixed-dollar, fixed-XRP and percentage bequests, watch the commitment and the full distribution recompute live against the real allocation engine, create a vault on-chain, read every vault's live state, copy the exact XRPL heartbeat payment your vault needs, confirm as a guardian, and cancel a dormancy claim as the owner. Sealing and executing the will call into Flare Confidential Compute and revert until the TEE extension is registered — the UI says so plainly rather than hiding the step.
+**What you can actually do at `/app` right now:** connect a wallet and switch to Coston2, compose a will with fixed-dollar, fixed-XRP and percentage bequests, watch the commitment and the full distribution recompute live against the real allocation engine, create a vault on-chain and download its will file, read every vault's live state, copy the exact XRPL heartbeat payment your vault needs, confirm as a guardian, and cancel a dormancy claim as the owner. Then the confidential legs: seal the will — encrypted in your browser to the enclave's attested key, refused unless that key derives to the address the contract trusts — watch the enclave attest it, execute a dormant vault (the sealed ciphertext is recovered from the chain itself, the estate balance read live from XRPL), settle the TEE-signed distribution, and broadcast the settled bequests as real XRPL payments.
 
 ## Running it
 

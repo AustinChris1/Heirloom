@@ -86,7 +86,7 @@ export function Docs() {
               aria-expanded={navOpen}
               aria-controls="docs-index"
             >
-              {navOpen ? "✕ Contents" : "☰ Contents"}
+              {navOpen ? "✕" : "☰"}
             </button>
             <Link to="/" aria-label="Heirloom home">
               <Logo size={24} />
@@ -131,36 +131,34 @@ export function Docs() {
         )}
       </AnimatePresence>
 
-      <div className="mx-auto flex max-w-[1500px] gap-10 px-5 py-10 md:gap-16 md:px-8 md:py-14">
-        {/* Desktop: sticky column with its own scrollbar — always reachable,
-            never scrolled away, collapsible from the header. */}
-        <AnimatePresence initial={false}>
-          {navOpen && (
-            <motion.aside
-              key="sidebar"
-              initial={{ width: 0, opacity: 0 }}
-              animate={{ width: 256, opacity: 1 }}
-              exit={{ width: 0, opacity: 0 }}
-              transition={{ duration: 0.25, ease: "easeOut" }}
-              className="hidden shrink-0 overflow-hidden md:block"
-            >
-              <div className="sticky top-24 max-h-[calc(100vh-7rem)] w-64 overflow-y-auto pr-2">
-                <p className="label mb-5">Documentation</p>
-                {index}
-                <a
-                  href="https://github.com/AustinChris1/Heirloom"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="mt-8 inline-block font-mono text-[10px] uppercase tracking-[0.18em] text-ink-400 underline-offset-4 hover:text-white hover:underline"
-                >
-                  Source on GitHub ↗
-                </a>
-              </div>
-            </motion.aside>
-          )}
-        </AnimatePresence>
+      <div className="mx-auto flex max-w-[1500px] px-5 py-10 md:px-8 md:py-14">
+        {/* Desktop: a bordered rail, sticky with its own scrollbar — always
+            reachable, never scrolled away, collapsible from the header. No
+            width animation: squishing text reads worse than an instant reflow. */}
+        {navOpen && (
+          <motion.aside
+            key="sidebar"
+            initial={{ opacity: 0, x: -8 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.2 }}
+            className="hidden w-72 shrink-0 border-r border-ink-800 pr-8 md:block"
+          >
+            <div className="sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto">
+              <p className="label mb-5">Documentation</p>
+              {index}
+              <a
+                href="https://github.com/AustinChris1/Heirloom"
+                target="_blank"
+                rel="noreferrer"
+                className="mt-8 inline-block font-mono text-[10px] uppercase tracking-[0.18em] text-ink-400 underline-offset-4 hover:text-white hover:underline"
+              >
+                Source on GitHub ↗
+              </a>
+            </div>
+          </motion.aside>
+        )}
 
-        {/* ---- content ---- */}
+        {/* ---- content: centred in whatever space the rail leaves ---- */}
         <motion.main
           key={doc.slug}
           initial={{ opacity: 0, y: 12 }}
@@ -168,7 +166,7 @@ export function Docs() {
           transition={{ duration: 0.3 }}
           className="min-w-0 flex-1"
         >
-          <div ref={contentRef} className="prose-mono" dangerouslySetInnerHTML={{ __html: html }} />
+          <div ref={contentRef} className="prose-mono mx-auto md:px-10" dangerouslySetInnerHTML={{ __html: html }} />
         </motion.main>
       </div>
 

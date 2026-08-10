@@ -1,5 +1,13 @@
-import { AnimatePresence, motion, useMotionValueEvent, useScroll, useSpring, useTransform } from "framer-motion";
-import { useRef, useState } from "react";
+import {
+  AnimatePresence,
+  motion,
+  MotionValue,
+  useMotionValueEvent,
+  useScroll,
+  useSpring,
+  useTransform,
+} from "framer-motion";
+import { useLayoutEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Logo, LogoMark } from "../components/Logo";
 import { Ecg, EcgLive } from "../components/landing/Ecg";
@@ -316,70 +324,110 @@ const STAGES = [
 ];
 
 /**
- * Horizontal scroll driven by vertical scroll — on desktop only.
+ * Horizontal scroll driven by vertical scroll.
  *
- * That idiom depends on viewport height being stable, which it is not on mobile
- * (browser chrome collapses as you scroll, so the sticky frame and the transform
- * disagree and the track stalls part-way). Rather than fight it, small screens
- * get a plain vertical stack: same content, no cleverness, nothing to break.
+ * The travel distance is *measured*, not guessed. The previous version moved the
+ * track by a fixed `-72%`, which is a percentage of the track's own width — and
+ * because the cards are sized in `vw`, that percentage only lands correctly at
+ * one viewport width. On narrower screens the cards are proportionally wider,
+ * so 72% stopped short and the last two stages were never reached.
+ *
+ * Measuring `scrollWidth - clientWidth` gives the exact distance needed for the
+ * final card to arrive, at any width, and it self-corrects on resize and
+ * orientation change.
  */
 function Lifecycle() {
   const ref = useRef<HTMLElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end end"] });
-  const x = useTransform(scrollYProgress, [0, 1], ["2%", "-72%"]);
+
+  const [travel, setTravel] = useState(0);
+  useLayoutEffect(() => {
+    const measure = () => {
+      const el = trackRef.current;
+      if (el) setTravel(Math.max(0, el.scrollWidth - el.clientWidth));
+    };
+    measure();
+
+    // Card widths are in vw, so any viewport change alters the distance. A
+    // ResizeObserver also catches mobile browser-chrome collapse, which a
+    // resize listener alone can miss.
+    const ro = new ResizeObserver(measure);
+    if (trackRef.current) ro.observe(trackRef.current);
+    window.addEventListener("resize", measure);
+    window.addEventListener("orientationchange", measure);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", measure);
+      window.removeEventListener("orientationchange", measure);
+    };
+  }, []);
+
+  const x = useTransform(scrollYProgress, [0, 1], [0, -travel]);
 
   return (
-    <section ref={ref} className="relative bg-white text-black md:h-[400vh]">
-      {/* ---- mobile: vertical stack ---- */}
-      <div className="px-6 py-24 md:hidden">
-        <p className="label mb-3 text-ink-500">How it works</p>
-        <h2 className="mb-12 font-black uppercase leading-none tracking-tightest text-[clamp(2rem,9vw,3rem)]">
-          Four stages. One is irreversible.
-        </h2>
-
-        <div className="space-y-12">
-          {STAGES.map((s) => (
-            <Rise key={s.n}>
-              <article className="border-t-2 border-black pt-5">
-                <div className="flex items-baseline justify-between gap-4">
-                  <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">{s.n}</span>
-                  <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500">{s.proof}</span>
-                </div>
-                <h3 className="mt-4 font-black uppercase leading-none tracking-tightest text-[clamp(2.4rem,13vw,3.5rem)]">
-                  {s.title}
-                </h3>
-                <p className="mt-4 leading-relaxed text-ink-600">{s.body}</p>
-              </article>
-            </Rise>
-          ))}
-        </div>
-      </div>
-
-      {/* ---- desktop: the horizontal track ---- */}
-      <div className="sticky top-0 hidden h-screen flex-col justify-center overflow-hidden md:flex">
-        <div className="px-10">
+    // Taller on mobile: the cards are proportionally wider there, so the same
+    // scroll distance would rush all four past in a fraction of the section.
+    <section ref={ref} className="relative h-[520vh] bg-white text-black md:h-[400vh]">
+      <div className="sticky top-0 flex h-screen flex-col justify-center overflow-hidden">
+        <div className="px-6 md:px-10">
           <p className="label mb-3 text-ink-500">How it works</p>
           <h2 className="mb-12 font-black uppercase leading-none tracking-tightest text-[clamp(2rem,6vw,5rem)]">
             Four stages. One is irreversible.
           </h2>
         </div>
 
-        <motion.div style={{ x }} className="flex gap-10 pl-10">
-          {STAGES.map((s) => (
-            <article key={s.n} className="w-[46vw] shrink-0 border-t-2 border-black pt-6 lg:w-[34vw]">
-              <div className="flex items-baseline justify-between">
-                <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">{s.n}</span>
-                <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500">{s.proof}</span>
-              </div>
-              <h3 className="mt-5 font-black uppercase leading-none tracking-tightest text-[clamp(2.6rem,7vw,5.5rem)]">
-                {s.title}
-              </h3>
-              <p className="mt-6 max-w-[42ch] leading-relaxed text-ink-600">{s.body}</p>
-            </article>
+        {/* The measured element is the viewport-width clip; the motion element
+            inside it is the full-width track. */}
+        <div ref={trackRef} className="w-full overflow-hidden">
+          <motion.div style={{ x }} className="flex w-max gap-6 pl-6 pr-6 md:gap-10 md:pl-10 md:pr-10">
+            {STAGES.map((s) => (
+              <article
+                key={s.n}
+                className="w-[82vw] shrink-0 border-t-2 border-black pt-6 md:w-[46vw] lg:w-[34vw]"
+              >
+                <div className="flex items-baseline justify-between gap-4">
+                  <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-ink-500">{s.n}</span>
+                  <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-500">{s.proof}</span>
+                </div>
+                <h3 className="mt-5 font-black uppercase leading-none tracking-tightest text-[clamp(2.6rem,7vw,5.5rem)]">
+                  {s.title}
+                </h3>
+                <p className="mt-6 max-w-[42ch] leading-relaxed text-ink-600">{s.body}</p>
+              </article>
+            ))}
+          </motion.div>
+        </div>
+
+        {/* Which stage you are on — otherwise a long track feels directionless. */}
+        <div className="mt-10 flex gap-2 px-6 md:px-10" aria-hidden="true">
+          {STAGES.map((_, i) => (
+            <StageTick key={i} index={i} progress={scrollYProgress} total={STAGES.length} />
           ))}
-        </motion.div>
+        </div>
       </div>
     </section>
+  );
+}
+
+/** One segment of the progress rail, filling as its stage comes into view. */
+function StageTick({
+  index,
+  progress,
+  total,
+}: {
+  index: number;
+  progress: MotionValue<number>;
+  total: number;
+}) {
+  const start = index / total;
+  const end = (index + 1) / total;
+  const scaleX = useTransform(progress, [start, end], [0, 1], { clamp: true });
+
+  return (
+    <div className="h-0.5 flex-1 bg-black/15">
+      <motion.div className="h-0.5 origin-left bg-black" style={{ scaleX }} />
+    </div>
   );
 }
 

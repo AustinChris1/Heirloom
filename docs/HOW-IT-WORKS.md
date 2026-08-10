@@ -174,13 +174,16 @@ network, the will opened and priced inside the sealed computer, and three real
 payments delivered on the XRP Ledger. The transaction trail is in
 [Usage](USAGE.md).
 
-**One honest caveat remains.** The final signature on the outgoing payments —
-the estate account's own key — is held by the demonstration operator on the
-test network, not yet delegated to the sealed computer itself. In the finished
-product the estate would grant the enclave a *regular key* (XRPL's built-in way
-to authorise a second signer without handing over your master key), making
-even the last step something no human performs. Everything else already works
-exactly as the finished product would.
+**One honest caveat remains.** The final signature on the outgoing payments no
+longer uses the owner's own key at all: while alive, the estate granted a
+*regular key* — XRPL's built-in way to authorise a second signer without
+handing over your master key — and an unattended keeper process uses it to
+sign the payouts, with the owner able to revoke the grant at any moment. The
+caveat is *where* that delegated key lives: today it sits with the keeper; in
+the finished product it would live inside the sealed computer itself, so that
+not even the keeper's operator could sign anything. Same mechanism, one step
+of trust earlier. Everything else already works exactly as the finished
+product would.
 
 ---
 
@@ -191,6 +194,24 @@ exactly as the finished product would.
   business.
 - It cannot recover a key you have already lost.
 - It does not tell your family anything in advance.
+
+---
+
+## A worked example
+
+Mr. A holds 100 XRP. In Heirloom he writes: *70 to my daughter, 25 to my son,
+anything left to my daughter.* Neither child knows — not the amounts, not that
+a plan exists. His 100 XRP stays in his own account, and he spends from it
+freely; the plan follows whatever is there on the day it matters.
+
+He checks in every 90 days. One day he stops. The network proves the silence,
+his month of grace passes untouched, and the sealed computer opens his
+instructions for the first time. His daughter's account receives 70 XRP, his
+son's 25 — ordinary payments on the XRP Ledger, nothing for them to claim,
+sign, or set up. A sliver stays behind for the ledger's own reserve and fees.
+
+Nobody was asked. Nobody could have acted earlier. Nobody read the will before
+it was carried out.
 
 ---
 

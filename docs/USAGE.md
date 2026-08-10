@@ -191,6 +191,7 @@ So a guardian's only power is to *withhold* confirmation. Colluding guardians ca
 | Sealing a will the enclave can open | **Live** — browser-grade ECIES to the enclave's attested key, decrypted and attested by the live enclave, `confirmSeal` recorded on-chain |
 | Executing a will | **Live** — enclave decrypts, prices at the FTSO snapshot, returns a signed distribution `settleEstate` verifies on-chain |
 | XRPL payout broadcasting | **Live** — settled distribution broadcast as real XRPL payments, `tesSUCCESS` on testnet |
+| Unattended lifecycle (keeper + delegated regular key) | **Live** — a cron-friendly keeper claimed dormancy, executed, settled, and signed the payouts with a regular key the estate delegated via `SetRegularKey`; the master seed is never touched |
 
 Both FDC legs now run against live attestations, not mocks. Reproduce them yourself:
 
@@ -206,6 +207,12 @@ VAULT_ID=<id> pnpm exec hardhat run scripts/claim-dormancy.ts --network coston2
 pnpm exec hardhat run scripts/seal-live.ts --network coston2         # prints VAULT_ID
 VAULT_ID=<id> pnpm exec hardhat run scripts/claim-dormancy.ts --network coston2
 VAULT_ID=<id> pnpm exec hardhat run scripts/execute-live.ts --network coston2
+
+# Or let nobody do it: delegate a regular key once, then run the keeper on a
+# timer — it claims dormancy, executes, settles, and signs the payouts with
+# the delegated key. One lifecycle step per pass, per vault.
+pnpm exec hardhat run scripts/set-regular-key.ts --network coston2
+pnpm exec hardhat run scripts/keeper.ts --network coston2
 ```
 
 `live-heartbeat.ts` funds its own XRPL testnet wallet from the faucet, so it needs nothing but a funded Coston2 deployer.
@@ -229,3 +236,16 @@ Evidence from the full confidential lifecycle (vault #6, run 10 Aug 2026):
 | Payout: 2 XRP fixed bequest | [`67E981D0…CE563`](https://testnet.xrpl.org/transactions/67E981D0812F1BD2826D51A815DC10F4A5E8D1ECD1A76E04E810B7434CCCE563) |
 | Payout: 48.49897 XRP (50% share) | [`EE2F3648…51982`](https://testnet.xrpl.org/transactions/EE2F3648F5DF36ACDEBEF0D0245F584229C9EFFCAC6AA9D2E39D2AC4B3251982) |
 | Payout: 48.49897 XRP (residue) | [`D1DB7CE6…EDE1C0`](https://testnet.xrpl.org/transactions/D1DB7CE62A543338C9BB09765B1D7B4D984B7FF94102DFBA0299EEECCAEDE1C0) |
+
+And the **unattended** run (vault #8, same day): after `seal-live.ts`, no human touched anything — the keeper did all of it, signing payouts with the delegated regular key:
+
+| | |
+|---|---|
+| `SetRegularKey` — estate delegates the payout key while alive | [`8F9B2E33…2001`](https://testnet.xrpl.org/transactions/8F9B2E33E74CA945115B873D438B3ABCB1C1E80513038AEA779989D1C7122001) |
+| Keeper claims dormancy — FDC round 1421565, finalised in 95 s | `0xf635215603b7ad48f51553bb8060d8db8fe514faff018f2bb7b2a2f26ad4b815` |
+| Keeper executes + settles the enclave's signed distribution | `0x28f3ea7ffb27746ef2059d2f1f866b24cdecf8c24b347b471acfa5a5d175a5a7` |
+| Payout: 2 XRP fixed bequest (regular-key signed) | [`77CEA80F…A360`](https://testnet.xrpl.org/transactions/77CEA80F6A6DC12DF9A15A9DD40E63942130BF987D90D91C4DE63DBAFE47A360) |
+| Payout: 48.999976 XRP (50% share) | [`7D350333…064A`](https://testnet.xrpl.org/transactions/7D350333FB683343DDE79D8B2FADA82940710EE2545C59F371BC0E55E9C5064A) |
+| Payout: 48.999976 XRP (residue) | [`9A9802A9…9B6A`](https://testnet.xrpl.org/transactions/9A9802A991B36D18BF5A38821F121D08FA4464C7537A690C102F25B3F44D9B6A) |
+
+The enclave also **refused** an execution correctly along the way: vault #7's estate could not cover the XRPL reserve and fees, and the allocation engine rejected it inside the TEE rather than producing an unpayable distribution (`estate of 999988 drops cannot cover the account reserve and fees`).

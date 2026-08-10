@@ -49,6 +49,9 @@ export function CreateVault({
   const [bequests, setBequests] = useState<WillBequest[]>([{ ...BLANK_BEQUEST }]);
   const [intervalDays, setIntervalDays] = useState(90);
   const [graceDays, setGraceDays] = useState(30);
+  // Testnet affordance: a demo can't wait 90 days for dormancy. Minutes make
+  // the full lifecycle demonstrable in one sitting; real vaults use days.
+  const [intervalUnit, setIntervalUnit] = useState<"days" | "minutes">("days");
   const [guardians, setGuardians] = useState<string[]>([]);
   const [threshold, setThreshold] = useState(0);
   const [estateXrp, setEstateXrp] = useState(10_000);
@@ -102,7 +105,7 @@ export function CreateVault({
       const contract = vaultWithSigner(signer);
       const tx = await contract.createVault(
         xrplAddressHash(will.estateAccount),
-        BigInt(intervalDays * DAY),
+        BigInt(intervalDays * (intervalUnit === "days" ? DAY : 60)),
         BigInt(graceDays * DAY),
         validGuardians.map((g) => g.trim()),
         threshold,
@@ -137,7 +140,29 @@ export function CreateVault({
 
         <Section title="Timing" hint="How long you can be silent, and how long you get to overturn a dormancy claim.">
           <div className="grid grid-cols-2 gap-6">
-            <NumberField label="Heartbeat interval" unit="days" value={intervalDays} onChange={setIntervalDays} min={1} />
+            <label className="block">
+              <span className="label mb-2 block">Heartbeat interval</span>
+              <span className="flex items-baseline gap-2">
+                <input
+                  className="field w-20 text-right tabular-nums"
+                  inputMode="numeric"
+                  value={intervalDays}
+                  onChange={(e) => setIntervalDays(Math.max(1, Number(e.target.value) || 0))}
+                />
+                <select
+                  className="field font-mono text-[11px] uppercase tracking-wider"
+                  value={intervalUnit}
+                  onChange={(e) => setIntervalUnit(e.target.value as "days" | "minutes")}
+                >
+                  <option className="bg-black" value="days">
+                    days
+                  </option>
+                  <option className="bg-black" value="minutes">
+                    minutes (testnet demo)
+                  </option>
+                </select>
+              </span>
+            </label>
             <NumberField label="Grace window" unit="days" value={graceDays} onChange={setGraceDays} min={0} />
           </div>
         </Section>

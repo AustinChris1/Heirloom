@@ -15,9 +15,12 @@ Target: **~3½ minutes of finished video**. Every beat below genuinely runs — 
 - [ ] **Health check** — one command, verifies everything:
       `pnpm exec hardhat run scripts/health.ts --network coston2` → must end `✓ ALL SYSTEMS GO`.
       If the TEE is not status 2, the VPS container restarted and **the TEE identity changed**: re-run `post-build.sh`, then `set-tee-address.ts`. A new TEE identity also means old vaults were sealed to a dead key — prepare the demo vault *after* this check passes.
+- [ ] **Top up the estate first.** Payouts drain it, and an estate that cannot cover reserve + fees makes the enclave refuse execution (correctly) — which strands that vault in Executing, recoverable only by `revokeVault`. One faucet call fixes it:
+      `curl -X POST https://faucet.altnet.rippletest.net/accounts -H "Content-Type: application/json" -d '{"destination":"<estate r-address>"}'`
 - [ ] **Prepare the dormancy → payout vault** (real will, 180-second interval, grace 0):
       `pnpm exec hardhat run scripts/seal-live.ts --network coston2` → note the `VAULT_ID` it prints.
       This creates the vault, encrypts the will to the enclave, seals it, and waits for the enclave's attestation — the same path the app runs. It saves the will to `packages/contracts/deployments/will-vault-<id>.json`.
+- [ ] **Decide who cranks: you or the keeper.** `scripts/keeper.ts` runs the whole post-death sequence unattended (claim → execute → settle → payout with the delegated regular key). For the video, clicking execute/payout in the app is the better shot — but mentioning "and a cron job does all of this with nobody watching" is a strong line. If the keeper is on a timer during recording, it WILL race you to the demo vault — disable it while filming.
 - [ ] **Keep two things open in an editor for the payout beat:** the will file above, and the estate seed from `packages/contracts/deployments/xrpl-testnet-wallet.json`.
 - [ ] **Click through the app once before recording.** The scripts and the app share the same code paths byte-for-byte, and the scripted run is proven — but rehearse the clicks: seal a throwaway vault from the app, and walk the prepared vault through claim → execute → payout. Anything that surprises you should surprise you now, not on camera.
 - [ ] **Shell note (PowerShell):** `VAR=value command` is bash syntax and a parse error in PowerShell.
@@ -136,7 +139,7 @@ Being explicit about limits is worth more than hiding them:
 
 - Timings are shortened for the demo — **1 day** on the vault you create on camera, **180 seconds** on the prepared vault. Real vaults use 90 days with a 30-day grace window.
 - The FDC round waits were **cut for time**. Say so; do not let it look instant.
-- The payout signature comes from **the estate's testnet seed, held by me** — the one step a human still performs. In production the estate delegates an XRPL *regular key* to a wallet held inside the TEE, so the enclave signs the payouts too. Everything else already runs exactly as production would.
+- The payout signature comes from a **delegated regular key** — the estate performed a real `SetRegularKey` on XRPL, the master seed is never touched, and the owner can revoke the delegation at any moment while alive. The remaining production step is moving that delegated key **inside the TEE** (the tee-node's managed-wallet subsystem); today the keeper holds it. Same mechanism, one rung earlier.
 - The encrypted will travels in the instruction payload; production would keep it off-chain with only the commitment on-chain — the contract is already structured for that.
 
 ## Don't

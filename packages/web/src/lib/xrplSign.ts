@@ -1,6 +1,6 @@
 import { sha512 } from "ethers";
 import { encode, encodeForSigning } from "ripple-binary-codec";
-import { deriveKeypair, sign as rippleSign } from "ripple-keypairs";
+import { deriveAddress, deriveKeypair, sign as rippleSign } from "ripple-keypairs";
 
 /**
  * XRPL transaction signing, isolated in its own module.
@@ -10,6 +10,11 @@ import { deriveKeypair, sign as rippleSign } from "ripple-keypairs";
  * so this file is only ever loaded via dynamic import, at the moment someone
  * actually broadcasts a distribution.
  */
+
+/** The classic address a seed controls — used to build transactions from it. */
+export function addressFromSeed(seed: string): string {
+  return deriveAddress(deriveKeypair(seed.trim()).publicKey);
+}
 
 /** Signs a payment with the estate's seed, returning the blob and its ledger hash. */
 export function signPayment(tx: Record<string, unknown>, seed: string): { blob: string; hash: string } {

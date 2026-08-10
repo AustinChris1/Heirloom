@@ -174,6 +174,8 @@ export function VaultDetail({
           <CopyField label="Amount — send exactly this" value={`${Number(HEARTBEAT_DROPS) / 1e6} XRP`} />
         </div>
 
+        <TestnetHeartbeat tag={vault.heartbeatTag} />
+
         {/* Detail belongs behind a disclosure, not in front of the fields. */}
         <details className="mt-5 text-xs text-ink-300">
           <summary className="cursor-pointer font-mono text-[10px] uppercase tracking-[0.16em] hover:text-white">
@@ -232,6 +234,96 @@ export function VaultDetail({
 }
 
 /* ---------------------------------------------------------------- */
+
+/**
+ * Testnet-only convenience: sign and send the heartbeat right here, so the
+ * whole demo needs no external XRPL wallet. Most wallet UIs bury the
+ * destination tag, and a heartbeat without the tag silently doesn't count —
+ * this path can't make that mistake. Pasting a seed into a page is acceptable
+ * exactly because this is testnet; a real product would never ask.
+ */
+function TestnetHeartbeat({ tag }: { tag: number }) {
+  const [open, setOpen] = useState(false);
+  const [seed, setSeed] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [sent, setSent] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function send() {
+    setBusy(true);
+    setError(null);
+    setSent(null);
+    try {
+      const [{ addressFromSeed, signPayment }, { accountInfo, submitPayment }, { currentLedger }] =
+        await Promise.all([import("../../lib/xrplSign"), import("../../lib/xrplPayout"), import("../../lib/fdc")]);
+
+      const account = addressFromSeed(seed);
+      const { sequence } = await accountInfo(account);
+      const ledger = await currentLedger();
+
+      const { blob, hash } = signPayment(
+        {
+          TransactionType: "Payment",
+          Account: account,
+          Destination: BEACON_XRPL_ADDRESS,
+          Amount: HEARTBEAT_DROPS.toString(),
+          DestinationTag: tag,
+          Fee: "12",
+          Sequence: sequence,
+          LastLedgerSequence: ledger + 300,
+        },
+        seed,
+      );
+      const { engineResult } = await submitPayment(blob);
+      if (engineResult !== "tesSUCCESS") throw new Error(`XRPL returned ${engineResult}`);
+      setSent(hash);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mt-6">
+      <button
+        className="font-mono text-[11px] uppercase tracking-[0.16em] text-ink-300 underline-offset-4 hover:text-white hover:underline"
+        onClick={() => setOpen((o) => !o)}
+      >
+        {open ? "− Hide testnet helper" : "+ Testnet helper: send it from here"}
+      </button>
+
+      {open && (
+        <div className="mt-4 space-y-3">
+          <input
+            className="field w-full font-mono text-xs"
+            placeholder="Estate testnet seed (s…) — signs the tagged dust payment"
+            value={seed}
+            onChange={(e) => setSeed(e.target.value)}
+            spellCheck={false}
+          />
+          <button className="btn px-4 py-2" disabled={!seed.trim() || busy} onClick={send}>
+            {busy ? "Sending…" : "Sign & send heartbeat"}
+          </button>
+          {sent && (
+            <div className="space-y-1">
+              <CopyField label="Sent — paste this hash into Prove life below" value={sent} />
+              <a
+                href={`${XRPL_TESTNET_EXPLORER}/transactions/${sent}`}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-block font-mono text-[10px] uppercase tracking-[0.16em] text-ink-300 underline-offset-4 hover:text-white hover:underline"
+              >
+                On XRPL testnet ↗
+              </a>
+            </div>
+          )}
+          {error && <p className="font-mono text-[11px] text-white">✕ {error}</p>}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function Step({ children, live = false }: { children: React.ReactNode; live?: boolean }) {
   return (

@@ -1,18 +1,21 @@
-# Registering the Heirloom extension on Coston2 FCC
+# Deploying a Flare Compute Extension on Coston2
 
-Written against the pinned hackathon notice about the Coston2 FCC redeploy. Read that notice first — most reported FCC failures are stale stacks pointed at the dead `FlareTeeManager`.
+How Heirloom's TEE extension was stood up on Coston2, written so it can be
+reproduced on any host. The Coston2 FCC diamond was redeployed on 22 July 2026;
+most reported FCC failures are stacks still pointed at the dead
+`FlareTeeManager`, so start by confirming the registry.
 
-## Preflight: this repo is already on the current deployment
+## Preflight
 
 ```
 pnpm exec hardhat run scripts/verify-fcc.ts
 ```
 
-Confirmed on the live chain:
+The current registry, and what a healthy response looks like:
 
 ```
 FlareTeeManager  0x1a9C4A0f9D76c0b1D91d22E24E573a9b377618aE  live
-nextPublicExtensionId = 66025  (489 public extensions registered)
+nextPublicExtensionId = 66025
 getTeeMachineStatus    facet reachable
 getTeeMachine          facet reachable
 
@@ -21,21 +24,25 @@ Sampling recent extensions for serving TEE machines:
   ext 66018  tee 0x6B63d9fc…  PRODUCTION
 ```
 
-Two things follow. This repo targets the correct registry, so there is nothing to migrate. And other teams' simulated TEEs are reaching `PRODUCTION` right now, so the infrastructure genuinely works today.
+Other extensions reaching `PRODUCTION` confirms the infrastructure is working,
+which is worth establishing before debugging your own stack.
 
-## The two questions
+## Prerequisites
 
-**Indexer-DB credentials — do you still need to request them?**
-Probably not. The notice says the credentials are *in a pinned message*, and that the `indexer-reader` credentials printed in the older docs and in `extension_proxy.coston2.docker.toml.example` are **dead**. Check the group's full pinned list before asking. If you follow the official guide's credentials you will get a proxy that cannot sync, which looks identical to a broken registration.
+| | |
+|---|---|
+| Indexer-DB credentials | Read-only MySQL access, published in the Flare hackathon Telegram's pinned messages. The `indexer-reader` credentials in older docs are **dead** — using them produces a proxy that cannot sync, which looks identical to a broken registration. |
+| A stable public HTTPS URL | Data providers fetch attestations from the URL recorded on-chain. Quick tunnels rotate hostnames on restart, which is the usual cause of a machine stuck at `INITIALIZED`. Any host with a fixed hostname works; a named tunnel or reserved domain also works. |
+| Docker + Compose | On whichever host serves the extension. |
+| Coston2 gas | From the faucet. |
 
-**Is a VPS good enough?**
-Yes, and it is strictly better than a tunnel. Point 3 of the notice warns against quick tunnels because data providers push to the URL stored on-chain, and quick-tunnel hostnames rotate on restart — machines stuck at `INITIALIZED` usually have a dead hostname recorded. A VPS has a stable public hostname by definition, which removes that entire failure mode. It also removes the "your laptop must stay awake" problem, which was the main reason to skip this.
+`SIMULATED_TEE=true` is accepted on Coston2. A GCP Confidential Space VM is
+**not** required unless you specifically want hardware-backed attestation.
 
-`SIMULATED_TEE=true` is explicitly fine for judging. GCP Confidential Space is **not** required.
+## Sizing the host
 
-## What the VPS actually needs
-
-Two workloads get conflated here, and they have very different appetites. Only one of them has to happen on the VPS.
+Two workloads get conflated here, and they have very different appetites. Only
+one of them has to run on the serving host.
 
 **Running** the stack is three containers:
 
@@ -47,103 +54,93 @@ Two workloads get conflated here, and they have very different appetites. Only o
 
 So roughly **150–240 MB resident**. That is the number that matters, and it is small.
 
-**Building** is where the appetite is. `go build`, `npm install`, and `forge build` each spike to several hundred MB — solc and the Go compiler are the culprits. That spike is where "4 GB comfortable" came from, and it is a one-off that has no business happening on the box that serves traffic.
+**Building** is where the appetite is. `go build`, `npm install`, and `forge build` each spike to several hundred MB — solc and the Go compiler are the culprits. That is a one-off cost with no business happening on the machine that serves traffic.
 
-**So don't build on the VPS.** Build the image on your Windows machine, ship it over, and run the deploy CLIs locally too — `pre-build`, `post-build`, and `register-tee` are RPC calls plus HTTP requests to `EXT_PROXY_URL`, which is public by definition. Nothing about them needs to execute on the VPS.
+**So build elsewhere and ship the image.** The deploy CLIs can also run off-host: `pre-build`, `post-build`, and `register-tee` are RPC calls plus HTTP requests to `EXT_PROXY_URL`, which is public by definition.
 
-That leaves the VPS doing only what it is good at: keeping three small containers reachable at a stable hostname.
+That leaves the serving host doing only what it is good at — keeping three small containers reachable at a stable hostname. **A 1 GB instance is sufficient**, which is how Heirloom's extension runs.
 
-### Sizing against your box
-
-Your Azure B2ats v2: 842 MiB total, **557 MiB already in use by p2pbot, 285 MiB available**, plus 2 GiB swap at 11%. Disk 28 GB at 24.8%, so ~21 GB free.
-
-| | Verdict |
-|---|---|
-| Disk | Fine. Shipped images and Docker overhead land well under 21 GB. |
-| Memory, running only | Tight but workable — 150–240 MB against 285 MB available, with swap behind it. |
-| Memory, building on the box | Would thrash or get OOM-killed. Don't. |
-
-Two things buy headroom cheaply:
+Two things buy headroom cheaply on a small host:
 
 ```bash
-# 1. More swap. Insurance, not a fix — but it turns "OOM-killed" into "slow".
+# 1. Swap. Insurance rather than a fix, but it turns "OOM-killed" into "slow".
 sudo fallocate -l 4G /swapfile2 && sudo chmod 600 /swapfile2
 sudo mkswap /swapfile2 && sudo swapon /swapfile2
 echo '/swapfile2 none swap sw 0 0' | sudo tee -a /etc/fstab
 
-# 2. Cap the containers so a leak in one can't take p2pbot down with it.
+# 2. Cap each container so one leak cannot take the host down.
 #    In docker-compose.yaml, per service:
 #      mem_limit: 160m
 ```
 
-If it still runs hot, the Go target for the extension drops `extension-tee` from ~100 MB to ~30 MB. The handler logic in `packages/extension/src/` is small and pure — porting it is a couple of hours, and Go is also the only target that builds bit-for-bit reproducibly across machines, which matters if you ever rebuild rather than ship the same image.
+If it still runs hot, the Go target for the extension drops `extension-tee` from ~100 MB to ~30 MB. Go is also the only target that builds bit-for-bit reproducibly across machines, which matters if you rebuild rather than ship the same image.
 
-### Shipping the image instead of building on the VPS
+### Shipping the image
 
 ```bash
-# on Windows, once the image builds
+# where you build
 docker save heirloom-extension:latest | gzip > heirloom-ext.tgz
-scp heirloom-ext.tgz faustinchris@40.127.9.20:~
+scp heirloom-ext.tgz user@host:~
 
-# on the VPS
+# on the serving host
 gunzip -c heirloom-ext.tgz | docker load
 ```
 
-Then `docker compose up -d` on the VPS with the build sections removed, so Compose uses the loaded image rather than trying to build one.
+Then `docker compose up -d --no-build` so Compose uses the loaded image. Note that `extension-tee` is declared with `build:` rather than `image:`, so tag the loaded image to the name Compose derives (`<project>-extension-tee:latest`) or it will try to build.
 
-### Azure networking — verified, nothing to change
+### Networking
 
-Checked against the live host:
+Terminate TLS on 443 and proxy to the extension on loopback. Only 80 and 443
+need to be reachable — 80 for the ACME HTTP-01 challenge, 443 to serve.
 
-| | Status |
-|---|---|
-| `sly.southafricanorth.cloudapp.azure.com` | Resolves to `40.127.9.20` ✓ |
-| Public IP assignment | **Static** ✓ — it cannot drift out from under the URL recorded on-chain |
-| NSG inbound | 22, 80, 443 allowed; everything else denied by rule 65500 |
-| Anything already listening on 80/443 | **No** — both refuse connections from outside, so Caddy can claim them without fighting p2pbot |
+**Do not expose port 6674 to the internet.** The proxy's HTTP API is
+unauthenticated: anyone who can reach it can call it. Bind it to loopback and
+reach it only through the reverse proxy, which also gives you the `https://` URL
+you want recorded on-chain.
 
-So the NSG needs **no new rule**. Terminate TLS on 443 with Caddy and proxy to the extension on loopback.
-
-**Do not open 6674 to the internet.** The proxy's HTTP API is unauthenticated — anyone who can reach it can call it. Keeping it bound to loopback and reaching it only through Caddy is both safer and gives you the `https://` URL you want registered on-chain.
-
-Note that Docker writes its own iptables rules and **bypasses `ufw`**. A compose file that publishes `6674:6664` binds `0.0.0.0` and would be internet-facing on a host without an NSG in front. Bind it explicitly:
+Docker writes its own iptables rules and **bypasses `ufw`**. A compose file
+publishing `6674:6664` binds `0.0.0.0` and is internet-facing on any host
+without a separate firewall in front. Bind it explicitly:
 
 ```yaml
 ports:
   - "127.0.0.1:6674:6664"
 ```
 
-Here the NSG denies 6674 anyway, but relying on that alone is one portal edit away from being wrong.
+Cloud firewalls (security groups, NSGs) sit in front of the host firewall and
+usually deny by default — check both. And confirm the public IP is **static**:
+an address that changes on restart leaves a dead hostname recorded on-chain,
+which is the classic cause of a machine stuck at `INITIALIZED`.
 
 ### TLS
 
 ```caddyfile
-sly.southafricanorth.cloudapp.azure.com {
+tee.example.com {
     reverse_proxy 127.0.0.1:6674
 }
 ```
 
-Caddy fetches a Let's Encrypt certificate automatically — port 80 is open, which is what the ACME HTTP-01 challenge needs, and 443 serves it. Then:
+Caddy fetches a Let's Encrypt certificate automatically. Then:
 
 ```bash
-EXT_PROXY_URL="https://sly.southafricanorth.cloudapp.azure.com"
+EXT_PROXY_URL="https://tee.example.com"
 ```
 
-**Check `ufw` before assuming it works.** The NSG allowing 80/443 does not mean the host does:
+**Check the host firewall separately.** A cloud security group allowing 80/443 does not mean the host does:
 
 ```bash
 sudo ufw status
 sudo ufw allow 80,443/tcp   # only if ufw is active
 ```
 
-**Reboot first.** The login banner reports 30 pending updates and a required restart. Do that before you start, not halfway through a registration.
+**Apply pending updates and reboot before starting**, not halfway through a registration.
 
 ### End-to-end check before registering
 
-From your laptop, not the VPS — this is the same path Flare's data providers will take:
+From a machine other than the serving host — this is the same path Flare's data providers will take:
 
 ```bash
-curl -sf https://sly.southafricanorth.cloudapp.azure.com/info | jq '.machineData'
+curl -sf https://tee.example.com/info | jq '.machineData'
 ```
 
 If that returns `machineData` with a `codeHash`, the URL you are about to write on-chain is genuinely reachable. If it hangs or 502s, fix that first — registering a URL that does not answer is exactly how machines end up stuck at `INITIALIZED`.
@@ -185,7 +182,7 @@ docker exec <extension-tee container> /app/server --version   # or inspect the b
 
 ## Sequence
 
-**Where each step runs:** everything happens on your Windows machine except starting the containers. Steps 1–5 and 7–8 are local; only step 6 touches the VPS.
+**Where each step runs:** everything except starting the containers can run off-host. Steps 1–5 and 7–8 are local; only step 6 touches the serving host.
 
 **1. Current sources.** The notice is emphatic about this.
 
@@ -201,7 +198,7 @@ git checkout main && git pull
 ```bash
 DEPLOYMENT_PRIVATE_KEY="<funded coston2 key, no 0x>"
 INITIAL_OWNER="0x<your address>"
-EXT_PROXY_URL="https://sly.southafricanorth.cloudapp.azure.com"  # stable — not a quick tunnel
+EXT_PROXY_URL="https://tee.example.com"  # stable — not a quick tunnel
 ```
 
 Re-run `use-chain.sh` after editing so `.env` picks the values up.
@@ -257,7 +254,7 @@ curl -sf http://localhost:6674/info | jq '.machineData'
 
 `codeHash` should be the simulated-TEE value `0x194844cf…`, and `extensionId` should match `config/extension.env`.
 
-Then, **back on your laptop**, register the machine:
+Then register the machine (this runs off-host):
 
 ```bash
 ./scripts/post-build.sh          # uses register-tee -command rRap (capital R = fresh challenge)

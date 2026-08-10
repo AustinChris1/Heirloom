@@ -85,8 +85,7 @@ Submit. Show the transaction confirming.
 > `0x43229978…30a9` advanced vault #1's heartbeat by a full interval.
 >
 > **Send the heartbeat with a script, not a wallet.** The destination tag hides
-> behind an "advanced" toggle in most extensions, and Crossmark on Windows
-> cannot reliably scroll to it. A payment without the tag succeeds on XRPL and
+> behind an "advanced" toggle in most extensions, and some cannot reliably reach it. A payment without the tag succeeds on XRPL and
 > silently fails to count — a miserable thing to hit on camera.
 >
 > ```bash

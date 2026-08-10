@@ -75,7 +75,7 @@ For a simulated TEE against real Coston2, the whole stack is free:
 | Requirement | Cost |
 |---|---|
 | Docker + Compose | Free |
-| A stable public hostname | Free — an Azure VM's built-in `*.cloudapp.azure.com` DNS label works; otherwise a *named* cloudflared tunnel or reserved ngrok domain |
+| A stable public hostname | Free — most cloud providers give every instance a free DNS label; otherwise a *named* cloudflared tunnel or reserved domain |
 | Coston2 gas | Free from the faucet |
 | Indexer-DB credentials | Free — **check the hackathon Telegram's pinned messages**, they are posted there. The `indexer-reader` credentials in the older docs are dead. |
 

@@ -7,11 +7,6 @@ import { DOCS, findDoc } from "../lib/docs";
 
 /**
  * Documentation, rendered from the repository's own markdown.
- *
- * The content is imported raw rather than copied, so these pages cannot drift
- * from the files in docs/. Styling is done with a scoped stylesheet instead of
- * a typography plugin — the whole site is monochrome and the defaults would
- * introduce colour.
  */
 export function Docs() {
   const { slug } = useParams();
@@ -82,7 +77,7 @@ export function Docs() {
           </nav>
 
           <a
-            href="https://github.com/AustinChris1/flareHack"
+            href="https://github.com/AustinChris1/Heirloom"
             target="_blank"
             rel="noreferrer"
             className="mt-8 inline-block font-mono text-[10px] uppercase tracking-[0.18em] text-ink-400 underline-offset-4 hover:text-white hover:underline"

@@ -1,4 +1,5 @@
 import architecture from "../../../../docs/ARCHITECTURE.md?raw";
+import howItWorks from "../../../../docs/HOW-IT-WORKS.md?raw";
 import demo from "../../../../docs/DEMO.md?raw";
 import hosting from "../../../../docs/HOSTING.md?raw";
 import submission from "../../../../docs/SUBMISSION.md?raw";
@@ -26,6 +27,12 @@ export const DOCS: Doc[] = [
     title: "Overview",
     blurb: "What Heirloom is, how it works, and what is live.",
     body: readme,
+  },
+  {
+    slug: "how-it-works",
+    title: "How it works",
+    blurb: "Plain language, no jargon. Start here.",
+    body: howItWorks,
   },
   {
     slug: "usage",

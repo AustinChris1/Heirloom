@@ -79,7 +79,7 @@ Keep that transaction hash — proving life needs it.
 
 ### Easier: let the repo send it
 
-Browser wallets are the weak link. The destination tag usually sits behind an "advanced" toggle, and some extensions (Crossmark on Windows, for one) cannot scroll to it — so the payment goes out **without a tag**, succeeds on XRPL, and silently fails to count.
+Browser wallets are the weak link. The destination tag usually sits behind an "advanced" toggle, and some extensions cannot reliably reach it — so the payment goes out **without a tag**, succeeds on XRPL, and silently fails to count.
 
 ```bash
 cd packages/contracts

@@ -53,11 +53,12 @@ async function pollEnclave(instructionId: string, timeoutMs = 600_000): Promise<
     const res = await fetch(`${ENCLAVE}/action/result/${instructionId}`);
     if (res.ok) {
       const out = await res.json();
-      if (out?.result?.id) return out;
+      // status >= 2 is pending (node still retrying the extension) — not final.
+      if (out?.result?.id && Number(out.result.status ?? 0) < 2) return out;
     }
     await new Promise((r) => setTimeout(r, 6000));
   }
-  throw new Error(`no enclave result for ${instructionId}`);
+  throw new Error(`no final enclave result for ${instructionId}`);
 }
 
 /* ---------------- lifecycle steps ---------------- */

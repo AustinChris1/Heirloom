@@ -150,7 +150,8 @@ async function main() {
     const res = await fetch(`${ENCLAVE}/action/result/${instructionId}`);
     if (res.ok) {
       const out = await res.json();
-      if (out?.result?.id) {
+      // status >= 2 is pending (node still retrying the extension) — not final.
+      if (out?.result?.id && Number(out.result.status ?? 0) < 2) {
         result = out;
         break;
       }

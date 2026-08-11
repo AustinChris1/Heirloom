@@ -11,6 +11,7 @@ import {
   XRPL_TESTNET_EXPLORER,
 } from "../../lib/deployment";
 import { eciesEncrypt } from "../../lib/ecies";
+import { loadWill } from "../../lib/willStore";
 import { fetchEnclaveKey, pollActionResult } from "../../lib/enclave";
 import { currentLedger } from "../../lib/fdc";
 import { humanError, vaultWithSigner } from "../../lib/wallet";
@@ -122,7 +123,9 @@ function SealPanel({
   signer: JsonRpcSigner | null;
   onChanged: () => void;
 }) {
-  const [willText, setWillText] = useState("");
+  // Wills created in this browser were saved at creation, keyed by their
+  // commitment — start from that copy so nothing needs pasting here.
+  const [willText, setWillText] = useState(() => loadWill(vault.willCommitment));
   const [flow, setFlow] = useState<Flow>(IDLE);
   const [pending, setPending] = useState<string | null>(null);
 
@@ -424,7 +427,7 @@ function ExecutePanel({
 
 function PayoutPanel({ vault }: { vault: LiveVault }) {
   const [distribution, setDistribution] = useState<SettledBequest[] | null>(null);
-  const [willText, setWillText] = useState("");
+  const [willText, setWillText] = useState(() => loadWill(vault.willCommitment));
   const [seed, setSeed] = useState("");
   const [payments, setPayments] = useState<PayoutPayment[] | null>(null);
   const [results, setResults] = useState<Array<{ hash: string; engineResult: string }> | null>(null);

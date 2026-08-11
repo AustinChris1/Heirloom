@@ -78,7 +78,10 @@ export async function pollActionResult(
     if (res.ok) {
       const out = await res.json();
       const r = out?.result;
-      if (r?.id) {
+      // Status >= 2 means PENDING — the node is still retrying delivery to the
+      // extension (observed live: a slow first response gets recorded as 3,
+      // then replaced). Only 0 (error) and 1 (success) are final.
+      if (r?.id && Number(r.status ?? 0) < 2) {
         return {
           data: r.data ?? "0x",
           actionId: r.id,
@@ -92,5 +95,5 @@ export async function pollActionResult(
     onTick?.(Math.round((Date.now() - started) / 1000));
     await new Promise((resolve) => setTimeout(resolve, 6_000));
   }
-  throw new Error(`No enclave result for ${instructionId} within ${Math.round(timeoutMs / 60_000)} minutes`);
+  throw new Error(`No final enclave result for ${instructionId} within ${Math.round(timeoutMs / 60_000)} minutes`);
 }

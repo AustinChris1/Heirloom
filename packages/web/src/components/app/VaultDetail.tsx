@@ -225,8 +225,8 @@ export function VaultDetail({
           </ul>
           <p className="mt-4 max-w-[44ch] text-xs leading-relaxed text-ink-300">
             The enclave serves at status PRODUCTION on extension 66025. The one departure from the full design:
-            payout signing uses the estate's testnet seed here, where production would delegate a regular key to
-            the enclave itself.
+            payouts are signed with a pasted seed here — the estate has delegated a regular key on XRPL, and
+            production would hold that delegated key inside the enclave itself.
           </p>
         </div>
       </div>

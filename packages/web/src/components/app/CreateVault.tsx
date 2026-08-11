@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { parseWill, Will, WillBequest, willCommitment } from "@heirloom/extension/will";
 import { allocate } from "@heirloom/extension/allocate";
 import { humanError, vaultWithSigner, xrplAddressHash } from "../../lib/wallet";
+import { saveWill } from "../../lib/willStore";
 import { EXPLORER } from "../../lib/deployment";
 
 const DAY = 24 * 60 * 60;
@@ -38,11 +39,13 @@ export function CreateVault({
   vaultCount,
   xrpUsdPriceE18,
   onCreated,
+  onViewVaults,
 }: {
   signer: JsonRpcSigner;
   vaultCount: number;
   xrpUsdPriceE18: bigint | null;
   onCreated: () => void;
+  onViewVaults: () => void;
 }) {
   const [estateAccount, setEstateAccount] = useState("");
   const [residuary, setResiduary] = useState("");
@@ -114,6 +117,9 @@ export function CreateVault({
       const receipt = await tx.wait();
       setTxHash(receipt.hash);
       setCreatedWill(will);
+      // Keep a browser-local copy keyed by the commitment, so sealing and
+      // payout on this machine work even if the download is never clicked.
+      saveWill(commitment, will);
       onCreated();
     } catch (err) {
       setError(humanError(err));
@@ -312,24 +318,29 @@ export function CreateVault({
                 {txHash}
               </a>
               {createdWill && (
-                <div className="space-y-2">
-                  <button
-                    className="btn px-4 py-2"
-                    onClick={() => {
-                      const blob = new Blob([JSON.stringify(createdWill, null, 2)], { type: "application/json" });
-                      const url = URL.createObjectURL(blob);
-                      const a = document.createElement("a");
-                      a.href = url;
-                      a.download = `heirloom-will-vault-${createdWill.vaultId}.json`;
-                      a.click();
-                      URL.revokeObjectURL(url);
-                    }}
-                  >
-                    Download will file
-                  </button>
+                <div className="space-y-3">
+                  <div className="flex flex-wrap gap-3">
+                    <button
+                      className="btn px-4 py-2"
+                      onClick={() => {
+                        const blob = new Blob([JSON.stringify(createdWill, null, 2)], { type: "application/json" });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = `heirloom-will-vault-${createdWill.vaultId}.json`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                      }}
+                    >
+                      Download will file
+                    </button>
+                    <button className="btn btn-solid px-4 py-2" onClick={onViewVaults}>
+                      View your vault →
+                    </button>
+                  </div>
                   <p className="max-w-[42ch] text-xs leading-relaxed text-ink-300">
-                    Keep this file — sealing the will in the enclave, and later distributing the estate, both
-                    need this exact JSON. The chain holds only its hash.
+                    Your will is saved in this browser, so sealing and payout here just work. Download the file
+                    too if you want a copy that survives this device — the chain holds only the fingerprint.
                   </p>
                 </div>
               )}

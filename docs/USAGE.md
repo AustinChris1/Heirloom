@@ -65,7 +65,7 @@ Watch the right-hand panel while you type:
 - **Will commitment** — a fingerprint of your will, recomputed live. This fingerprint is *the only thing the chain ever learns*. Who inherits, and how much, never leaves your browser.
 - **Distribution preview** — type an estate size and see exactly who would get what, computed by the *same engine* that later runs inside the enclave. Set the estate smaller than your fixed bequests and watch the **abatement warning**: everyone's fixed amount shrinks proportionally, fairly.
 
-Click **Create vault on Coston2**, approve in MetaMask, then click **Download will file** — this saves *what you just typed* as a small file. Keep it: sealing and the final payout both need it. The chain only ever has the fingerprint.
+Click **Create vault on Coston2** and approve in MetaMask. The success screen stays put until you're done with it: your will is automatically kept **in this browser**, and **Download will file** saves a copy of *what you just typed* for other devices or safekeeping. The chain only ever has the fingerprint. When you're ready, **View your vault →**.
 
 > **You never deposit anything.** There is no pot to fill. Your XRP stays in your account, spendable as ever — the vault watches, it doesn't hold.
 
@@ -77,7 +77,7 @@ On your vault's card, click **name it** next to "Vault #N" to give it a private 
 
 Find your vault in the list and the **Seal the will** panel. This is the rehearsal, done while you're alive so nothing can fail after you're gone:
 
-1. **Paste your will file** into the box. The app checks it against the fingerprint on-chain — "✓ Matches this vault's commitment" or a refusal (a tampered or wrong will can't be sealed).
+1. On the browser that created the vault, **your will is already filled in**. (Elsewhere, paste the downloaded will file.) The app checks it against the fingerprint on-chain — "✓ Matches this vault's commitment" or a refusal (a tampered or wrong will can't be sealed).
 2. Click **Encrypt & seal in the enclave**. What happens, in order: the app fetches the enclave's public key and *refuses unless it matches the identity the contract trusts* → your will is encrypted **in your browser** → MetaMask asks you to send it (1 C2FLR fee) → the sealed computer opens it, checks it, and reports back within seconds → MetaMask asks you to record that attestation on-chain.
 3. Your vault now shows **"Sealed and attested"** — the enclave has proven it can read and execute your will, without revealing a word of it.
 

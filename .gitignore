@@ -4,6 +4,7 @@ build/
 .env
 .env.local
 *.local
+docs/DEMO.md
 
 # Hardhat
 artifacts/

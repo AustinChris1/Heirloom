@@ -110,10 +110,8 @@ export function VaultApp({ chain, refresh }: { chain: ChainSnapshot | null; refr
                   signer={wallet.signer}
                   vaultCount={chain?.vaultCount ?? 0}
                   xrpUsdPriceE18={chain?.xrpUsdPriceE18 ?? null}
-                  onCreated={() => {
-                    refresh();
-                    setTab("vaults");
-                  }}
+                  onCreated={refresh}
+                  onViewVaults={() => setTab("vaults")}
                 />
               ) : (
                 <Notice>

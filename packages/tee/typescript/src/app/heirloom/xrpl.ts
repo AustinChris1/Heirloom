@@ -26,7 +26,8 @@ export interface XrplPayment {
 
 export interface BuildPaymentsInput {
   estateAccount: string;
-  allocations: Allocation[];
+  /** Only the payment-relevant fields are needed; a full Allocation satisfies it. */
+  allocations: Pick<Allocation, "beneficiary" | "drops" | "source">[];
   /** Account sequence to start from; each payment consumes one. */
   startSequence: number;
   feePerTxDrops: bigint;

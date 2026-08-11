@@ -192,16 +192,14 @@ network, the will opened and priced inside the sealed computer, and three real
 payments delivered on the XRP Ledger. The transaction trail is in
 [Usage](USAGE.md).
 
-**One honest caveat remains.** The final signature on the outgoing payments no
-longer uses the owner's own key at all: while alive, the estate granted a
-*regular key* — XRPL's built-in way to authorise a second signer without
-handing over your master key — and an unattended keeper process uses it to
-sign the payouts, with the owner able to revoke the grant at any moment. The
-caveat is *where* that delegated key lives: today it sits with the keeper; in
-the finished product it would live inside the sealed computer itself, so that
-not even the keeper's operator could sign anything. Same mechanism, one step
-of trust earlier. Everything else already works exactly as the finished
-product would.
+**And the last signature belongs to nobody.** The payments out of your account
+are not signed by you, by us, or by any person. While you are alive you grant
+the sealed computer a *regular key* — XRPL's built-in way to authorise a second
+signer without handing over your master key — and that key was created inside
+the sealed computer, where it stays: never written to a disk, never sent
+anywhere, never seen by a human. When the conditions are finally met, the
+sealed computer signs your bequests with it. You can revoke the grant at any
+moment while you are alive, and your own key never leaves your hands.
 
 ---
 

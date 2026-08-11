@@ -44,6 +44,88 @@ export async function fetchEnclaveKey(): Promise<EnclaveKey> {
   return { publicKey, address: computeAddress(publicKey) };
 }
 
+/**
+ * Direct actions — enclave operations that need no on-chain instruction.
+ *
+ * These go to the proxy's `/direct` endpoint rather than through the vault
+ * contract, because they carry no authority: ADDRESS reveals a public
+ * address, and PAYOUT only signs a distribution the chain has *already*
+ * verified and settled. Both return their payload as hex-encoded JSON.
+ */
+async function directAction(opCommand: string, payload?: unknown): Promise<unknown> {
+  const message = payload
+    ? "0x" +
+      Array.from(new TextEncoder().encode(JSON.stringify(payload)))
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("")
+    : "0x00";
+
+  const res = await fetch(`${ENCLAVE}/direct`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      opType: bytes32Hex("HEIRLOOM"),
+      opCommand: bytes32Hex(opCommand),
+      message,
+    }),
+  });
+  if (!res.ok) {
+    throw new Error(
+      res.status === 404
+        ? "The enclave's direct endpoint is not enabled on this deployment."
+        : `enclave /direct returned ${res.status}`,
+    );
+  }
+
+  const queued = await res.json();
+  const actionId = queued?.data?.id;
+  if (!actionId) throw new Error("enclave did not queue the action");
+
+  // Direct results are stored under the "submit" tag; /action/result defaults
+  // to "threshold" and would 404 forever without this.
+  const result = await pollActionResult(actionId, undefined, 120_000, "submit");
+  if (result.status !== 1) throw new Error(result.log || "the enclave refused the request");
+  return JSON.parse(new TextDecoder().decode(hexToBytes(result.data)));
+}
+
+function bytes32Hex(s: string): string {
+  const bytes = new Uint8Array(32);
+  bytes.set(new TextEncoder().encode(s));
+  return "0x" + Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+function hexToBytes(hex: string): Uint8Array {
+  const clean = hex.replace(/^0x/, "");
+  const out = new Uint8Array(clean.length / 2);
+  for (let i = 0; i < out.length; i++) out[i] = parseInt(clean.substr(i * 2, 2), 16);
+  return out;
+}
+
+/** The enclave's own XRPL address — what an owner delegates to as a regular key. */
+export async function enclaveXrplAddress(): Promise<string> {
+  const out = (await directAction("ADDRESS")) as { address?: string };
+  if (!out?.address) throw new Error("enclave returned no XRPL address");
+  return out.address;
+}
+
+export interface SignedPayout {
+  signer: string;
+  account: string;
+  payments: Array<{ to: string; drops: string; blob: string; hash: string }>;
+}
+
+/**
+ * Asks the enclave to sign a settled vault's payouts with its own key.
+ * Nobody supplies a seed: the estate delegated this key while alive.
+ */
+export async function requestEnclavePayout(
+  vaultId: number,
+  sequence: number,
+  lastLedgerSequence: number,
+): Promise<SignedPayout> {
+  return (await directAction("PAYOUT", { vaultId, sequence, lastLedgerSequence })) as SignedPayout;
+}
+
 /** The signed result of one enclave action, exactly as the contract wants it. */
 export interface EnclaveResult {
   /** ActionResult.Data — the ABI payload the extension produced. */
@@ -70,11 +152,13 @@ export async function pollActionResult(
   instructionId: string,
   onTick?: (elapsedSeconds: number) => void,
   timeoutMs = 600_000,
+  submissionTag?: string,
 ): Promise<EnclaveResult> {
   const started = Date.now();
+  const query = submissionTag ? `?submissionTag=${submissionTag}` : "";
 
   while (Date.now() - started < timeoutMs) {
-    const res = await fetch(`${ENCLAVE}/action/result/${instructionId}`);
+    const res = await fetch(`${ENCLAVE}/action/result/${instructionId}${query}`);
     if (res.ok) {
       const out = await res.json();
       const r = out?.result;

@@ -46,10 +46,14 @@ async function main() {
     const info = await client.request({ command: "ledger", ledger_index: "validated" });
     const current = Number(info.result.ledger_index ?? info.result.ledger.ledger_index);
 
-    // Look back over a window comfortably inside the ledger the verifier holds,
-    // ending a few ledgers back so the range is fully finalised.
+    // The contract requires the range to START at or before the vault's last
+    // recorded heartbeat, so size the lookback from how long ago that actually
+    // was (~3.5 s per testnet ledger). A fixed window only ever fits a vault
+    // that went dormant minutes ago, and reverts with SearchRangeTooLate once
+    // the vault is older than the window.
     deadlineBlock = current - 5;
-    minimalBlock = deadlineBlock - 400;
+    const silenceSeconds = Math.floor(Date.now() / 1000) - Number(v.lastHeartbeat);
+    minimalBlock = deadlineBlock - Math.min(100_000, Math.ceil(silenceSeconds / 3.5) + 200);
 
     const dl = await client.request({ command: "ledger", ledger_index: deadlineBlock });
     deadlineTs = Number(dl.result.ledger.close_time) + 946_684_800; // ripple epoch → unix

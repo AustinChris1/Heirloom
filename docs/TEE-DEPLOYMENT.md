@@ -323,6 +323,56 @@ Before a demo, check what the chain thinks is live rather than what your contain
 - `getTeeMachineStatus(teeId)` → `1` = INITIALIZED, `2` = PRODUCTION.
 - `getTeeMachine(teeId)` → confirm the recorded URL is the one you are actually serving.
 
+## Enabling enclave-signed payouts
+
+The enclave can hold its own XRPL key and sign the estate's payouts itself, so
+no human ever types a seed. Two operations make it work, both **direct actions**
+(proxy `POST /direct`) rather than on-chain instructions — they carry no
+authority, so no contract change is needed:
+
+| Op | Does |
+|---|---|
+| `HEIRLOOM` / `ADDRESS` | Returns the enclave's XRPL address. The estate owner authorises it with one `SetRegularKey` while alive |
+| `HEIRLOOM` / `PAYOUT` | Signs an already-executed, already-settled distribution and returns broadcastable blobs |
+
+The key is **derived from the TEE identity, never stored**: the extension asks
+the node's sign port to sign a fixed derivation string and uses the
+(deterministic) signature as seed entropy. Nothing on disk to steal; the same
+identity always yields the same address; a rebuilt enclave yields a new one and
+owners must re-delegate — the same rule that already applies to sealed wills.
+
+**`/direct` is disabled by default.** In the proxy's `.toml`:
+
+```toml
+[direct]
+enable = true
+api_key_optional = true    # or set api_key / api_key_variable
+```
+
+Then restart **only the proxy** — `docker compose restart ext-proxy`. The proxy
+holds no identity, so this is safe. **Never restart the node container to pick
+up config**; that regenerates the TEE identity (see below).
+
+Verify, then delegate:
+
+```bash
+curl -s $ENCLAVE/direct -H 'Content-Type: application/json' \
+  -d '{"opType":"0x4845...","opCommand":"0x4144...","message":"0x00"}'   # ADDRESS
+
+pnpm exec hardhat run scripts/delegate-to-enclave.ts --network coston2
+```
+
+`delegate-to-enclave.ts` asks the enclave for its address and submits the
+estate's `SetRegularKey` to it. After that the app's **Let the enclave sign**
+button pays out with no seed anywhere, and `PAYOUT` refuses to sign the same
+vault twice — an untrusted caller supplies only the sequence and expiry, never
+the amounts or recipients, which are frozen at EXECUTE.
+
+> **Deploying this changes the running image**, which regenerates the TEE
+> identity: re-register the machine, re-run `setTeeAddress`, and **re-seal any
+> vault** whose will was sealed to the old key. Do it when you have an hour,
+> not before a demo.
+
 ## If instructions register but never relay
 
 A team hit this with a custom op named `VRF`/`PROVE`. Anything starting with `F_` is reserved, and reusing a system command word (`PAY`, `REISSUE`, `VRF`, `PROVE`, `KEY_GENERATE`, `TEE_INFO`) can stop an instruction being relayed.

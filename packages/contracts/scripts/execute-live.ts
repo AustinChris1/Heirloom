@@ -25,6 +25,42 @@ const EXPLORER_API = "https://coston2-explorer.flare.network/api";
 const VAULT_ID = Number(process.env.VAULT_ID ?? 6);
 const WALLET_CACHE = path.join(__dirname, "..", "deployments", "xrpl-testnet-wallet.json");
 
+function bytes32Hex(s: string): string {
+  const buf = Buffer.alloc(32);
+  buf.write(s, "utf-8");
+  return "0x" + buf.toString("hex");
+}
+
+/** Runs a HEIRLOOM direct action against the enclave and returns its JSON payload. */
+async function directAction(opCommand: string, payload?: unknown): Promise<any> {
+  const message = payload ? "0x" + Buffer.from(JSON.stringify(payload), "utf-8").toString("hex") : "0x00";
+  const queued = await (
+    await fetch(`${ENCLAVE}/direct`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ opType: bytes32Hex("HEIRLOOM"), opCommand: bytes32Hex(opCommand), message }),
+    })
+  ).json();
+
+  const actionId = queued?.data?.id;
+  if (!actionId) throw new Error(`enclave did not queue the action: ${JSON.stringify(queued)}`);
+
+  const started = Date.now();
+  while (Date.now() - started < 120_000) {
+    // Direct results live under the "submit" tag; the endpoint defaults to "threshold".
+    const res = await fetch(`${ENCLAVE}/action/result/${actionId}?submissionTag=submit`);
+    if (res.ok) {
+      const out = await res.json();
+      if (out?.result?.id && Number(out.result.status ?? 0) < 2) {
+        if (out.result.status !== 1) throw new Error(`enclave refused: ${out.result.log}`);
+        return JSON.parse(Buffer.from(out.result.data.replace(/^0x/, ""), "hex").toString("utf-8"));
+      }
+    }
+    await new Promise((r) => setTimeout(r, 3000));
+  }
+  throw new Error("no result from the enclave within 2 minutes");
+}
+
 /**
  * Event lookup via the explorer API. The public RPC caps eth_getLogs at 30
  * blocks, which makes it useless for "find the seal for this vault" — the
@@ -134,7 +170,53 @@ async function main() {
     console.log(`settleEstate tx: ${settleTx.hash}`);
   }
 
-  // 5. Broadcast the settled distribution as real XRPL payments.
+  // 5a. Enclave-signed payout: the estate delegated the enclave's key as its
+  // XRPL regular key while alive, so the enclave signs the payments itself and
+  // hands back blobs anyone may broadcast. No seed exists outside the TEE.
+  if (process.env.ENCLAVE_PAYOUT === "true") {
+    const willForEstate = JSON.parse(fs.readFileSync(willPath, "utf8"));
+    const client = new Client(TESTNET_WSS);
+    await client.connect();
+    let sequence: number;
+    let ledger: number;
+    try {
+      const info = await client.request({
+        command: "account_info",
+        account: willForEstate.estateAccount,
+        ledger_index: "validated",
+      });
+      sequence = Number(info.result.account_data.Sequence);
+      const head = await client.request({ command: "ledger", ledger_index: "validated" });
+      ledger = Number(head.result.ledger_index ?? (head.result as any).ledger.ledger_index);
+    } finally {
+      await client.disconnect();
+    }
+
+    console.log(`\nasking the enclave to sign payouts (sequence ${sequence})…`);
+    const signed = await directAction("PAYOUT", {
+      vaultId: VAULT_ID,
+      sequence,
+      lastLedgerSequence: ledger + 300,
+    });
+    console.log(`  signed by enclave key: ${signed.signer}`);
+
+    const submitClient = new Client(TESTNET_WSS);
+    await submitClient.connect();
+    try {
+      for (const p of signed.payments) {
+        const res = await submitClient.submitAndWait(p.blob);
+        const outcome = (res.result.meta as any)?.TransactionResult;
+        console.log(`  ${outcome} → ${p.to}: ${Number(p.drops) / 1e6} XRP`);
+        console.log(`     https://testnet.xrpl.org/transactions/${p.hash}`);
+      }
+    } finally {
+      await submitClient.disconnect();
+    }
+    console.log(`\n✓ estate distributed — signed inside the TEE, no seed anywhere`);
+    return;
+  }
+
+  // 5b. Fallback: sign locally with the estate seed.
   const distribution = await vault.distributionOf(VAULT_ID);
   console.log(`\nsettled distribution (${distribution.length} bequests):`);
 

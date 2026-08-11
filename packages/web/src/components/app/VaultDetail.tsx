@@ -221,12 +221,12 @@ export function VaultDetail({
             <Step live>Cancel dormancy, guardian confirmation</Step>
             <Step live>Seal: browser-side ECIES to the enclave's attested key, attested via FCC</Step>
             <Step live>Execute: enclave decrypts, prices via FTSO, contract verifies its signature</Step>
-            <Step live>Payout: settled distribution broadcast as real XRPL payments</Step>
+            <Step live>Payout: the enclave signs the XRPL payments with its own key — no seed anywhere</Step>
           </ul>
           <p className="mt-4 max-w-[44ch] text-xs leading-relaxed text-ink-300">
-            The enclave serves at status PRODUCTION on extension 66025. The one departure from the full design:
-            payouts are signed with a pasted seed here — the estate has delegated a regular key on XRPL, and
-            production would hold that delegated key inside the enclave itself.
+            The enclave serves at status PRODUCTION on extension 66025, and holds an XRPL key generated inside
+            the TEE that never touches disk. An estate authorises that key with one <code>SetRegularKey</code>{" "}
+            while alive — revocable any time — after which nobody, including us, holds a key that can move it.
           </p>
         </div>
       </div>

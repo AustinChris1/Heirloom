@@ -29,6 +29,12 @@ export interface DataFixed {
   cosignersThreshold?: number;
   originalMessage?: string;
   additionalFixedMessage?: string;
+  /**
+   * Direct actions (proxy POST /direct) arrive with the payload under
+   * `message` instead of `originalMessage` — the node forwards the
+   * DirectInstruction JSON verbatim. Both spellings are honoured.
+   */
+  message?: string;
 }
 
 /** Response returned from POST /action. */

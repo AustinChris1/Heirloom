@@ -187,6 +187,7 @@ Everything above has been run for real. Status of each leg:
 | Executing (enclave decrypt + FTSO pricing + on-chain verification) | **Live** |
 | XRPL payout broadcasting | **Live** — `tesSUCCESS` on testnet |
 | Unattended lifecycle (keeper + delegated regular key) | **Live** — zero human steps from silence to paid |
+| **Enclave-signed payouts** | **Live** — the enclave holds an XRPL key generated inside the TEE (never stored, never transmitted); the estate authorises it with one `SetRegularKey` while alive, and the enclave signs the inheritance itself. No seed is entered by anyone |
 
 Reproduce from a terminal:
 
@@ -228,6 +229,19 @@ pnpm exec hardhat run scripts/keeper.ts --network coston2
 | Payout: 2 XRP fixed (regular-key signed) | [`77CEA80F…A360`](https://testnet.xrpl.org/transactions/77CEA80F6A6DC12DF9A15A9DD40E63942130BF987D90D91C4DE63DBAFE47A360) |
 | Payout: 48.999976 XRP (50% share) | [`7D350333…064A`](https://testnet.xrpl.org/transactions/7D350333FB683343DDE79D8B2FADA82940710EE2545C59F371BC0E55E9C5064A) |
 | Payout: 48.999976 XRP (residue) | [`9A9802A9…9B6A`](https://testnet.xrpl.org/transactions/9A9802A991B36D18BF5A38821F121D08FA4464C7537A690C102F25B3F44D9B6A) |
+
+**Evidence — enclave-signed payout (vault #14, 11 Aug 2026).** The final rung: the estate's own seed plays no part at all. The enclave generated an XRPL key inside the TEE, the estate authorised it with one `SetRegularKey` while alive, and the enclave signed the inheritance itself:
+
+| | |
+|---|---|
+| Enclave's XRPL address (generated in the TEE, never stored) | `rKMNKKuFVNsRuSwxy4ufjQX5FC54vPJG62` |
+| `SetRegularKey` — estate authorises the enclave while alive | [`3233DD3B…2583`](https://testnet.xrpl.org/transactions/3233DD3B5B2BD4B8039D5A3B64BC2634575E00C4EAFF3EBCB8390C68ED8F2583) |
+| `confirmSeal` — will sealed to the enclave and attested | `0xebfeace1dfdaf51606fb010c12352a0b88c2903c8bd58530901d9032ba32f0d5` |
+| `claimDormancy` — FDC nonexistence proof | `0x53cdcc8c43a3b20969c7749e2c38c5b15e4c3a5a6a20da008b4947662de50307` |
+| `settleEstate` — TEE-signed distribution at $1.004656/XRP | `0x70cda8f7f9051ba391f29d3c543190aa335fd992e6490cd109d2474c4c0ad46c` |
+| Payout: 2 XRP fixed — **signed by the enclave** | [`4C0AAD3A…0918`](https://testnet.xrpl.org/transactions/4C0AAD3ACFCD5905E798A10D92EDF99198E8F49B9BD9C483E0A88346BFEA0918) |
+| Payout: 48.999976 XRP (50% share) | [`B1853651…10B0`](https://testnet.xrpl.org/transactions/B18536512288D99861A36140808542B2B9965DCFBB40A963B064791EB6B510B0) |
+| Payout: 48.999976 XRP (residue) | [`E88CAD38…F125`](https://testnet.xrpl.org/transactions/E88CAD385264B7B5E7B1E20FF1BB2D871C1603572CE111A9EBFA075F594DF125) |
 
 The enclave also **refused** an execution correctly along the way: vault #7's estate could not cover the XRPL reserve and fees, and the allocation engine rejected it inside the TEE rather than producing an unpayable distribution.
 

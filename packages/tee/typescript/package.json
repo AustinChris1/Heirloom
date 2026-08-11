@@ -11,6 +11,8 @@
     "@noble/hashes": "^1.7.0",
     "@noble/secp256k1": "^2.2.0",
     "ripple-address-codec": "^5.0.0",
+    "ripple-binary-codec": "^2.8.0",
+    "ripple-keypairs": "^3.0.0",
     "viem": "^2.47.4"
   },
   "devDependencies": {

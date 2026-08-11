@@ -150,7 +150,9 @@ export class Server {
     const resultPromise = new Promise<[string | null, number, string | null]>(
       (resolve) => {
         this.handlerQueue = this.handlerQueue.then(async () => {
-          const result = await handler(df.originalMessage ?? "");
+          // Chain instructions carry `originalMessage`; direct actions carry
+          // `message`. Same payload, two spellings.
+          const result = await handler(df.originalMessage ?? df.message ?? "");
           resolve(result);
         });
       }

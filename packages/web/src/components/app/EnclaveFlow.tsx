@@ -12,7 +12,7 @@ import {
 } from "../../lib/deployment";
 import { eciesEncrypt } from "../../lib/ecies";
 import { loadWill } from "../../lib/willStore";
-import { fetchEnclaveKey, pollActionResult } from "../../lib/enclave";
+import { fetchEnclaveKey, pollActionResult, requestEnclavePayout } from "../../lib/enclave";
 import { currentLedger } from "../../lib/fdc";
 import { humanError, vaultWithSigner } from "../../lib/wallet";
 import {
@@ -281,7 +281,16 @@ function ExecutePanel({
   // The estate is normally discovered from its own heartbeats on the beacon. A
   // vault that never heartbeated (short-interval demo vaults) has nothing to
   // discover, so the executor can supply the r-address directly.
-  const [estateOverride, setEstateOverride] = useState("");
+  // The estate address is in the will this browser saved at creation — no need
+  // to ask for it. Falls back to heartbeat discovery, then to typing it in.
+  const [estateOverride, setEstateOverride] = useState(() => {
+    try {
+      const saved = loadWill(vault.willCommitment);
+      return saved ? (JSON.parse(saved).estateAccount as string) : "";
+    } catch {
+      return "";
+    }
+  });
   const busy = flow.step >= 0 && flow.step < 5 && !flow.error;
 
   const graceEndsAt = (vault.dormantSince + vault.graceWindow) * 1000;
@@ -392,7 +401,7 @@ function ExecutePanel({
           </p>
           <input
             className="field mb-4 w-full font-mono text-xs"
-            placeholder="Estate r-address — auto-detected from heartbeats if left blank"
+            placeholder="Estate r-address — from your will file, or auto-detected from heartbeats"
             value={estateOverride}
             onChange={(e) => setEstateOverride(e.target.value)}
             spellCheck={false}
@@ -472,6 +481,48 @@ function PayoutPanel({ vault }: { vault: LiveVault }) {
     }
   }, [willText]);
 
+  /**
+   * The production path: the enclave signs with the regular key the estate
+   * delegated while alive, and hands back broadcastable blobs. No seed is
+   * entered anywhere, by anyone — which is the whole point.
+   */
+  async function broadcastViaEnclave() {
+    if (!will) return;
+    setBusy(true);
+    setError(null);
+    setResults(null);
+    try {
+      const { accountInfo, submitPayment } = await import("../../lib/xrplPayout");
+      const { sequence } = await accountInfo(will.estateAccount);
+      const ledger = await currentLedger();
+
+      const signed = await requestEnclavePayout(vault.id, sequence, ledger + 300);
+      setPayments(
+        signed.payments.map((p) => ({ beneficiary: p.to, drops: BigInt(p.drops), tx: {} })),
+      );
+
+      const out: Array<{ hash: string; engineResult: string }> = [];
+      for (const p of signed.payments) {
+        const { engineResult } = await submitPayment(p.blob);
+        out.push({ hash: p.hash, engineResult });
+        setResults([...out]);
+      }
+
+      if (out.length > 0 && out.every((r) => r.engineResult === "tesSUCCESS")) {
+        setAlreadySent(true);
+        try {
+          localStorage.setItem(distributedKey, "1");
+        } catch {
+          /* private browsing */
+        }
+      }
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function broadcast() {
     if (!will || !distribution) return;
     setBusy(true);
@@ -540,35 +591,59 @@ function PayoutPanel({ vault }: { vault: LiveVault }) {
         </table>
       )}
 
-      <div className="space-y-4">
-        <textarea
-          className="field h-24 w-full resize-y font-mono text-[11px] leading-relaxed"
-          placeholder="Will file — supplies the r-addresses behind the settled hashes"
-          value={willText}
-          onChange={(e) => setWillText(e.target.value)}
-          spellCheck={false}
-        />
-        <input
-          className="field w-full font-mono text-sm"
-          placeholder="Estate testnet seed (s…) — signs the payments"
-          value={seed}
-          onChange={(e) => setSeed(e.target.value)}
-          spellCheck={false}
-        />
+      <textarea
+        className="field h-24 w-full resize-y font-mono text-[11px] leading-relaxed"
+        placeholder="Will file — supplies the r-addresses behind the settled hashes"
+        value={willText}
+        onChange={(e) => setWillText(e.target.value)}
+        spellCheck={false}
+      />
+
+      {/* The production path: nobody holds or types a key. */}
+      <div className="mt-6 border border-ink-700 p-5">
+        <p className="mb-2 font-mono text-[11px] uppercase tracking-[0.14em] text-white">
+          Let the enclave sign
+        </p>
+        <p className="mb-4 max-w-[46ch] text-xs leading-relaxed text-ink-300">
+          The estate delegated the enclave's key as an XRPL regular key while alive, so the enclave signs these
+          payments itself and returns blobs anyone may broadcast. No seed is entered by anyone — this is how a
+          real estate pays out after its owner is gone.
+        </p>
+        <button
+          className="btn btn-solid"
+          disabled={!will || busy || !distribution?.length || alreadySent}
+          onClick={broadcastViaEnclave}
+        >
+          {busy ? "Working…" : alreadySent ? "✓ Distributed" : "Request enclave signature & broadcast"}
+        </button>
       </div>
 
-      <p className="mt-4 max-w-[46ch] text-xs leading-relaxed text-ink-300">
-        On this deployment the seed-holder signs locally; in the full design the enclave holds a delegated
-        regular key and returns already-signed blobs, making this step permissionless too.
-      </p>
-
-      <button
-        className="btn btn-solid mt-5"
-        disabled={!will || !seed.trim() || busy || !distribution?.length || alreadySent}
-        onClick={broadcast}
-      >
-        {busy ? "Broadcasting…" : alreadySent ? "✓ Distributed" : "Sign & broadcast on XRPL testnet"}
-      </button>
+      {/* Fallback for estates that never delegated. */}
+      <details className="mt-5 text-xs text-ink-300">
+        <summary className="cursor-pointer font-mono text-[10px] uppercase tracking-[0.16em] hover:text-white">
+          Or sign locally with the estate seed
+        </summary>
+        <div className="mt-4 space-y-4">
+          <p className="max-w-[46ch] leading-relaxed">
+            For an estate that never delegated a regular key. Pasting a seed into any web page is a real risk —
+            it exists here so the demo works without delegation, and because on testnet the seed is disposable.
+          </p>
+          <input
+            className="field w-full font-mono text-sm"
+            placeholder="Estate testnet seed (s…) — signs the payments"
+            value={seed}
+            onChange={(e) => setSeed(e.target.value)}
+            spellCheck={false}
+          />
+          <button
+            className="btn"
+            disabled={!will || !seed.trim() || busy || !distribution?.length || alreadySent}
+            onClick={broadcast}
+          >
+            {busy ? "Broadcasting…" : alreadySent ? "✓ Distributed" : "Sign locally & broadcast"}
+          </button>
+        </div>
+      </details>
 
       {alreadySent && !busy && (
         <p className="mt-3 max-w-[46ch] font-mono text-[11px] leading-relaxed text-ink-300">

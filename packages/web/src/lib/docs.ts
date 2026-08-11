@@ -36,7 +36,7 @@ export const DOCS: Doc[] = [
   {
     slug: "usage",
     title: "Usage",
-    blurb: "Create a vault, send a heartbeat, prove life, claim dormancy.",
+    blurb: "Every button, step by step, for someone brand new — glossary included.",
     body: usage,
   },
   {

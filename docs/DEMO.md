@@ -4,6 +4,8 @@
 
 Target: **~3½ minutes of finished video**, shot **entirely in the browser** — every step of the lifecycle is clickable in the app, no terminal on camera. The full unattended lifecycle has also been proven (vault #8, keeper-driven, transaction trail in USAGE.md), so nothing here is a mock-up.
 
+Every quoted speech below is **TTS-ready**: no em dashes, no code formatting or symbols an AI voice would read literally, sentences kept short. Paste them into the voice tool as they are.
+
 > ## Read this first: the waits are longer than the video
 >
 > An FDC round takes **90–180 seconds to finalise**, and the demo runs two of them (prove-life, claim-dormancy). The enclave itself answers **within seconds** — the FDC rounds are the only real waits.
@@ -34,13 +36,13 @@ Scroll to the four options. Let them read.
 
 Scroll into the flatline section slowly. Let the trace die as you scroll — the page does this for you.
 
-> "A dead-man's switch needs to prove something unusual: not that a payment happened, but that **none did**. Proving absence is the hard part. Flare's Data Connector has an attestation type for exactly that — `XRPPaymentNonexistence`. That's the whole reason this is built on Flare."
+> "A dead man's switch needs to prove something unusual. Not that a payment happened, but that none did. Proving absence is the hard part. Flare's Data Connector has an attestation type for exactly that, called XRP Payment Nonexistence. That's the whole reason this is built on Flare."
 
 ## 0:45 — Create the death vault and seal the will (60s)
 
 Go to `/app`. Connect wallet.
 
-> "This is live on Coston2 against a deployed contract."
+> "This is live on Coston 2, against a deployed contract."
 
 Create a vault:
 - Paste the estate r-address
@@ -49,23 +51,23 @@ Create a vault:
 
 Point at the right-hand panel:
 
-> "The commitment updates as I type. That hash is the *only* thing that reaches the chain — beneficiaries and amounts never leave the browser. And this distribution preview isn't a mock-up, it's the exact allocation engine that runs inside the enclave. Watch what happens if the estate can't cover the fixed bequest —"
+> "The commitment updates as I type. That hash is the only thing that reaches the chain. Beneficiaries and amounts never leave the browser. And this distribution preview isn't a mock-up. It's the exact allocation engine that runs inside the enclave. Watch what happens if the estate can't cover the fixed bequest."
 
 Drop the estate-size preview below the fixed bequest so **abatement** kicks in.
 
-> "— every bequest abates proportionally, preserving the ratios that were written."
+> "Every bequest shrinks proportionally, preserving the ratios that were written."
 
 Submit → **Download will file**.
 
-> "The chain holds the hash; I hold the will."
+> "The chain holds the hash. I hold the will."
 
 Open the vault, paste the will file into **Seal the will**:
 
-> "Before anything is encrypted, the app fetches the enclave's public key from its attestation document and refuses unless it derives to the exact address the contract verifies signatures against. Then the will is encrypted **in this browser** — ECIES to the enclave's key — and sealed."
+> "Before anything is encrypted, the app fetches the enclave's public key from its attestation document, and refuses unless it matches the exact address the contract trusts. Then the will is encrypted right here in the browser, to the enclave's own key, and sealed."
 
 Click **Encrypt & seal in the enclave**. Two wallet confirmations; between them the enclave's attestation lands in seconds — cut to the proxy logs (`HEIRLOOM / SEAL … ok`) and back.
 
-> "The enclave just proved it can decrypt and execute this will — over its own signature, without revealing a single beneficiary. That's the dry run you do while alive, so a corrupt ciphertext can't surface after you're gone."
+> "The enclave just proved it can decrypt and execute this will, over its own signature, without revealing a single beneficiary. That's the dry run you do while you're alive, so a corrupt ciphertext can't surface after you're gone."
 
 ## 1:45 — Proof of life (30s on screen, ~4 min real time)
 
@@ -73,7 +75,7 @@ Create the **life vault** (interval 1 day, same estate). In its **Stay alive** p
 
 Copy the printed hash into **Prove life**.
 
-> "To stay alive I send a dust payment on the XRP Ledger carrying my vault's destination tag. A fraction of a cent, no Flare-side key — and anyone can relay the proof for me. Watch the round: prepare, submit, wait for finalisation, fetch the Merkle proof, verify on-chain."
+> "To stay alive, I send a dust payment on the XRP Ledger carrying my vault's destination tag. A fraction of a cent, with no Flare-side key, and anyone can relay the proof for me. Watch the round. Prepare, submit, wait for finalisation, fetch the Merkle proof, and verify it on chain."
 
 Heartbeat timer resets on screen.
 
@@ -81,11 +83,11 @@ Heartbeat timer resets on screen.
 
 Back to the **death vault** — its 5 minutes are long gone. Click **Claim dormancy**.
 
-> "Now the hard direction. This proves that across hundreds of ledgers, *no* payment carrying my tag reached the beacon. Proving something happened is easy. Proving nothing happened is the whole problem — and it's why this is on Flare."
+> "Now the hard direction. This proves that across hundreds of ledgers, no payment carrying my tag reached the beacon. Proving something happened is easy. Proving nothing happened is the whole problem, and it's why this is on Flare."
 
 **Narrate over the round wait — the most valuable 30 seconds in the video:**
 
-> "This wait is the point. My request sits in a voting round while Flare's data providers — the same validator set securing the price feeds — each independently read the XRP Ledger and satisfy themselves that no payment with my tag exists in that range. Consensus needs more than half the network's weight. Nobody asserts I've gone silent: a majority of the network's economic weight looked, and agreed."
+> "This wait is the point. My request sits in a voting round while Flare's data providers, the same validators that secure the price feeds, each independently read the XRP Ledger and satisfy themselves that no payment with my tag exists in that range. Consensus needs more than half the network's weight. Nobody asserts that I've gone silent. A majority of the network's economic weight looked, and agreed."
 
 Vault flips **DORMANT**; the **Execute the will** panel appears (grace 0, no guardians).
 
@@ -93,29 +95,29 @@ Vault flips **DORMANT**; the **Execute the will** panel appears (grace 0, no gua
 
 Paste the estate r-address into the estate field *(this vault never heartbeated, so there's nothing to auto-detect — a real vault's estate is found from its own heartbeats)*, click **Execute in the enclave**:
 
-> "Watch what it does: the sealed ciphertext comes back off the chain itself — public calldata, so execution needs no private copy of anything. The estate balance is read live from the XRP Ledger. Inside the enclave the will is decrypted and priced against the FTSO feed, so a dollar-denominated bequest means the right amount of XRP *today*."
+> "Watch what it does. The sealed ciphertext comes back off the chain itself. It's public data, so execution needs no private copy of anything. The estate balance is read live from the XRP Ledger. And inside the enclave, the will is decrypted and priced against the live price feed, so a bequest written in dollars means the right amount of XRP today."
 
 Signed distribution lands in seconds; the app settles it.
 
-> "The contract verified three things independently: the signature recovers to the registered enclave, the revealed commitment matches what I sealed, and the price sits within tolerance of the live feed."
+> "The contract verified three things independently. The signature recovers to the registered enclave. The revealed commitment matches what I sealed. And the price sits within tolerance of the live feed."
 
 **Distribute the estate** appears. Paste will file + estate seed → **Sign & broadcast**:
 
-> "And there it is — the will, executed. Real payments, on the XRP Ledger, to the people it named. This is also the first moment anyone learns who they were."
+> "And there it is. The will, executed. Real payments on the XRP Ledger, to the people it named. This is also the first moment anyone learns who they were."
 
 Click through to a `tesSUCCESS` on the XRPL explorer — the closing money shot. Then one line, over the settled vault:
 
-> "And none of my clicks were needed: a keeper cron job runs this whole sequence unattended, signing with a regular key the owner delegated while alive — we've run it end to end with zero human steps. The clicks are for you."
+> "And none of my clicks were needed. A keeper cron job runs this whole sequence unattended, signing with a regular key the owner delegated while alive. We've run it end to end with zero human steps. The clicks are for you."
 
 ## 3:20 — The trust boundary (15s)
 
 Scroll the landing page to **The enclave holds your secret. It does not hold your money.**
 
-> "The obvious objection is that the enclave is a trusted component. So it was given exactly one power — reading a will nobody else can read — and no authority over whether, when, or to whom anything moves. It can't move funds early, can't pay someone else, can't act alone, and can't outvote the owner. One late heartbeat resets everything."
+> "The obvious objection is that the enclave is a trusted component. So it was given exactly one power, reading a will nobody else can read, and no authority over whether, when, or to whom anything moves. It can't move funds early. It can't pay someone else. It can't act alone. And it can't outvote the owner. One late heartbeat resets everything."
 
 ## 3:35 — Close (10s)
 
-> "Inheritance is the demo. The primitive is private, programmable rules over native XRP, enforced by an enclave and triggered by provable on-ledger facts. Same machinery does social recovery, vesting, and savings locks — for the two billion XRP sitting idle that Flare is trying to activate."
+> "Inheritance is the demo. The primitive is private, programmable rules over native XRP, enforced by an enclave and triggered by provable on-ledger facts. The same machinery does social recovery, vesting, and savings locks, for the two billion XRP sitting idle that Flare is trying to activate."
 
 ---
 

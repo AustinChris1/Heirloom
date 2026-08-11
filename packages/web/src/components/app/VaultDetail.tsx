@@ -12,6 +12,7 @@ import {
   HEARTBEAT_DROPS,
   XRPL_TESTNET_EXPLORER,
 } from "../../lib/deployment";
+import { loadVaultName, saveVaultName } from "../../lib/vaultNames";
 import { humanError, vaultWithSigner } from "../../lib/wallet";
 
 /**
@@ -82,7 +83,7 @@ export function VaultDetail({
       <div className="bg-black p-7 md:p-9">
         <div className="flex items-start justify-between gap-6">
           <div>
-            <p className="label mb-2">Vault #{vault.id}</p>
+            <VaultTitle id={vault.id} isOwner={isOwner} />
             <StateBadge state={vault.state} overdue={vault.overdue} />
           </div>
           <div className="text-right">
@@ -234,6 +235,61 @@ export function VaultDetail({
 }
 
 /* ---------------------------------------------------------------- */
+
+/**
+ * "Vault #9", plus a private label the owner can set — stored only in this
+ * browser, never on-chain, so naming a vault "Mom's plan" leaks nothing to
+ * anyone else. Other visitors see just the number.
+ */
+function VaultTitle({ id, isOwner }: { id: number; isOwner: boolean }) {
+  const [name, setName] = useState(() => loadVaultName(id));
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+
+  function commit() {
+    saveVaultName(id, draft);
+    setName(loadVaultName(id));
+    setEditing(false);
+  }
+
+  return (
+    <div className="mb-2 flex items-baseline gap-2">
+      <p className="label">
+        Vault #{id}
+        {name && <span className="ml-2 normal-case tracking-normal text-white">· {name}</span>}
+      </p>
+      {isOwner && !editing && (
+        <button
+          className="font-mono text-[10px] text-ink-400 hover:text-white"
+          title="Private name — only visible in this browser"
+          onClick={() => {
+            setDraft(name);
+            setEditing(true);
+          }}
+        >
+          {name ? "rename" : "name it"}
+        </button>
+      )}
+      {editing && (
+        <span className="flex items-baseline gap-2">
+          <input
+            autoFocus
+            className="w-40 border-b border-ink-600 bg-transparent font-mono text-[11px] text-white focus:border-white focus:outline-none"
+            placeholder="Private name, only you see it"
+            value={draft}
+            maxLength={48}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") commit();
+              if (e.key === "Escape") setEditing(false);
+            }}
+            onBlur={commit}
+          />
+        </span>
+      )}
+    </div>
+  );
+}
 
 /**
  * Testnet-only convenience: sign and send the heartbeat right here, so the

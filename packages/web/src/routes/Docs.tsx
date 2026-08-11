@@ -34,6 +34,16 @@ export function Docs() {
     const root = contentRef.current;
     if (!root) return;
 
+    // GitHub gives headings anchor ids; marked does not — add the same slugs
+    // so in-page links (e.g. the Usage glossary) work here too.
+    root.querySelectorAll("h1, h2, h3").forEach((h) => {
+      h.id = (h.textContent ?? "")
+        .toLowerCase()
+        .replace(/[^\w\s-]/g, "")
+        .trim()
+        .replace(/\s+/g, "-");
+    });
+
     root.querySelectorAll("a").forEach((a) => {
       const href = a.getAttribute("href") ?? "";
       if (/^https?:/i.test(href)) {

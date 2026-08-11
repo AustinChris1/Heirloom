@@ -5,6 +5,25 @@ reproduced on any host. The Coston2 FCC diamond was redeployed on 22 July 2026;
 most reported FCC failures are stacks still pointed at the dead
 `FlareTeeManager`, so start by confirming the registry.
 
+**At a glance — what you're signing up for:**
+
+| | |
+|---|---|
+| Serving host | Any 1 GB VPS with a **stable public HTTPS hostname**. That's the whole spec |
+| Running footprint | 3 containers, ~150–240 MB resident (redis, proxy, extension) |
+| Build footprint | Heavy — build elsewhere, ship the image |
+| Elapsed time | ~1–2 hours first time, most of it waiting on registration |
+| Cost | Free: testnet gas from the faucet, `SIMULATED_TEE=true` is sanctioned on Coston2 |
+
+```
+ preflight ─► build image ─► ship to host ─► pre-build ─► register-tee ─► status 2
+ (registry    (anywhere)     (compose up)    (attest)     (on-chain)      PRODUCTION
+  alive?)                                                                     │
+                                        instructions relay ◄──────────────────┘
+```
+
+The two failure modes that eat whole evenings: a **rotating tunnel hostname** (machine sticks at INITIALIZED — data providers fetch your attestation from the URL recorded on-chain) and **dead indexer credentials** (proxy can't sync, looks identical to a broken registration). Both are covered below.
+
 ## Preflight
 
 ```

@@ -72,7 +72,7 @@ Connected to Coston2 (chainId 114), head block 33,767,053
 
 Both FDC attestation legs run against live infrastructure — including **from the web app itself**, where a visitor signs the attestation request with their own wallet, waits out the voting round, and submits the Merkle proof without ever opening a terminal. The seal → execute → payout legs are equally clickable at `/app`.
 
-**→ [How to use it](docs/USAGE.md)** · **[TEE deployment](docs/TEE-DEPLOYMENT.md)**
+**→ [Live app](https://heirloom.wtf)** · **[How to use it](docs/USAGE.md)** · **[TEE deployment](docs/TEE-DEPLOYMENT.md)**
 
 | Component | State |
 |---|---|

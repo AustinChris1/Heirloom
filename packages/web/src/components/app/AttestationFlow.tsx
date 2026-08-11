@@ -1,6 +1,6 @@
 import { Contract, JsonRpcSigner } from "ethers";
 import { AnimatePresence, motion } from "framer-motion";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { LiveVault } from "../../lib/chain";
 import {
   BEACON_XRPL_ADDRESS,
@@ -63,9 +63,57 @@ export function AttestationFlow({
 }) {
   const [progress, setProgress] = useState<Progress>({ phase: "idle", message: "" });
   const [xrplTx, setXrplTx] = useState("");
+  const [scanning, setScanning] = useState(false);
+  const [scanNote, setScanNote] = useState<string | null>(null);
   const busy = !["idle", "done", "error"].includes(progress.phase);
 
-  const set = (p: Partial<Progress>) => setProgress((prev) => ({ ...prev, ...p }) as Progress);
+  /**
+   * Heartbeats are public payments to a known beacon carrying this vault's
+   * tag — nothing about them needs to be pasted by hand. Scan the beacon's
+   * recent transactions and pick the newest one the contract would accept
+   * (it rejects anything at or before the recorded lastHeartbeat as stale).
+   */
+  async function scanForHeartbeat() {
+    setScanning(true);
+    setScanNote(null);
+    try {
+      const { xrplRequest } = await import("../../lib/fdc");
+      const out = await xrplRequest({
+        method: "account_tx",
+        params: [{ account: BEACON_XRPL_ADDRESS, ledger_index_min: -1, ledger_index_max: -1, limit: 200 }],
+      });
+
+      for (const entry of out?.result?.transactions ?? []) {
+        const tx = entry.tx ?? entry.tx_json;
+        if (tx?.TransactionType !== "Payment" || Number(tx.DestinationTag) !== vault.heartbeatTag) continue;
+
+        const when = Number(tx.date ?? entry.tx_json?.date ?? 0) + 946_684_800; // ripple epoch → unix
+        const hash = entry.hash ?? tx.hash;
+        if (!hash) continue;
+
+        if (when <= vault.lastHeartbeat) {
+          setScanNote("Found a heartbeat, but it is already proven — send a fresh one.");
+          return;
+        }
+        setXrplTx(hash);
+        setScanNote(`Found a heartbeat from ${new Date(when * 1000).toLocaleString()}.`);
+        return;
+      }
+      setScanNote("No heartbeat carrying this vault's tag has reached the beacon yet.");
+    } catch (e) {
+      setScanNote(`Scan failed: ${(e as Error).message}`);
+    } finally {
+      setScanning(false);
+    }
+  }
+
+  // Remember the last live phase so an error can point at the step that
+  // failed instead of resetting the whole strip to "not started".
+  const lastLivePhase = useRef<Progress["phase"]>("idle");
+  const set = (p: Partial<Progress>) => {
+    if (p.phase && p.phase !== "error") lastLivePhase.current = p.phase;
+    setProgress((prev) => ({ ...prev, ...p }) as Progress);
+  };
 
   /** Shared tail: wait for the round, fetch the proof, submit it to the vault. */
   async function completeWith(
@@ -131,14 +179,18 @@ export function AttestationFlow({
     try {
       set({ phase: "preparing", message: "Reading the XRP Ledger for a search range" });
 
-      // End the range a few ledgers back so it is comfortably finalised, and
-      // open it wide enough to cover the whole missed interval.
+      // End the range a few ledgers back so it is comfortably finalised. The
+      // contract requires the range to START at or before the vault's last
+      // recorded heartbeat, so size the lookback from how long ago that was
+      // (~3.5 s per testnet ledger) — a fixed window only fits fresh vaults.
       const head = await currentLedger();
       const deadlineBlock = head - 5;
-      const minimalBlock = deadlineBlock - 400;
+      const silenceSeconds = Math.floor(Date.now() / 1000) - vault.lastHeartbeat;
+      const lookback = Math.min(100_000, Math.ceil(silenceSeconds / 3.5) + 200);
+      const minimalBlock = Math.max(1, deadlineBlock - lookback);
       const deadlineTimestamp = await ledgerCloseTime(deadlineBlock);
 
-      set({ phase: "preparing", message: `Encoding a nonexistence request over 400 ledgers` });
+      set({ phase: "preparing", message: `Encoding a nonexistence request over ${lookback.toLocaleString()} ledgers` });
       const contract = new Contract(HEIRLOOM_VAULT, VAULT_ABI_WRITE, signer);
       const heartbeatDrops: bigint = await contract.heartbeatDrops();
 
@@ -182,8 +234,8 @@ export function AttestationFlow({
             <div className="mb-7">
               <h4 className="mb-1.5 text-sm font-semibold">Prove life</h4>
               <p className="mb-3 max-w-[46ch] text-xs leading-relaxed text-ink-300">
-                Send the heartbeat above from your XRPL account, then paste its transaction hash. Anyone can
-                relay this — it does not have to be the owner.
+                Send the heartbeat above from your XRPL account, then let the app find it — or paste the
+                transaction hash yourself. Anyone can relay this; it does not have to be the owner.
               </p>
               <input
                 className="field mb-3 font-mono text-[11px]"
@@ -193,9 +245,15 @@ export function AttestationFlow({
                 spellCheck={false}
                 disabled={busy}
               />
-              <button className="btn" disabled={busy || !xrplTx.trim()} onClick={runProveLife}>
-                Attest and submit
-              </button>
+              <div className="flex flex-wrap items-center gap-3">
+                <button className="btn" disabled={busy || scanning} onClick={scanForHeartbeat}>
+                  {scanning ? "Scanning…" : "Find my latest heartbeat"}
+                </button>
+                <button className="btn" disabled={busy || !xrplTx.trim()} onClick={runProveLife}>
+                  Attest and submit
+                </button>
+              </div>
+              {scanNote && <p className="mt-3 font-mono text-[11px] text-ink-100">{scanNote}</p>}
             </div>
           )}
 
@@ -225,24 +283,28 @@ export function AttestationFlow({
               >
                 <ol className="mb-4 flex flex-wrap gap-x-4 gap-y-2">
                   {STEPS.map((label, i) => {
-                    const current = stepIndex(progress.phase);
-                    const done = current > i || progress.phase === "done";
+                    const failed = progress.phase === "error";
+                    const current = stepIndex(failed ? lastLivePhase.current : progress.phase);
+                    const done = (current > i && !failed) || progress.phase === "done" || (failed && current > i);
                     const active = current === i;
                     return (
                       <li
                         key={label}
                         className={`font-mono text-[10px] uppercase tracking-[0.14em] ${
-                          done ? "text-white" : active ? "text-white" : "text-ink-500"
+                          done || active ? "text-white" : "text-ink-500"
                         }`}
                       >
-                        {done ? "●" : active ? "◐" : "○"} {label}
+                        {failed && active ? "✕" : done ? "●" : active ? "◐" : "○"} {label}
                       </li>
                     );
                   })}
                 </ol>
 
                 {progress.phase === "error" ? (
-                  <p className="font-mono text-[11px] text-white">✕ {progress.error}</p>
+                  <p className="font-mono text-[11px] text-white">
+                    ✕ Failed at “{STEPS[Math.max(0, stepIndex(lastLivePhase.current))]}” —{" "}
+                    {progress.error || "no error detail; check the browser console"}
+                  </p>
                 ) : (
                   <>
                     <p className="font-mono text-[11px] text-ink-100">{progress.message}</p>

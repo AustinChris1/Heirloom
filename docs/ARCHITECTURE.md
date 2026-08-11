@@ -1,50 +1,43 @@
 # Architecture
 
+Three machines, one story: the **XRP Ledger** holds the money and carries the heartbeats, **Flare** holds the rules and verifies every fact, and a **TEE enclave** holds the one secret — the will. No component can act alone, and the only party who can act *early* is the owner, by simply staying alive.
+
 ## The full cycle
 
-```mermaid
-sequenceDiagram
-    participant A as Alice
-    participant X as XRP Ledger
-    participant F as HeirloomVault<br/>(Flare / Coston2)
-    participant D as FDC
-    participant T as TEE extension<br/>(FCC)
-    participant O as FTSO
-
-    Note over A,F: Setup — while alive
-    A->>F: createVault(xrplAccountHash, interval, guardians, willCommitment)
-    F-->>A: vaultId + unique XRPL destination tag
-    A->>F: sealWill(encryptedWill)
-    F->>T: HEIRLOOM / SEAL
-    T->>T: decrypt, parse, recompute commitment
-    T-->>F: signed attestation (beneficiary count only)
-    F->>F: willAttested = true
-
-    Note over A,X: Living — every interval
-    A->>X: dust Payment → beacon, DestinationTag = vault tag
-    X-->>D: attested
-    D-->>F: proveLife(XRPPayment 0x08)
-    F->>F: lastHeartbeat = ledger timestamp
-
-    Note over A,F: Silence
-    A--xX: no heartbeat for a full interval
-    D-->>F: claimDormancy(XRPPaymentNonexistence 0x09)
-    F->>F: state = Dormant, grace window opens
-
-    rect rgb(30,45,35)
-    Note over A,F: Any heartbeat here cancels everything
-    A->>X: late heartbeat
-    D-->>F: proveLife → state = Active, approvals cleared
-    end
-
-    Note over F,T: Execution — grace elapsed + guardians confirmed
-    F->>O: read XRP/USD
-    F->>T: HEIRLOOM / EXECUTE (encrypted will, price, estate size)
-    T->>T: decrypt, price, allocate, sign XRPL payments
-    T-->>F: settleEstate(signed distribution)
-    F->>O: re-read XRP/USD, check tolerance
-    F->>F: verify TEE signature + commitment → Settled
-    T->>X: broadcast signed Payments to beneficiaries
+```
+ Alice            XRP Ledger        HeirloomVault         FDC             Enclave
+   │                  │              (Flare)               │              (FCC)
+   │                  │                  │                 │                 │
+   │  SETUP — while alive               │                 │                 │
+   ├──────────────────┼─── createVault ─►│                 │                 │
+   │◄─────────────────┼── tag 700000###─┤                 │                 │
+   ├──────────────────┼─── sealWill ────►│── SEAL ─────────┼────────────────►│
+   │                  │                  │◄─ signed attest ┼─── decrypt ok ──┤
+   │                  │                  │  willAttested   │  (count only)   │
+   │                  │                  │                 │                 │
+   │  LIVING — every interval           │                 │                 │
+   ├── dust + tag ───►│                  │                 │                 │
+   │                  │◄── ~100 nodes ───┼──── verify ─────┤                 │
+   │                  │                  │◄── proveLife ───┤                 │
+   │                  │                  │                 │                 │
+   │  SILENCE                            │                 │                 │
+   ├ ─ ─ (nothing) ─ ►│                  │                 │                 │
+   │                  │◄── prove NOTHING ┼──── arrived ────┤                 │
+   │                  │                  │◄ claimDormancy ─┤                 │
+   │                  │                  │ DORMANT + grace │                 │
+   │                  │                  │                 │                 │
+   │    ┌─────────────┴──────────────────┴─────────────────┴──────────┐      │
+   │    │  one heartbeat anywhere in here → Active, approvals wiped  │      │
+   │    └─────────────┬──────────────────┬─────────────────┬──────────┘      │
+   │                  │                  │                 │                 │
+   │  EXECUTION — grace over, guardians satisfied          │                 │
+   │                  │                  ├─ EXECUTE + FTSO price ───────────►│
+   │                  │                  │◄─ signed distribution ── decrypt, ┤
+   │                  │                  │  verify sig +    │      price,    │
+   │                  │                  │  commitment +    │      allocate  │
+   │                  │                  │  price → SETTLED │                 │
+   │                  │◄── XRPL payments to the heirs ──────┼─────────────────┤
+   ▼                  ▼                  ▼                 ▼                 ▼
 ```
 
 ## Vault states

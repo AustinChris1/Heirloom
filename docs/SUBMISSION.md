@@ -2,7 +2,7 @@
 
 Filled against the required fields from the [hackathon brief](https://dorahacks.io/hackathon/flaresummersignal/detail).
 
-> **Status:** live on Coston2 and XRPL testnet. Both FDC attestation legs — proof of life and **proof of silence** — have been executed against real infrastructure and accepted on-chain, **including from the web app itself**, where a visitor can run a full attestation with their own wallet. A Flare Compute Extension is registered (id `66025`) with a self-hosted TEE machine at status **PRODUCTION**, and `HEIRLOOM/SEAL` instructions from the vault have been observed arriving at the enclave. Transaction hashes are in [Demo](#demo); remaining gaps are in [Known limitations](#known-limitations).
+> **Status: the entire lifecycle has run, live, twice.** Create → seal (browser-side ECIES to the enclave's attested key) → FDC-proven silence → enclave execution priced at FTSO → on-chain verification of the TEE-signed distribution → **real XRPL payouts, `tesSUCCESS`**. Once driven by hand, and once **fully unattended** — a keeper claimed, executed, settled, and signed the payouts with a regular key the estate had delegated while alive; no human touched anything after the seal. Every step is also clickable in the web app. Extension `66025`, TEE machine at **PRODUCTION**. Transaction trails in [Usage](USAGE.md); remaining gaps stated plainly in [Known limitations](#known-limitations).
 
 ---
 
@@ -37,7 +37,8 @@ Everything below runs against live Coston2 and live XRPL testnet. Nothing is moc
 | **Health check** | `hardhat run scripts/health.ts --network coston2` — read-only; verifies contract wiring, FTSO freshness, TEE production status, and the enclave endpoint in one command. |
 | **Proof of life** | `hardhat run scripts/live-heartbeat.ts --network coston2` — funds its own XRPL testnet wallet, sends a tagged heartbeat, obtains an FDC attestation, submits it. |
 | **Proof of silence** | `VAULT_ID=<n> hardhat run scripts/claim-dormancy.ts --network coston2` — proves no heartbeat exists across a ledger range and drives the vault to Dormant. |
-| **Confidential compute** | `hardhat run scripts/seal-e2e.ts --network coston2` — routes a `HEIRLOOM/SEAL` instruction to the enclave through Flare's data providers. |
+| **Confidential compute, end to end** | `hardhat run scripts/seal-live.ts --network coston2` — creates a vault with a real will, encrypts it to the enclave (geth-compatible ECIES), and has the enclave decrypt, verify, and attest it on-chain. Then `VAULT_ID=<n> … claim-dormancy.ts` and `… execute-live.ts` finish the story: enclave execution, on-chain settlement, real XRPL payouts. |
+| **Unattended lifecycle** | `hardhat run scripts/set-regular-key.ts` once, then `scripts/keeper.ts` on a timer — dormancy claim, execution, settlement, and regular-key-signed payouts with zero human involvement. |
 
 **Test suites:** 65 tests — 30 contract, 20 extension (ethers), 15 TEE extension (viem).
 
@@ -51,8 +52,18 @@ Everything below runs against live Coston2 and live XRPL testnet. Nothing is moc
 | **`proveLife` accepted — driven entirely from the web app** | `0x432299785c27536c48a0594e83cf064cb2f9eaec5f2bbd583d68b1dd4a3f30a9` |
 | **`claimDormancy` accepted — driven entirely from the web app** | `0x2203734cb790196287e1b6b2f2a53fdf5d756df53c4178883bf4335b8bd63c26` |
 
-That last one matters: a visitor pasted an XRPL transaction hash into the app and the browser ran the whole attestation — encoded the request at the verifier, submitted it to `FdcHub` with their own wallet, waited out the voting round, pulled the Merkle proof from the DA Layer, and submitted it to the vault. No terminal, no operator keys. Proving life and proving silence are permissionless by design, and the app demonstrates that rather than describing it.
-| `SEAL` reaching the enclave | proxy log: `opType HEIRLOOM, opCommand SEAL … node returned 400: can not decrypt` — the instruction arrived and failed at the decrypt step, as designed for a deliberately junk payload |
+That web-app run matters: a visitor pasted an XRPL transaction hash into the app and the browser ran the whole attestation — encoded the request at the verifier, submitted it to `FdcHub` with their own wallet, waited out the voting round, pulled the Merkle proof from the DA Layer, and submitted it to the vault. No terminal, no operator keys. Proving life and proving silence are permissionless by design, and the app demonstrates that rather than describing it.
+
+And the confidential third, live on 10 Aug 2026 — full trails with explorer links in [Usage](USAGE.md):
+
+| | |
+|---|---|
+| Enclave decrypts + attests a browser-grade ECIES will | `confirmSeal` `0xb95033e4…6032c9` |
+| Enclave executes, contract verifies its signed distribution | `settleEstate` `0xdd1f3dea…561f` |
+| Three real XRPL payouts, `tesSUCCESS` | e.g. [`67E981D0…CE563`](https://testnet.xrpl.org/transactions/67E981D0812F1BD2826D51A815DC10F4A5E8D1ECD1A76E04E810B7434CCCE563) |
+| Estate delegates a regular key while alive | [`8F9B2E33…2001`](https://testnet.xrpl.org/transactions/8F9B2E33E74CA945115B873D438B3ABCB1C1E80513038AEA779989D1C7122001) |
+| **Unattended repeat** — keeper claims, executes, settles, pays | `0xf6352156…4b815` → `0x28f3ea7f…a5a7` → 3× `tesSUCCESS` |
+| Enclave *refuses* an unpayable estate (reserve + fees guard) | vault #7, rejected inside the TEE, as designed |
 
 ## GitHub repo
 
@@ -78,7 +89,7 @@ Five integration points, each load-bearing:
 **2. FDC `XRPPaymentNonexistence` (`0x09`) — proof of silence.** *(verified live)*
 `claimDormancy` is the heart of the product, and the reason this is on Flare at all: proving a payment happened is common, proving that *none exists* is not. Without this attestation type there is no trustless dead-man's switch — only a keeper you have to trust to tell the truth about silence. It requires the attestation's search range to start no later than the last proven heartbeat and extend past the moment the next one was due — closing the gap a claimant could otherwise use to prove silence over an unrelated window. It also pins `requestBody.amount` to exactly `heartbeatDrops - 1`, because the attestation excludes payments delivering *more than* that bound; any larger value would let genuine heartbeats slip through the search.
 
-**3. FCC — the sealed will.** *(extension 66025 registered; TEE machine at PRODUCTION; instructions verified arriving)*
+**3. FCC — the sealed will.** *(extension 66025 at PRODUCTION; wills sealed, attested, and executed by the live enclave)*
 `HeirloomVault` is itself the FCC InstructionSender — not a scaffold contract sitting in front of it. It routes `HEIRLOOM/SEAL` and `HEIRLOOM/EXECUTE` instructions through `TeeExtensionRegistry.sendInstructions`, and verifies returned results against the registered TEE address using the domain-separated scheme the TEE nodes actually sign: `keccak256(abi.encode("TEE_ACTION_RESULT", chainId, ActionResult.Hash()))` under the EIP-191 prefix, matching `go-flare-common`'s `signing.TEEActionResult`.
 
 **4. FTSO — fiat-denominated bequests.** *(verified live)*
@@ -102,7 +113,10 @@ Everything in this repository was written during the hackathon. There is no pre-
 | FCC deployment | Vendored scaffold retargeted onto `HeirloomVault` as the InstructionSender, extension registered, TEE machine driven to PRODUCTION on a self-hosted enclave behind TLS |
 | viem port of the extension | Second implementation of the will schema and commitment, pinned by a cross-implementation test vector so client (ethers) and enclave (viem) provably agree byte-for-byte |
 | Live FDC client | Prepare → submit → await finalisation → fetch proof → verify on-chain, for both XRPL attestation types |
-| Deploy + operations tooling | Coston2 address book, deploy script, `health.ts` preflight, `tee-status.ts`, `set-tee-address.ts`, `live-heartbeat.ts`, `claim-dormancy.ts`, `seal-e2e.ts` |
+| Browser-side ECIES | geth-compatible `ECIES_AES128_SHA256` implemented on ethers + WebCrypto, cross-verified against an independent implementation and accepted by the live enclave — the piece that turns "transport works" into "the product works" |
+| In-app confidential lifecycle | Seal, execute, settle, and payout panels — enclave key fetched from its attestation document and refused unless it derives to the contract's trusted address; sealed ciphertext recovered from chain calldata; payouts bound to the settled distribution |
+| Keeper + regular-key delegation | `SetRegularKey` performed live on the estate; a cron-friendly keeper that claims, executes, settles, and signs payouts — proven unattended end to end |
+| Deploy + operations tooling | Coston2 address book, deploy script, `health.ts` preflight, `tee-status.ts`, `set-tee-address.ts`, `live-heartbeat.ts`, `claim-dormancy.ts`, `seal-live.ts`, `execute-live.ts`, `set-regular-key.ts`, `keeper.ts` |
 
 **Ported or integrated:** the TEE result verification scheme and the InstructionSender registry pattern follow `flare-foundation/fce-weather-insurance`, Flare's reference FCC application. The pattern is theirs; the application of it — a two-phase seal-then-execute flow where the enclave attests a will is readable *before* it is ever needed — is new here.
 

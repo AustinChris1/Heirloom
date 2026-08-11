@@ -44,6 +44,24 @@ Heirloom does both. Here is how, without the jargon.
 
 ---
 
+The whole journey, in one picture:
+
+```
+  YOU, ALIVE                                  YOU, GONE
+ ────────────                                ───────────
+
+  write wishes ──► lock them ──► ♥ ♥ ♥ ♥ ✕   the network checks: truly silent?
+  (only you        (a sealed     check in         │
+   ever see        computer      now and          ▼
+   them)           proves it     then        waiting period ── your one
+                   can read                  + your chosen     heartbeat
+                   them later)               people agree      undoes it all
+                                                  │
+                                                  ▼
+  your XRP stays in YOUR account ──────────► wishes carried out
+  the entire time                            money arrives with your family
+```
+
 ## What you do
 
 ### Step 1 — You write your wishes

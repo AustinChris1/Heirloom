@@ -64,11 +64,12 @@
   .btn {
     @apply inline-flex items-center justify-center gap-2 font-mono text-[11px] uppercase tracking-[0.16em]
            px-5 py-3 border border-white/25 text-white transition-colors duration-200
-           hover:bg-white hover:text-black disabled:opacity-30 disabled:pointer-events-none;
+           hover:bg-white hover:text-black disabled:opacity-30 disabled:cursor-not-allowed
+           disabled:hover:bg-transparent disabled:hover:text-white;
   }
 
   .btn-solid {
-    @apply bg-white text-black border-white hover:bg-ink-100;
+    @apply bg-white text-black border-white hover:bg-ink-100 disabled:hover:bg-white disabled:hover:text-black;
   }
 
   .field {

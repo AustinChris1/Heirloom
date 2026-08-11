@@ -15,18 +15,37 @@ export function VaultApp({ chain, refresh }: { chain: ChainSnapshot | null; refr
   const [tab, setTab] = useState<Tab>("vaults");
   const [selected, setSelected] = useState<number | null>(null);
 
-  // Closed vaults stay on-chain forever, but showing them clutters the list —
-  // especially after a round of testing. Hidden by default, revealable.
-  const [showClosed, setShowClosed] = useState(false);
+  // Closed vaults stay on-chain forever, but showing them clutters the list.
+  // Filter chips scope the view; within a view, vaults needing attention sort
+  // first (Dormant → Executing → overdue → Active), newest first within a rank.
+  type Filter = "open" | "settled" | "closed" | "all";
+  const [filter, setFilter] = useState<Filter>("open");
   const allVaults = chain?.vaults ?? [];
-  const closedCount = allVaults.filter((v) => v.state === "Revoked" || v.state === "Settled").length;
-  const vaults = showClosed
-    ? allVaults
-    : allVaults.filter((v) => v.state !== "Revoked" && v.state !== "Settled");
+
+  const matches = (v: (typeof allVaults)[number]) =>
+    filter === "all"
+      ? true
+      : filter === "open"
+        ? v.state === "Active" || v.state === "Dormant" || v.state === "Executing"
+        : filter === "settled"
+          ? v.state === "Settled"
+          : v.state === "Revoked";
+
+  const rank = (v: (typeof allVaults)[number]) =>
+    v.state === "Dormant" ? 0 : v.state === "Executing" ? 1 : v.state === "Active" && v.overdue ? 2 : v.state === "Active" ? 3 : v.state === "Settled" ? 4 : 5;
+
+  const vaults = allVaults.filter(matches).sort((a, b) => rank(a) - rank(b) || b.id - a.id);
+  const counts = {
+    open: allVaults.filter((v) => v.state === "Active" || v.state === "Dormant" || v.state === "Executing").length,
+    settled: allVaults.filter((v) => v.state === "Settled").length,
+    closed: allVaults.filter((v) => v.state === "Revoked").length,
+    all: allVaults.length,
+  };
   const mine = wallet.address
     ? vaults.filter((v) => v.owner.toLowerCase() === wallet.address!.toLowerCase())
     : [];
-  const shown = selected !== null ? vaults.find((v) => v.id === selected) : undefined;
+  // Selection survives filter changes by looking in the full list.
+  const shown = selected !== null ? allVaults.find((v) => v.id === selected) : undefined;
 
   return (
     <div className="grain min-h-screen bg-black">
@@ -138,6 +157,29 @@ export function VaultApp({ chain, refresh }: { chain: ChainSnapshot | null; refr
               transition={{ duration: 0.35 }}
               className="space-y-8"
             >
+              <div className="flex flex-wrap gap-2">
+                {(
+                  [
+                    ["open", `Open (${counts.open})`],
+                    ["settled", `Settled (${counts.settled})`],
+                    ["closed", `Closed (${counts.closed})`],
+                    ["all", `All (${counts.all})`],
+                  ] as const
+                ).map(([key, label]) => (
+                  <button
+                    key={key}
+                    onClick={() => setFilter(key)}
+                    className={`cursor-pointer border px-3.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.16em] transition-colors ${
+                      filter === key
+                        ? "border-white bg-white text-black"
+                        : "border-ink-700 text-ink-300 hover:border-white hover:text-white"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
               {wallet.address && mine.length > 0 && (
                 <VaultGroup
                   title="Owned by you"
@@ -152,17 +194,12 @@ export function VaultApp({ chain, refresh }: { chain: ChainSnapshot | null; refr
                 vaults={vaults}
                 selected={selected}
                 onSelect={setSelected}
-                empty="No vaults registered yet. Create the first one."
+                empty={
+                  filter === "open"
+                    ? "No open vaults. Create one, or check the other filters."
+                    : "Nothing under this filter."
+                }
               />
-
-              {closedCount > 0 && (
-                <button
-                  className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-300 underline-offset-4 hover:text-white hover:underline"
-                  onClick={() => setShowClosed((s) => !s)}
-                >
-                  {showClosed ? "Hide" : "Show"} {closedCount} closed vault{closedCount === 1 ? "" : "s"}
-                </button>
-              )}
 
               <AnimatePresence>
                 {shown && (

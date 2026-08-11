@@ -170,12 +170,32 @@ export function AttestationFlow({
 
       await completeWith("proveLife", encoded, round);
     } catch (e) {
-      set({ phase: "error", message: "", error: humanError(e) });
+      // humanError can come back empty for exotic reverts — fall through to
+      // the raw message rather than showing a bare ✕.
+      set({ phase: "error", message: "", error: humanError(e) || (e as Error)?.message || String(e) });
     }
   }
 
   async function runClaimDormancy() {
     if (!signer) return;
+
+    // The nonexistence search must reach back past the vault's last recorded
+    // heartbeat. Testnet data providers will not confirm ranges that stretch
+    // back many hours, so a long-silent vault is honestly unprovable here —
+    // say so up front instead of failing after four slow steps.
+    const silenceHours = (Date.now() / 1000 - vault.lastHeartbeat) / 3600;
+    if (silenceHours > 6) {
+      set({
+        phase: "error",
+        message: "",
+        error:
+          `This vault's last recorded heartbeat is ${silenceHours.toFixed(0)} hours old — the testnet ` +
+          `attestation providers won't confirm a silence range that long. Prove a recent heartbeat first, ` +
+          `or demonstrate dormancy on a fresh short-interval vault.`,
+      });
+      return;
+    }
+
     try {
       set({ phase: "preparing", message: "Reading the XRP Ledger for a search range" });
 
@@ -214,7 +234,9 @@ export function AttestationFlow({
 
       await completeWith("claimDormancy", encoded, round);
     } catch (e) {
-      set({ phase: "error", message: "", error: humanError(e) });
+      // humanError can come back empty for exotic reverts — fall through to
+      // the raw message rather than showing a bare ✕.
+      set({ phase: "error", message: "", error: humanError(e) || (e as Error)?.message || String(e) });
     }
   }
 

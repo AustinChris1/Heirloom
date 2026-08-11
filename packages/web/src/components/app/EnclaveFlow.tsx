@@ -428,6 +428,16 @@ function ExecutePanel({
 function PayoutPanel({ vault }: { vault: LiveVault }) {
   const [distribution, setDistribution] = useState<SettledBequest[] | null>(null);
   const [willText, setWillText] = useState(() => loadWill(vault.willCommitment));
+  // Broadcasting a settled distribution twice pays everyone twice — remember,
+  // per browser, that this vault has already been paid out.
+  const distributedKey = `heirloom:distributed:${vault.id}`;
+  const [alreadySent, setAlreadySent] = useState(() => {
+    try {
+      return localStorage.getItem(distributedKey) === "1";
+    } catch {
+      return false;
+    }
+  });
   const [seed, setSeed] = useState("");
   const [payments, setPayments] = useState<PayoutPayment[] | null>(null);
   const [results, setResults] = useState<Array<{ hash: string; engineResult: string }> | null>(null);
@@ -491,6 +501,15 @@ function PayoutPanel({ vault }: { vault: LiveVault }) {
         out.push({ hash, engineResult });
         setResults([...out]);
       }
+
+      if (out.length > 0 && out.every((r) => r.engineResult === "tesSUCCESS")) {
+        setAlreadySent(true);
+        try {
+          localStorage.setItem(distributedKey, "1");
+        } catch {
+          /* private browsing */
+        }
+      }
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -545,11 +564,18 @@ function PayoutPanel({ vault }: { vault: LiveVault }) {
 
       <button
         className="btn btn-solid mt-5"
-        disabled={!will || !seed.trim() || busy || !distribution?.length}
+        disabled={!will || !seed.trim() || busy || !distribution?.length || alreadySent}
         onClick={broadcast}
       >
-        {busy ? "Broadcasting…" : "Sign & broadcast on XRPL testnet"}
+        {busy ? "Broadcasting…" : alreadySent ? "✓ Distributed" : "Sign & broadcast on XRPL testnet"}
       </button>
+
+      {alreadySent && !busy && (
+        <p className="mt-3 max-w-[46ch] font-mono text-[11px] leading-relaxed text-ink-300">
+          This vault's distribution has been broadcast from this browser. Broadcasting again would pay every
+          beneficiary twice — the ledger has no undo.
+        </p>
+      )}
 
       {error && <p className="mt-4 font-mono text-[11px] text-white">✕ {error}</p>}
 

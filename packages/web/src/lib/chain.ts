@@ -28,6 +28,8 @@ export interface LiveVault {
   state: string;
   heartbeatTag: number;
   lastHeartbeat: number;
+  /** Seconds of silence before dormancy may be claimed — with lastHeartbeat, gives the due time. */
+  heartbeatInterval: number;
   daysUntilDue: number;
   overdue: boolean;
   willAttested: boolean;
@@ -39,6 +41,8 @@ export interface LiveVault {
   graceWindow: number;
   /** Contract view: dormant + attested + grace elapsed + guardians satisfied. */
   canExecute: boolean;
+  /** Unix seconds when this snapshot was read, so countdowns stay true between refreshes. */
+  readAt: number;
 }
 
 export interface ChainSnapshot {
@@ -79,6 +83,7 @@ export async function readChain(): Promise<ChainSnapshot> {
         state: STATE_NAMES[Number(v.state)] ?? "Unknown",
         heartbeatTag: Number(tag),
         lastHeartbeat: Number(v.lastHeartbeat),
+        heartbeatInterval: Number(v.heartbeatInterval),
         daysUntilDue: Number(dueIn) / 86_400,
         overdue,
         willAttested: v.willAttested,
@@ -89,6 +94,7 @@ export async function readChain(): Promise<ChainSnapshot> {
         dormantSince: Number(v.dormantSince),
         graceWindow: Number(v.graceWindow),
         canExecute,
+        readAt: Math.floor(Date.now() / 1000),
       };
     }),
   );

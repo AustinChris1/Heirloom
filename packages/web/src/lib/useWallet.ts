@@ -2,6 +2,9 @@ import { JsonRpcSigner } from "ethers";
 import { useCallback, useEffect, useState } from "react";
 import { COSTON2_CHAIN_ID, connect, hasWallet, switchToCoston2 } from "./wallet";
 
+/** Marks that the user connected here, so reloads can reattach without prompting. */
+const CONNECTED_KEY = "heirloom:wallet-connected";
+
 export interface WalletState {
   address: string | null;
   chainId: number | null;
@@ -27,6 +30,11 @@ export function useWallet() {
     setState((s) => ({ ...s, connecting: true, error: null }));
     try {
       const { signer, address, chainId } = await connect();
+      try {
+        localStorage.setItem(CONNECTED_KEY, "1");
+      } catch {
+        /* private browsing — session-only connection is fine */
+      }
       setState((s) => ({
         ...s,
         signer,
@@ -50,8 +58,40 @@ export function useWallet() {
   }, [doConnect]);
 
   const disconnect = useCallback(() => {
+    try {
+      localStorage.removeItem(CONNECTED_KEY);
+    } catch {
+      /* private browsing */
+    }
     setState((s) => ({ ...s, address: null, signer: null, chainId: null, onCoston2: false }));
   }, []);
+
+  /**
+   * Reconnect silently on load.
+   *
+   * A wallet the user already authorised stays authorised across reloads —
+   * `eth_accounts` returns it without prompting. Without this the app looks
+   * disconnected after every refresh, which is both wrong and alarming
+   * mid-flow. Only reconnects if the user connected here before, so a visitor
+   * who never clicked Connect is not silently attached to a page.
+   */
+  useEffect(() => {
+    if (!hasWallet()) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        if (localStorage.getItem(CONNECTED_KEY) !== "1") return;
+        const accounts = (await window.ethereum!.request({ method: "eth_accounts" })) as string[];
+        if (cancelled || !accounts?.length) return;
+        await doConnect();
+      } catch {
+        /* no wallet, locked, or storage unavailable — stay disconnected */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [doConnect]);
 
   // Re-read on wallet-side account or network changes, otherwise the UI silently
   // keeps transacting as whoever was connected a moment ago.

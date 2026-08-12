@@ -1,6 +1,6 @@
 import { Contract, JsonRpcSigner } from "ethers";
 import { AnimatePresence, motion } from "framer-motion";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { LiveVault } from "../../lib/chain";
 import {
   BEACON_XRPL_ADDRESS,
@@ -32,6 +32,52 @@ import { humanError, VAULT_ABI_WRITE } from "../../lib/wallet";
  */
 
 const STEPS = ["Prepare", "Submit", "Await round", "Fetch proof", "Finalise"] as const;
+
+/**
+ * An attestation already submitted to FdcHub but not yet finalised on the
+ * vault. Persisted so a refresh mid-round resumes instead of paying again.
+ */
+interface PendingAttestation {
+  method: "proveLife" | "claimDormancy";
+  encoded: string;
+  round: number;
+  at: number;
+}
+
+const pendingKey = (vaultId: number) => `heirloom:attest:${vaultId}`;
+/** Requests older than this are past any useful proof window. */
+const PENDING_TTL_MS = 45 * 60 * 1000;
+
+function savePending(vaultId: number, p: PendingAttestation): void {
+  try {
+    localStorage.setItem(pendingKey(vaultId), JSON.stringify(p));
+  } catch {
+    /* private browsing */
+  }
+}
+
+function clearPending(vaultId: number): void {
+  try {
+    localStorage.removeItem(pendingKey(vaultId));
+  } catch {
+    /* private browsing */
+  }
+}
+
+function loadPending(vaultId: number): PendingAttestation | null {
+  try {
+    const raw = localStorage.getItem(pendingKey(vaultId));
+    if (!raw) return null;
+    const p = JSON.parse(raw) as PendingAttestation;
+    if (Date.now() - p.at > PENDING_TTL_MS) {
+      clearPending(vaultId);
+      return null;
+    }
+    return p;
+  } catch {
+    return null;
+  }
+}
 
 function stepIndex(phase: Progress["phase"]): number {
   switch (phase) {
@@ -65,6 +111,12 @@ export function AttestationFlow({
   const [xrplTx, setXrplTx] = useState("");
   const [scanning, setScanning] = useState(false);
   const [scanNote, setScanNote] = useState<string | null>(null);
+  const [pending, setPending] = useState<PendingAttestation | null>(() => loadPending(vault.id));
+
+  // Re-read after any state change: a completed attestation clears it.
+  useEffect(() => {
+    setPending(loadPending(vault.id));
+  }, [vault.id, vault.state, vault.lastHeartbeat]);
   const busy = !["idle", "done", "error"].includes(progress.phase);
 
   /**
@@ -123,6 +175,11 @@ export function AttestationFlow({
   ) {
     const contract = new Contract(HEIRLOOM_VAULT, VAULT_ABI_WRITE, signer!);
 
+    // Remember the in-flight attestation. The request is already paid for and
+    // sitting in a voting round; a refresh or a closed tab should not cost
+    // another fee and another three minutes.
+    savePending(vault.id, { method, encoded, round, at: Date.now() });
+
     set({ phase: "waiting", message: `Round ${round} — waiting for finalisation`, fraction: 0 });
     await waitForFinalisation(signer!, round, (fraction, elapsed) =>
       set({
@@ -142,12 +199,25 @@ export function AttestationFlow({
     const tx = await contract[method](vault.id, { merkleProof: proof, data: decoded });
     const receipt = await tx.wait();
 
+    clearPending(vault.id);
     set({
       phase: "done",
       message: method === "proveLife" ? "Proof of life accepted" : "Dormancy proven on-chain",
       txHash: receipt.hash,
     });
     onChanged();
+  }
+
+  /** Continue an attestation that a refresh interrupted. */
+  async function resumePending() {
+    const p = pending;
+    if (!signer || !p) return;
+    try {
+      set({ phase: "waiting", message: `Resuming round ${p.round}`, fraction: 0 });
+      await completeWith(p.method, p.encoded, p.round);
+    } catch (e) {
+      set({ phase: "error", message: "", error: humanError(e) || (e as Error)?.message || String(e) });
+    }
   }
 
   async function runProveLife() {
@@ -251,6 +321,21 @@ export function AttestationFlow({
         <p className="text-xs text-ink-300">Connect a wallet on Coston2 to relay a proof.</p>
       ) : (
         <>
+          {pending && !busy && (
+            <div className="mb-6 border border-ink-600 p-4">
+              <p className="mb-2 font-mono text-[11px] uppercase tracking-[0.14em] text-white">
+                Attestation in progress
+              </p>
+              <p className="mb-3 max-w-[46ch] text-xs leading-relaxed text-ink-300">
+                A {pending.method === "proveLife" ? "proof of life" : "dormancy"} request is already paid for
+                and sitting in voting round {pending.round}. Resume it rather than starting over.
+              </p>
+              <button className="btn" onClick={resumePending}>
+                Resume round {pending.round}
+              </button>
+            </div>
+          )}
+
           {/* ---- proof of life ---- */}
           {canProve && (
             <div className="mb-7">

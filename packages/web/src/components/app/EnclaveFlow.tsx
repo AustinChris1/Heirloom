@@ -492,7 +492,24 @@ function PayoutPanel({ vault }: { vault: LiveVault }) {
     setError(null);
     setResults(null);
     try {
-      const { accountInfo, submitPayment } = await import("../../lib/xrplPayout");
+      const { accountInfo, submitPayment, regularKeyOf } = await import("../../lib/xrplPayout");
+      const { enclaveXrplAddress } = await import("../../lib/enclave");
+
+      // The ledger rejects a signature from a key the estate never authorised
+      // (tefBAD_AUTH), and the failed attempt still burns a sequence number.
+      // Check first and say what is missing.
+      const [enclaveAddr, current] = await Promise.all([
+        enclaveXrplAddress(),
+        regularKeyOf(will.estateAccount),
+      ]);
+      if (current !== enclaveAddr) {
+        throw new Error(
+          current
+            ? `This estate authorises ${current}, not the enclave (${enclaveAddr}). Re-authorise while the vault is Active, or sign locally below.`
+            : `This estate has not authorised the enclave (${enclaveAddr}) as its regular key. That is done while the owner is alive — use "Authorise the enclave to pay out" on an Active vault, or sign locally below.`,
+        );
+      }
+
       const { sequence } = await accountInfo(will.estateAccount);
       const ledger = await currentLedger();
 

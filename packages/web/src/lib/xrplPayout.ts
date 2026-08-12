@@ -47,6 +47,15 @@ export async function findEstateAccount(beacon: string, heartbeatTag: number): P
   return null;
 }
 
+/** The regular key currently authorised on an account, if any. */
+export async function regularKeyOf(account: string): Promise<string | null> {
+  const out = await xrplRequest({
+    method: "account_info",
+    params: [{ account, ledger_index: "validated" }],
+  });
+  return out?.result?.account_data?.RegularKey ?? null;
+}
+
 /** Balance and next sequence for an XRPL account. */
 export async function accountInfo(account: string): Promise<{ balanceDrops: bigint; sequence: number }> {
   const out = await xrplRequest({

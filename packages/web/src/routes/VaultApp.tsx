@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Logo } from "../components/Logo";
 import { CreateVault } from "../components/app/CreateVault";
@@ -272,11 +272,13 @@ function VaultGroup({
                 >
                   #{v.id}
                 </span>
-                <span className="font-mono text-[11px] uppercase tracking-[0.16em]">{v.state}</span>
+                <span className="font-mono text-[11px] uppercase tracking-[0.16em]">
+                  {v.state === "Active" && v.overdue ? "Overdue" : v.state}
+                </span>
               </div>
 
               <div className="font-mono text-3xl tabular-nums">
-                {v.overdue ? "OVERDUE" : `${v.daysUntilDue.toFixed(1)}d`}
+                <CardClock vault={v} />
               </div>
 
               <div
@@ -292,6 +294,53 @@ function VaultGroup({
       )}
     </section>
   );
+}
+
+/**
+ * The headline number on a vault card, ticking live.
+ *
+ * Active vaults count down to the next heartbeat; Dormant ones count down the
+ * grace window, which is the number that actually decides whether the estate
+ * is about to move.
+ */
+function CardClock({ vault }: { vault: any }) {
+  const [now, setNow] = useState(() => Date.now() / 1000);
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now() / 1000), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  const fmt = (s: number) => {
+    if (s <= 0) return "0s";
+    const d = Math.floor(s / 86_400);
+    const h = Math.floor((s % 86_400) / 3_600);
+    const m = Math.floor((s % 3_600) / 60);
+    if (d > 0) return `${d}d ${h}h`;
+    if (h > 0) return `${h}h ${m}m`;
+    return `${m}m ${String(Math.floor(s % 60)).padStart(2, "0")}s`;
+  };
+
+  // Settled = distribution verified on-chain; the XRP moves only when broadcast.
+  if (vault.state === "Settled") {
+    let paid = false;
+    try {
+      paid = localStorage.getItem(`heirloom:distributed:${vault.id}`) === "1";
+    } catch {
+      /* private browsing */
+    }
+    return <>{paid ? "PAID" : "SETTLED"}</>;
+  }
+  if (vault.state === "Revoked") return <>CLOSED</>;
+  if (vault.state === "Executing") return <>EXECUTING</>;
+  if (vault.state === "Dormant") {
+    const graceLeft = vault.dormantSince + vault.graceWindow - now;
+    return <>{graceLeft > 0 ? fmt(graceLeft) : "READY"}</>;
+  }
+  // Counts down to the heartbeat, then counts up past it.
+  const dueAt = vault.lastHeartbeat + vault.heartbeatInterval;
+  const overdueBy = now - dueAt;
+  if (vault.overdue || overdueBy > 0) return <span title="overdue by">+{fmt(overdueBy)}</span>;
+  return <>{fmt(dueAt - now)}</>;
 }
 
 function TabButton({

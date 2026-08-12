@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@gemwallet/api": "^3.8.0",
     "@heirloom/extension": "workspace:*",
     "ethers": "^6.13.4",
     "framer-motion": "^13.0.0",
@@ -18,7 +19,8 @@
     "react-router-dom": "^7.18.2",
     "ripple-address-codec": "^5.0.0",
     "ripple-binary-codec": "^2.8.0",
-    "ripple-keypairs": "^3.0.0"
+    "ripple-keypairs": "^3.0.0",
+    "xumm": "^1.8.0"
   },
   "devDependencies": {
     "@types/react": "^18.3.12",

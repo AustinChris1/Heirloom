@@ -19,6 +19,7 @@ import {
   submitRequest,
   waitForFinalisation,
 } from "../../lib/fdc";
+import { toast } from "../../lib/toast";
 import { humanError, VAULT_ABI_WRITE } from "../../lib/wallet";
 
 /**
@@ -205,6 +206,12 @@ export function AttestationFlow({
       message: method === "proveLife" ? "Proof of life accepted" : "Dormancy proven on-chain",
       txHash: receipt.hash,
     });
+    toast.success(
+      method === "proveLife"
+        ? "Proof of life accepted — the heartbeat timer has reset"
+        : "Dormancy proven on-chain — the grace window is open",
+      `${EXPLORER}/tx/${receipt.hash}`,
+    );
     onChanged();
   }
 
@@ -216,7 +223,9 @@ export function AttestationFlow({
       set({ phase: "waiting", message: `Resuming round ${p.round}`, fraction: 0 });
       await completeWith(p.method, p.encoded, p.round);
     } catch (e) {
-      set({ phase: "error", message: "", error: humanError(e) || (e as Error)?.message || String(e) });
+      const m = humanError(e) || (e as Error)?.message || String(e);
+      set({ phase: "error", message: "", error: m });
+      toast.error(m);
     }
   }
 
@@ -242,7 +251,9 @@ export function AttestationFlow({
     } catch (e) {
       // humanError can come back empty for exotic reverts — fall through to
       // the raw message rather than showing a bare ✕.
-      set({ phase: "error", message: "", error: humanError(e) || (e as Error)?.message || String(e) });
+      const m = humanError(e) || (e as Error)?.message || String(e);
+      set({ phase: "error", message: "", error: m });
+      toast.error(m);
     }
   }
 
@@ -269,18 +280,29 @@ export function AttestationFlow({
     try {
       set({ phase: "preparing", message: "Reading the XRP Ledger for a search range" });
 
-      // End the range a few ledgers back so it is comfortably finalised. The
-      // contract requires the range to START at or before the vault's last
-      // recorded heartbeat, so size the lookback from how long ago that was
-      // (~3.5 s per testnet ledger) — a fixed window only fits fresh vaults.
+      // The contract requires the search range to START at or before the
+      // vault's last recorded heartbeat (SearchRangeTooLate otherwise). A
+      // ledgers-from-seconds estimate is fragile — testnet close times vary —
+      // so instead of guessing, verify: read the candidate ledger's actual
+      // close time and step further back until it is genuinely before the last
+      // heartbeat, with a safety margin.
       const head = await currentLedger();
       const deadlineBlock = head - 5;
-      const silenceSeconds = Math.floor(Date.now() / 1000) - vault.lastHeartbeat;
-      const lookback = Math.min(100_000, Math.ceil(silenceSeconds / 3.5) + 200);
-      const minimalBlock = Math.max(1, deadlineBlock - lookback);
       const deadlineTimestamp = await ledgerCloseTime(deadlineBlock);
 
-      set({ phase: "preparing", message: `Encoding a nonexistence request over ${lookback.toLocaleString()} ledgers` });
+      const MARGIN = 120; // seconds of slack below lastHeartbeat
+      const target = vault.lastHeartbeat - MARGIN;
+      // First guess assumes ~3.5s/ledger, then correct against reality.
+      let minimalBlock = Math.max(1, deadlineBlock - Math.ceil((deadlineTimestamp - target) / 3.5) - 200);
+      for (let i = 0; i < 8; i++) {
+        const closeAt = await ledgerCloseTime(minimalBlock);
+        if (closeAt <= target || minimalBlock <= 1) break;
+        // Still too late — jump back by the shortfall, assuming a fast 2s/ledger
+        // so we overshoot rather than undershoot again.
+        minimalBlock = Math.max(1, minimalBlock - Math.ceil((closeAt - target) / 2) - 100);
+      }
+
+      set({ phase: "preparing", message: `Encoding a nonexistence request over ${(deadlineBlock - minimalBlock).toLocaleString()} ledgers` });
       const contract = new Contract(HEIRLOOM_VAULT, VAULT_ABI_WRITE, signer);
       const heartbeatDrops: bigint = await contract.heartbeatDrops();
 
@@ -306,16 +328,22 @@ export function AttestationFlow({
     } catch (e) {
       // humanError can come back empty for exotic reverts — fall through to
       // the raw message rather than showing a bare ✕.
-      set({ phase: "error", message: "", error: humanError(e) || (e as Error)?.message || String(e) });
+      const m = humanError(e) || (e as Error)?.message || String(e);
+      set({ phase: "error", message: "", error: m });
+      toast.error(m);
     }
   }
 
   const canProve = vault.state === "Active" || vault.state === "Dormant";
-  const canClaim = vault.state === "Active" && vault.overdue;
+  // Sealing is only possible while Active, so claiming dormancy on an unsealed
+  // vault strands it: it can never execute without the owner reviving it first.
+  // Block the claim rather than warn about it.
+  const claimBlockedUnsealed = vault.state === "Active" && vault.overdue && !vault.willAttested;
+  const canClaim = vault.state === "Active" && vault.overdue && vault.willAttested;
 
   return (
     <div className="mt-9 border-t border-ink-800 pt-6">
-      <p className="label mb-4">Attestations</p>
+      <p className="label mb-4">Step 4 · Attestations</p>
 
       {!signer ? (
         <p className="text-xs text-ink-300">Connect a wallet on Coston2 to relay a proof.</p>
@@ -370,10 +398,19 @@ export function AttestationFlow({
             <p className="mb-3 max-w-[46ch] text-xs leading-relaxed text-ink-300">
               {canClaim
                 ? "Proves that across an entire ledger range, no payment carrying this vault's tag reached the beacon. This opens the grace window — it releases nothing."
-                : vault.state !== "Active"
-                  ? `Only available while the vault is Active. This one is ${vault.state}.`
-                  : "Available once the heartbeat interval has lapsed with no heartbeat."}
+                : claimBlockedUnsealed
+                  ? "Blocked until the will is sealed — see step 1 above."
+                  : vault.state !== "Active"
+                    ? `Only available while the vault is Active. This one is ${vault.state}.`
+                    : "Available once the heartbeat interval has lapsed with no heartbeat."}
             </p>
+            {claimBlockedUnsealed && (
+              <p className="mb-3 max-w-[46ch] border border-ink-600 p-3 text-xs leading-relaxed text-ink-100">
+                <strong className="text-white">Seal the will first.</strong> A will can only be sealed while the
+                vault is Active. Claiming dormancy now would leave this vault dormant and unable to execute —
+                recoverable only by the owner cancelling and starting over.
+              </p>
+            )}
             <button className="btn" disabled={busy || !canClaim} onClick={runClaimDormancy}>
               Claim dormancy
             </button>

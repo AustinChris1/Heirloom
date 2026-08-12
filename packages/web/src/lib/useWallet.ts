@@ -1,5 +1,6 @@
 import { JsonRpcSigner } from "ethers";
 import { useCallback, useEffect, useState } from "react";
+import { toast } from "./toast";
 import { COSTON2_CHAIN_ID, connect, hasWallet, switchToCoston2 } from "./wallet";
 
 /** Marks that the user connected here, so reloads can reattach without prompting. */
@@ -26,7 +27,9 @@ export function useWallet() {
     available: hasWallet(),
   });
 
-  const doConnect = useCallback(async () => {
+  // `silent` suppresses toasts for the automatic reconnect on page load —
+  // a notification nobody asked for is noise, not feedback.
+  const doConnect = useCallback(async (silent = false) => {
     setState((s) => ({ ...s, connecting: true, error: null }));
     try {
       const { signer, address, chainId } = await connect();
@@ -43,8 +46,17 @@ export function useWallet() {
         connecting: false,
         onCoston2: chainId === COSTON2_CHAIN_ID,
       }));
+      if (!silent) {
+        if (chainId === COSTON2_CHAIN_ID) {
+          toast.success(`Wallet connected — ${address.slice(0, 8)}…${address.slice(-4)}`);
+        } else {
+          toast.error("Wallet connected, but on the wrong network — switch to Coston2");
+        }
+      }
     } catch (err) {
-      setState((s) => ({ ...s, connecting: false, error: (err as Error).message }));
+      const m = (err as Error).message;
+      setState((s) => ({ ...s, connecting: false, error: m }));
+      if (!silent) toast.error(m);
     }
   }, []);
 
@@ -58,6 +70,7 @@ export function useWallet() {
   }, [doConnect]);
 
   const disconnect = useCallback(() => {
+    toast.info("Wallet disconnected");
     try {
       localStorage.removeItem(CONNECTED_KEY);
     } catch {
@@ -83,7 +96,7 @@ export function useWallet() {
         if (localStorage.getItem(CONNECTED_KEY) !== "1") return;
         const accounts = (await window.ethereum!.request({ method: "eth_accounts" })) as string[];
         if (cancelled || !accounts?.length) return;
-        await doConnect();
+        await doConnect(true);
       } catch {
         /* no wallet, locked, or storage unavailable — stay disconnected */
       }

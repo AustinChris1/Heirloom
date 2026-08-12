@@ -40,6 +40,14 @@ export interface WalletAdapter {
   /** Signs and submits SetRegularKey. Returns the ledger outcome. */
   setRegularKey: (account: string, regularKey: string) => Promise<{ hash: string | null; engineResult: string }>;
   /**
+   * Signs a trivial 1-drop self-payment. Purely diagnostic: if this succeeds
+   * while SetRegularKey fails, the wallet is refusing the *transaction type*.
+   * If both fail identically, the wallet cannot sign for that account at all
+   * (bad import, wrong network, view-only card) — a different problem with a
+   * different fix, and worth knowing which before blaming vendor policy.
+   */
+  testSign?: (account: string) => Promise<{ hash: string | null; engineResult: string }>;
+  /**
    * Forgets the cached session, so the next `address()` genuinely re-prompts.
    * Matters for wallets with sticky sign-ins (Xaman): connecting the wrong
    * account must be recoverable by just trying again.
@@ -96,7 +104,11 @@ const crossmark: WalletAdapter = {
     const submit = crossmarkApi().signAndSubmitAndWait;
     if (!submit) throw new Error("This Crossmark version cannot submit transactions.");
 
-    const res = await submit({ TransactionType: "SetRegularKey", Account: account, RegularKey: regularKey });
+    // Account is deliberately omitted: Crossmark fills it from the active card,
+    // and supplying it has produced "no card matches an account address in this
+    // payload" when the session's card and the passed address disagree.
+    void account;
+    const res = await submit({ TransactionType: "SetRegularKey", RegularKey: regularKey });
     const failure = crossmarkError(res);
     if (failure) throw new Error(failure);
 
@@ -109,6 +121,19 @@ const crossmark: WalletAdapter = {
         resp?.result?.meta?.TransactionResult ??
         resp?.engine_result ??
         (meta?.isSuccess ? "tesSUCCESS" : "unknown"),
+    };
+  },
+  testSign: async (account) => {
+    const submit = crossmarkApi().signAndSubmitAndWait;
+    if (!submit) throw new Error("This Crossmark version cannot submit transactions.");
+    const res = await submit({ TransactionType: "Payment", Destination: account, Amount: "1" });
+    const failure = crossmarkError(res);
+    if (failure) throw new Error(failure);
+    const meta = res?.response?.data?.meta ?? res?.data?.meta ?? res?.meta;
+    const resp = res?.response?.data?.resp ?? res?.data?.resp ?? res?.response ?? res;
+    return {
+      hash: resp?.result?.hash ?? resp?.hash ?? null,
+      engineResult: resp?.result?.engine_result ?? (meta?.isSuccess ? "tesSUCCESS" : "unknown"),
     };
   },
 };
@@ -137,12 +162,21 @@ const gemwallet: WalletAdapter = {
     return address;
   },
   setRegularKey: async (account, regularKey) => {
-    const { submitTransaction } = await import("@gemwallet/api");
-    const res = await submitTransaction({
-      transaction: { TransactionType: "SetRegularKey", Account: account, RegularKey: regularKey } as never,
-    });
+    // GemWallet exposes a first-class helper for this transaction type; it is
+    // more reliable than the generic submitTransaction path and fills Account
+    // from the connected wallet itself.
+    void account;
+    const { setRegularKey } = await import("@gemwallet/api");
+    const res = await setRegularKey({ regularKey });
     const hash = (res?.result as { hash?: string } | undefined)?.hash ?? null;
     if (!hash) throw new Error("GemWallet did not confirm the transaction.");
+    return { hash, engineResult: "tesSUCCESS" };
+  },
+  testSign: async (account) => {
+    const { sendPayment } = await import("@gemwallet/api");
+    const res = await sendPayment({ amount: "1", destination: account });
+    const hash = (res?.result as { hash?: string } | undefined)?.hash ?? null;
+    if (!hash) throw new Error("GemWallet did not confirm the test payment.");
     return { hash, engineResult: "tesSUCCESS" };
   },
 };
@@ -187,7 +221,14 @@ const xaman: WalletAdapter = {
     if (!sdk.payload) throw new Error("Xaman payloads unavailable — sign in first.");
 
     const { created, resolved } = await sdk.payload.createAndSubscribe(
-      { txjson: { TransactionType: "SetRegularKey", Account: account, RegularKey: regularKey } },
+      {
+        txjson: { TransactionType: "SetRegularKey", Account: account, RegularKey: regularKey },
+        // The whole demo lives on testnet. Without this, payloads validate
+        // against the signed-in profile's network (mainnet by default), where
+        // the estate does not exist — and the Xaman app is told to switch to
+        // the right node when it opens the request.
+        options: { force_network: "TESTNET" },
+      } as never,
       (event: any) => {
         if (typeof event?.data?.signed !== "undefined") return event.data;
       },
@@ -215,7 +256,13 @@ const xaman: WalletAdapter = {
 
 /* ---------------------------------------------------------------- */
 
-export const WALLETS: WalletAdapter[] = [xaman, crossmark, gemwallet];
+/**
+ * Order matters — the first is the one users reach for. GemWallet is first
+ * because it exposes `setRegularKey` as a first-class call and signs it without
+ * app verification; Crossmark next; Xaman last, since it blocks this
+ * transaction type until an app is allowlisted.
+ */
+export const WALLETS: WalletAdapter[] = [gemwallet, crossmark, xaman];
 
 /** Every wallet currently present in this browser. */
 export async function detectWallets(): Promise<WalletAdapter[]> {

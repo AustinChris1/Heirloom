@@ -394,7 +394,7 @@ function ConnectButton({ wallet }: { wallet: ReturnType<typeof useWallet> }) {
   }
 
   return (
-    <button className="btn btn-solid px-4 py-2" disabled={wallet.connecting} onClick={wallet.connect}>
+    <button className="btn btn-solid px-4 py-2" disabled={wallet.connecting} onClick={() => wallet.connect()}>
       {wallet.connecting ? "Connecting…" : "Connect wallet"}
     </button>
   );

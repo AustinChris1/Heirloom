@@ -12,6 +12,7 @@ import {
   HEARTBEAT_DROPS,
   XRPL_TESTNET_EXPLORER,
 } from "../../lib/deployment";
+import { toast } from "../../lib/toast";
 import { loadVaultName, saveVaultName } from "../../lib/vaultNames";
 import { loadWill } from "../../lib/willStore";
 import type { WalletAdapter } from "../../lib/xrplWallet";
@@ -57,6 +58,12 @@ export function VaultDetail({
     };
   }, [address, vault.id, vault.guardianApprovals, vault.state]);
 
+  const ACTION_LABELS: Record<string, string> = {
+    revoke: "Dormancy cancelled — the vault is active again and guardian approvals are cleared",
+    approve: "Guardian confirmation recorded",
+    close: "Vault closed permanently",
+  };
+
   async function run(name: string, fn: (c: ReturnType<typeof vaultWithSigner>) => Promise<any>) {
     if (!signer) return;
     setBusy(name);
@@ -65,9 +72,12 @@ export function VaultDetail({
     try {
       const receipt = await (await fn(vaultWithSigner(signer))).wait();
       setTxHash(receipt.hash);
+      toast.success(ACTION_LABELS[name] ?? "Transaction confirmed", `${EXPLORER}/tx/${receipt.hash}`);
       onChanged();
     } catch (err) {
-      setError(humanError(err));
+      const msg = humanError(err);
+      setError(msg);
+      toast.error(msg);
     } finally {
       setBusy(null);
     }
@@ -155,28 +165,38 @@ export function VaultDetail({
         )}
       </div>
 
-      {/* ---- how to stay alive ---- */}
+      {/* ---- the lifecycle, in the order it actually happens ----
+
+          Setup first (seal, then authorise), then living (heartbeat, prove
+          life), then the after-death legs (dormancy, execute, payout). The
+          previous layout put "Stay alive" above sealing, which reads as an
+          instruction to heartbeat before the will is even sealed — and made it
+          easy to claim dormancy on a vault that could never execute. */}
       <div className="bg-black p-7 md:p-9">
-        <p className="label mb-3">Stay alive</p>
+        {/* 1 — Seal (Active + unsealed) and 5/6 — execute + payout live here. */}
+        <EnclaveFlow vault={vault} signer={signer} onChanged={onChanged} />
 
-        {/* One sentence, then the fields. The previous version stacked four
-            explanatory paragraphs around three inputs, which is how someone
-            reads "send a payment" and assumes it funds the estate. */}
-        <p className="mb-6 text-sm leading-relaxed text-ink-200">
-          Send this payment from your XRP Ledger account before the timer runs out.
-          <br />
-          <strong className="text-white">It is a signal, not a deposit</strong> — your estate never moves.
-        </p>
-
-        <div className="space-y-5">
-          <CopyField label="To (beacon account)" value={BEACON_XRPL_ADDRESS} />
-          <CopyField label="Destination tag — identifies your vault" value={String(vault.heartbeatTag)} emphasise />
-          <CopyField label="Amount — send exactly this" value={`${Number(HEARTBEAT_DROPS) / 1e6} XRP`} />
-        </div>
-
-        <TestnetHeartbeat tag={vault.heartbeatTag} />
-
+        {/* 2 — Authorise the enclave. Setup, done while alive. */}
         {isOwner && vault.state !== "Revoked" && <AuthoriseEnclave vault={vault} />}
+
+        {/* 3 — Stay alive. */}
+        <div className={vault.state === "Settled" || vault.state === "Revoked" ? "hidden" : "mt-9 border-t border-ink-800 pt-6"}>
+          <p className="label mb-3">Step 3 · Stay alive</p>
+
+          <p className="mb-6 text-sm leading-relaxed text-ink-200">
+            Send this payment from your XRP Ledger account before the timer runs out.
+            <br />
+            <strong className="text-white">It is a signal, not a deposit</strong> — your estate never moves.
+          </p>
+
+          <div className="space-y-5">
+            <CopyField label="To (beacon account)" value={BEACON_XRPL_ADDRESS} />
+            <CopyField label="Destination tag — identifies your vault" value={String(vault.heartbeatTag)} emphasise />
+            <CopyField label="Amount — send exactly this" value={`${Number(HEARTBEAT_DROPS) / 1e6} XRP`} />
+          </div>
+
+          <TestnetHeartbeat tag={vault.heartbeatTag} />
+        </div>
 
         {/* Detail belongs behind a disclosure, not in front of the fields. */}
         <details className="mt-5 text-xs text-ink-300">
@@ -208,9 +228,8 @@ export function VaultDetail({
           </div>
         </details>
 
+        {/* 4 — Attestations: prove life, and prove silence once overdue. */}
         <AttestationFlow vault={vault} signer={signer} onChanged={onChanged} />
-
-        <EnclaveFlow vault={vault} signer={signer} onChanged={onChanged} />
 
         {/* What is live on this deployment, and what still needs infrastructure. */}
         <div className="mt-9 border-t border-ink-800 pt-6">
@@ -263,6 +282,9 @@ function AuthoriseEnclave({ vault }: { vault: LiveVault }) {
   const [seed, setSeed] = useState("");
   const [enclaveAddr, setEnclaveAddr] = useState<string | null>(null);
   const [wallets, setWallets] = useState<WalletAdapter[]>([]);
+  // Detection is async (GemWallet answers over a message channel), so the panel
+  // must not claim "no wallet" before it has finished asking.
+  const [detecting, setDetecting] = useState(true);
   const [current, setCurrent] = useState<string | null | undefined>(undefined);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
@@ -286,6 +308,8 @@ function AuthoriseEnclave({ vault }: { vault: LiveVault }) {
         if (!cancelled) setWallets(found);
       } catch {
         /* no wallets — the seed fallback covers it */
+      } finally {
+        if (!cancelled) setDetecting(false);
       }
       if (!estate.trim()) return;
       try {
@@ -302,6 +326,33 @@ function AuthoriseEnclave({ vault }: { vault: LiveVault }) {
   }, [estate, open]);
 
   const delegated = !!enclaveAddr && !!current && current === enclaveAddr;
+
+  /**
+   * Isolates "this wallet won't sign SetRegularKey" from "this wallet can't
+   * sign for this account at all" — the two failures look identical from the
+   * outside and have completely different fixes.
+   */
+  async function testWallet(wallet: WalletAdapter) {
+    if (!wallet.testSign) return;
+    setBusy(true);
+    setError(null);
+    setNote(null);
+    try {
+      const account = await wallet.address();
+      const { engineResult } = await wallet.testSign(account);
+      setNote(
+        `${wallet.name} signed a 1-drop test payment (${engineResult}). Signing works for this account, so a ` +
+          `failing authorisation means the wallet refuses the SetRegularKey type.`,
+      );
+    } catch (err) {
+      setError(
+        `${wallet.name} could not sign even a plain payment: ${(err as Error).message} — so this is the card ` +
+          `or its network, not the transaction type.`,
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
 
   /** The production path: sign in the owner's own wallet, no seed anywhere. */
   async function authoriseWithWallet(wallet: WalletAdapter) {
@@ -328,6 +379,10 @@ function AuthoriseEnclave({ vault }: { vault: LiveVault }) {
 
       setCurrent(enclaveAddr);
       setNote(hash ? `Authorised in ${wallet.name} — ${hash.slice(0, 16)}…` : `Authorised in ${wallet.name}.`);
+      toast.success(
+        `Enclave authorised in ${wallet.name} — it can now sign this estate’s payouts`,
+        hash ? `${XRPL_TESTNET_EXPLORER}/transactions/${hash}` : undefined,
+      );
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -368,8 +423,22 @@ function AuthoriseEnclave({ vault }: { vault: LiveVault }) {
       setCurrent(enclaveAddr);
       setSeed("");
       setNote(`Authorised — ${hash.slice(0, 16)}…`);
+      toast.success(
+        "Enclave authorised — it can now sign this estate’s payouts",
+        `${XRPL_TESTNET_EXPLORER}/transactions/${hash}`,
+      );
     } catch (err) {
-      setError((err as Error).message);
+      const msg = (err as Error).message ?? String(err);
+      // Xaman gates account-security tx types (SetRegularKey, SignerListSet)
+      // behind app verification; a fresh app hits 1217. Nothing we can fix in
+      // code — say so and point at the wallets that work.
+      setError(
+        /1217/.test(msg)
+          ? "Xaman blocks SetRegularKey for unverified apps — it gates account-security transaction types until an app is allowlisted. Use the seed field above; the enclave-signed payout is identical whichever way the key was granted."
+          : /public key for this card|did not find a card/i.test(msg)
+            ? `${msg} — Crossmark could not resolve signing material for this account. Usually a card that is view-only, imported incompletely, or on the wrong network. Try "Test signing" below: if a 1-drop payment also fails, it is the card, not the transaction type.`
+            : msg,
+      );
     } finally {
       setBusy(false);
     }
@@ -377,7 +446,7 @@ function AuthoriseEnclave({ vault }: { vault: LiveVault }) {
 
   return (
     <div className="mt-8 border-t border-ink-800 pt-6">
-      <p className="label mb-3">Authorise the enclave to pay out</p>
+      <p className="label mb-3">Step 2 · Authorise the enclave to pay out</p>
 
       {delegated ? (
         <p className="max-w-[46ch] text-xs leading-relaxed text-ink-100">
@@ -408,47 +477,69 @@ function AuthoriseEnclave({ vault }: { vault: LiveVault }) {
           </p>
           {enclaveAddr && <CopyField label="The enclave's key — what you are authorising" value={enclaveAddr} />}
 
-          {/* The real path: the owner approves in whatever wallet he uses. */}
-          <div className="mt-5">
-            {wallets.length > 0 ? (
-              <>
-                <div className="flex flex-wrap gap-3">
-                  {wallets.map((w) => (
+          {/* Primary path: the owner approves in his own wallet. This is the
+              real gesture — the seed field below exists only for browsers with
+              no XRPL wallet, and for wallets that refuse the transaction type. */}
+          {wallets.length > 0 ? (
+            <div className="mt-5">
+              <div className="flex flex-wrap gap-3">
+                {wallets.map((w) => (
+                  <button
+                    key={w.id}
+                    className="btn btn-solid px-4 py-2"
+                    disabled={busy}
+                    onClick={() => authoriseWithWallet(w)}
+                  >
+                    {busy ? "Waiting for your wallet…" : `Authorise with ${w.name}`}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-3 max-w-[48ch] text-xs leading-relaxed text-ink-300">
+                Approve once in your wallet — your seed never leaves it, and this page only sees the transaction
+                hash. On mainnet this is the whole step. The wallet must hold this vault's estate account.
+              </p>
+
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                {wallets
+                  .filter((w) => w.testSign)
+                  .map((w) => (
                     <button
-                      key={w.id}
-                      className="btn btn-solid px-4 py-2"
+                      key={`${w.id}-test`}
+                      className="btn px-3 py-1.5 text-[10px]"
                       disabled={busy}
-                      onClick={() => authoriseWithWallet(w)}
+                      onClick={() => testWallet(w)}
                     >
-                      {busy ? "Waiting for your wallet…" : `Authorise with ${w.name}`}
+                      Test signing ({w.name})
                     </button>
                   ))}
-                </div>
-                <p className="mt-3 max-w-[46ch] text-xs leading-relaxed text-ink-300">
-                  Approve once in your wallet. Your seed never leaves it — this page only sees the transaction
-                  hash. On mainnet this is the whole step.
-                </p>
-              </>
-            ) : (
-              <p className="max-w-[46ch] text-xs leading-relaxed text-ink-300">
-                No XRPL wallet detected in this browser. Install{" "}
-                <a className="underline underline-offset-4 hover:text-white" href="https://crossmark.io" target="_blank" rel="noreferrer">
-                  Crossmark
-                </a>{" "}
-                or{" "}
-                <a className="underline underline-offset-4 hover:text-white" href="https://gemwallet.app" target="_blank" rel="noreferrer">
-                  GemWallet
-                </a>{" "}
-                and reload — or use the seed fallback below. (Xaman is also supported: it appears here once a
-                Xaman API key is configured on the deployment.)
+              </div>
+              <p className="mt-2 max-w-[48ch] text-xs leading-relaxed text-ink-300">
+                If a wallet refuses, that diagnostic sends 1 drop to yourself: signing works but authorising
+                does not means the wallet blocks this transaction <em>type</em> (Xaman says so outright); both
+                failing means the wallet cannot sign for this account at all.
               </p>
-            )}
-          </div>
+            </div>
+          ) : detecting ? (
+            <p className="mt-5 font-mono text-[11px] text-ink-300">Looking for an XRPL wallet…</p>
+          ) : (
+            <p className="mt-5 max-w-[48ch] text-xs leading-relaxed text-ink-300">
+              No XRPL wallet detected. Install{" "}
+              <a className="underline underline-offset-4 hover:text-white" href="https://gemwallet.app" target="_blank" rel="noreferrer">
+                GemWallet
+              </a>{" "}
+              or{" "}
+              <a className="underline underline-offset-4 hover:text-white" href="https://crossmark.io" target="_blank" rel="noreferrer">
+                Crossmark
+              </a>{" "}
+              and reload, or use the testnet fallback below.
+            </p>
+          )}
 
-          {/* Fallback for a browser with no XRPL wallet installed. */}
-          <details className="mt-4 text-xs text-ink-300">
+          {/* Fallback: only for browsers with no wallet, or a wallet that
+              refuses the type. Never the intended path. */}
+          <details className="mt-5 text-xs text-ink-300">
             <summary className="cursor-pointer font-mono text-[10px] uppercase tracking-[0.16em] hover:text-white">
-              No XRPL wallet? Use a testnet seed
+              Testnet fallback — sign with the estate seed
             </summary>
             <div className="mt-4 space-y-3">
               <input
@@ -468,9 +559,8 @@ function AuthoriseEnclave({ vault }: { vault: LiveVault }) {
               <button className="btn px-4 py-2" disabled={!seed.trim() || busy} onClick={authorise}>
                 {busy ? "Authorising…" : "Sign SetRegularKey"}
               </button>
-              <p className="max-w-[46ch] leading-relaxed">
-                Testnet only, and only because this demo browser has no wallet connected. A real owner never
-                types a seed anywhere.
+              <p className="max-w-[48ch] leading-relaxed">
+                Testnet only. A real owner signs this in their own wallet and never types a seed anywhere.
               </p>
             </div>
           </details>
@@ -686,6 +776,7 @@ function TestnetHeartbeat({ tag }: { tag: number }) {
       const { engineResult } = await submitPayment(blob);
       if (engineResult !== "tesSUCCESS") throw new Error(`XRPL returned ${engineResult}`);
       setSent(hash);
+      toast.success("Heartbeat sent on XRPL — now prove it with Prove life", `${XRPL_TESTNET_EXPLORER}/transactions/${hash}`);
     } catch (err) {
       setError((err as Error).message);
     } finally {

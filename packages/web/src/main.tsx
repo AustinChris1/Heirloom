@@ -5,6 +5,7 @@ import { Docs } from "./routes/Docs";
 import { Landing } from "./routes/Landing";
 import { VaultApp } from "./routes/VaultApp";
 import { ChainSnapshot, readChain } from "./lib/chain";
+import { ToastHost } from "./lib/toast";
 import "./index.css";
 
 /**
@@ -44,6 +45,7 @@ function Root() {
         <Route path="/docs/:slug" element={<Docs />} />
         <Route path="*" element={<Landing chain={chain} />} />
       </Routes>
+      <ToastHost />
     </>
   );
 }

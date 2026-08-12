@@ -11,6 +11,7 @@ import {
   XRPL_TESTNET_EXPLORER,
 } from "../../lib/deployment";
 import { eciesEncrypt } from "../../lib/ecies";
+import { toast } from "../../lib/toast";
 import { loadWill } from "../../lib/willStore";
 import { fetchEnclaveKey, pollActionResult, requestEnclavePayout } from "../../lib/enclave";
 import { currentLedger } from "../../lib/fdc";
@@ -190,7 +191,7 @@ function SealPanel({
 
       await attest(sealed.args.instructionId, receipt.hash);
     } catch (err) {
-      setFlow((f) => ({ ...f, error: humanError(err) }));
+      { const m = humanError(err); setFlow((f) => ({ ...f, error: m })); toast.error(m); }
     }
   }
 
@@ -217,16 +218,17 @@ function SealPanel({
       await tx2.wait();
 
       setFlow({ step: 4, message: "Sealed and attested. The enclave can read this will; nobody else can." });
+      toast.success("Will sealed — the enclave confirmed it can decrypt and execute it");
       onChanged();
     } catch (err) {
-      setFlow((f) => ({ ...f, error: humanError(err) }));
+      { const m = humanError(err); setFlow((f) => ({ ...f, error: m })); toast.error(m); }
     }
   }
 
   const busy = flow.step >= 0 && flow.step < 4 && !flow.error;
 
   return (
-    <Panel label="Seal the will" steps={SEAL_STEPS} flow={flow}>
+    <Panel label="Step 1 · Seal the will" steps={SEAL_STEPS} flow={flow}>
       <p className="mb-5 max-w-[46ch] text-xs leading-relaxed text-ink-300">
         Paste the will file this vault was created with. It is encrypted to the enclave's key in your browser —
         the plaintext never leaves this page — and the enclave attests it can decrypt and execute it.
@@ -335,7 +337,7 @@ function ExecutePanel({
 
       await settle(requested.args.instructionId, receipt.hash);
     } catch (err) {
-      setFlow((f) => ({ ...f, error: humanError(err) }));
+      { const m = humanError(err); setFlow((f) => ({ ...f, error: m })); toast.error(m); }
     }
   }
 
@@ -370,14 +372,15 @@ function ExecutePanel({
       await tx2.wait();
 
       setFlow({ step: 5, message: "Settled. The distribution is recorded and ready to broadcast." });
+      toast.success("Estate settled — the enclave’s signed distribution is verified on-chain");
       onChanged();
     } catch (err) {
-      setFlow((f) => ({ ...f, error: humanError(err) }));
+      { const m = humanError(err); setFlow((f) => ({ ...f, error: m })); toast.error(m); }
     }
   }
 
   return (
-    <Panel label="Execute the will" steps={EXEC_STEPS} flow={flow}>
+    <Panel label="Step 5 · Execute the will" steps={EXEC_STEPS} flow={flow}>
       {vault.state === "Dormant" && !vault.canExecute && (
         <p className="max-w-[46ch] text-xs leading-relaxed text-ink-300">
           Dormancy is proven but execution is still gated:{" "}
@@ -526,6 +529,7 @@ function PayoutPanel({ vault }: { vault: LiveVault }) {
       }
 
       if (out.length > 0 && out.every((r) => r.engineResult === "tesSUCCESS")) {
+        toast.success(`Estate distributed — ${out.length} XRPL payment(s) delivered`);
         setAlreadySent(true);
         try {
           localStorage.setItem(distributedKey, "1");
@@ -534,7 +538,9 @@ function PayoutPanel({ vault }: { vault: LiveVault }) {
         }
       }
     } catch (err) {
-      setError((err as Error).message);
+      const m = (err as Error).message;
+      setError(m);
+      toast.error(m);
     } finally {
       setBusy(false);
     }
@@ -571,6 +577,7 @@ function PayoutPanel({ vault }: { vault: LiveVault }) {
       }
 
       if (out.length > 0 && out.every((r) => r.engineResult === "tesSUCCESS")) {
+        toast.success(`Estate distributed — ${out.length} XRPL payment(s) delivered`);
         setAlreadySent(true);
         try {
           localStorage.setItem(distributedKey, "1");
@@ -579,14 +586,16 @@ function PayoutPanel({ vault }: { vault: LiveVault }) {
         }
       }
     } catch (err) {
-      setError((err as Error).message);
+      const m = (err as Error).message;
+      setError(m);
+      toast.error(m);
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <Panel label="Distribute the estate" steps={[]} flow={IDLE}>
+    <Panel label="Step 6 · Distribute the estate" steps={[]} flow={IDLE}>
       <p className="mb-5 max-w-[46ch] text-xs leading-relaxed text-ink-300">
         The distribution below is what the enclave signed and the contract verified. Broadcasting it moves the
         actual XRP: each settled bequest becomes one XRPL payment, built from this table — a will file can only

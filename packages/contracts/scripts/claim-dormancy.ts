@@ -47,18 +47,28 @@ async function main() {
     const current = Number(info.result.ledger_index ?? info.result.ledger.ledger_index);
 
     // The contract requires the range to START at or before the vault's last
-    // recorded heartbeat, so size the lookback from how long ago that actually
-    // was (~3.5 s per testnet ledger). A fixed window only ever fits a vault
-    // that went dormant minutes ago, and reverts with SearchRangeTooLate once
-    // the vault is older than the window.
+    // recorded heartbeat (SearchRangeTooLate otherwise). Rather than estimate
+    // ledgers from seconds — testnet close times drift — read the candidate
+    // ledger's real close time and step back until it is genuinely before the
+    // last heartbeat, with a safety margin.
     deadlineBlock = current - 5;
-    const silenceSeconds = Math.floor(Date.now() / 1000) - Number(v.lastHeartbeat);
-    minimalBlock = deadlineBlock - Math.min(100_000, Math.ceil(silenceSeconds / 3.5) + 200);
-
     const dl = await client.request({ command: "ledger", ledger_index: deadlineBlock });
     deadlineTs = Number(dl.result.ledger.close_time) + 946_684_800; // ripple epoch → unix
 
+    const closeAtOf = async (idx: number) => {
+      const l = await client.request({ command: "ledger", ledger_index: idx });
+      return Number(l.result.ledger.close_time) + 946_684_800;
+    };
+    const target = Number(v.lastHeartbeat) - 120; // seconds of slack
+    minimalBlock = Math.max(1, deadlineBlock - Math.ceil((deadlineTs - target) / 3.5) - 200);
+    for (let i = 0; i < 8; i++) {
+      const closeAt = await closeAtOf(minimalBlock);
+      if (closeAt <= target || minimalBlock <= 1) break;
+      minimalBlock = Math.max(1, minimalBlock - Math.ceil((closeAt - target) / 2) - 100);
+    }
+
     console.log(`\nsearch range: ledgers ${minimalBlock} … ${deadlineBlock}`);
+
   } finally {
     await client.disconnect();
   }

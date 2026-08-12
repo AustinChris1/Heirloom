@@ -6,6 +6,7 @@ import { allocate } from "@heirloom/extension/allocate";
 import { humanError, vaultWithSigner, xrplAddressHash } from "../../lib/wallet";
 import { saveWill } from "../../lib/willStore";
 import { EXPLORER } from "../../lib/deployment";
+import { toast } from "../../lib/toast";
 
 const DAY = 24 * 60 * 60;
 
@@ -117,12 +118,15 @@ export function CreateVault({
       const receipt = await tx.wait();
       setTxHash(receipt.hash);
       setCreatedWill(will);
+      toast.success(`Vault #${will.vaultId} created`, `${EXPLORER}/tx/${receipt.hash}`);
       // Keep a browser-local copy keyed by the commitment, so sealing and
       // payout on this machine work even if the download is never clicked.
       saveWill(commitment, will);
       onCreated();
     } catch (err) {
-      setError(humanError(err));
+      const m = humanError(err);
+      setError(m);
+      toast.error(m);
     } finally {
       setBusy(false);
     }

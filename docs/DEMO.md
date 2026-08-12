@@ -16,6 +16,7 @@ Every quoted speech below is **TTS-ready**: no em dashes, no code formatting or 
 
 - [ ] **Health, without a terminal:** open the app and check vault #6 or #8 shows *Settled* (proves contract reads) and the FTSO price ticks (proves the feed). The definitive check is simply that the seal step attests during rehearsal. *(Optional terminal equivalent: `scripts/health.ts` → `✓ ALL SYSTEMS GO`. If the TEE is not status 2, the enclave container restarted — re-run `post-build.sh` + `set-tee-address.ts` and re-seal a fresh vault; old vaults are sealed to the dead key.)*
 - [ ] **Estate funded:** ~100 XRP. Payouts drain it, and an estate below reserve+fees makes the enclave refuse execution (correctly) — the refused vault is stuck in Executing and only `revokeVault` clears it. Refill: `curl -X POST https://faucet.altnet.rippletest.net/accounts -H "Content-Type: application/json" -d '{"destination":"<estate r-address>"}'` (or ask Claude).
+- [ ] **Install GemWallet, set it to Testnet, and hold the estate account.** The authorisation beat is signed there — one approval, no seed on screen. (Crossmark failed to resolve signing material in testing; Xaman refuses this transaction type until the app is allowlisted. GemWallet is the one to film.)
 - [ ] **Three strings in a notepad:** the estate r-address, the estate seed (`packages/contracts/deployments/xrpl-testnet-wallet.json`), and MetaMask unlocked on Coston2 with the owner account (~5 C2FLR; each SEAL/EXECUTE carries a 1 C2FLR fee).
 - [ ] **Know the two-vault rule:** a "life" vault for the heartbeat/prove-life beat, and a "death" vault that is **never heartbeated** — a heartbeat with a vault's tag blocks that vault's nonexistence proof for ~25 minutes.
 - [ ] **Rehearse the full click-through once off-camera.** Also do the negative test then: paste a will with one amount changed and watch the seal panel refuse it.
@@ -57,7 +58,9 @@ Drop the estate-size preview below the fixed bequest so **abatement** kicks in.
 
 > "Every bequest shrinks proportionally, preserving the ratios that were written."
 
-Submit → **Download will file**.
+Submit → **Download will file**. Then, still on the vault, **Authorise with GemWallet** — one approval on screen:
+
+> "Before he ever goes quiet, the owner does one more thing: he grants the enclave's key permission to sign for his account. One standard XRPL transaction, approved in his own wallet. His own key never leaves it, and he can revoke this any time he's alive."
 
 > "The chain holds the hash. I hold the will."
 
@@ -127,6 +130,7 @@ Being explicit about limits is worth more than hiding them:
 
 - Timings are shortened — **5 minutes** on the death vault, **1 day** on the life vault. Real vaults use 90 days with a 30-day grace window.
 - The FDC round waits were **cut for time**. Say so; do not let it look instant.
+- The authorisation is signed in **GemWallet**. Say that Xaman blocks this transaction type for apps that are not yet allowlisted — it is a wallet-vendor safety policy about rekey transactions, not a limitation of the design, and the allowlist request is filed.
 - The payout signature comes from a **delegated regular key** — the estate performed a real `SetRegularKey`, the master seed is never touched, and the owner can revoke at any moment while alive. The remaining production step is holding that delegated key **inside the TEE** (tee-node managed-wallet subsystem); today the keeper holds it. Same mechanism, one rung earlier.
 - The encrypted will travels in the instruction payload; production keeps it off-chain with only the commitment on-chain — the contract is already structured for that.
 

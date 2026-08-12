@@ -69,6 +69,18 @@ Click **Create vault on Coston2** and approve in MetaMask. The success screen st
 
 > **You never deposit anything.** There is no pot to fill. Your XRP stays in your account, spendable as ever — the vault watches, it doesn't hold.
 
+### Authorise the enclave
+
+On your vault, find **Authorise the enclave to pay out**. This is the one-time grant that lets the sealed computer pay your heirs when you are gone — and it is the last human signature in the whole story.
+
+1. Install an XRPL wallet — [GemWallet](https://gemwallet.app) is the one verified working for this step — and switch it to **Testnet**.
+2. Make sure the wallet holds your **estate account** (the same r-address the vault was created with), and that it is the selected account.
+3. Click **Authorise with GemWallet** and approve. Your seed never leaves the wallet; the page sees only a transaction hash.
+
+The panel then reads "✓ This estate has authorised the enclave's key." You can revoke it at any time while alive.
+
+> **Why a wallet, not a seed.** `SetRegularKey` grants a second key the right to sign for your account — the classic phishing pattern, which is why wallets guard it. Xaman refuses it outright for apps that are not allowlisted. The testnet seed fallback below the wallet buttons exists only for browsers with no wallet installed.
+
 ### Name it (optional)
 
 On your vault's card, click **name it** next to "Vault #N" to give it a private label like *Mom's plan*. It's stored only in your browser — everyone else just sees the number, because a public name would leak exactly what this system is built to keep private.

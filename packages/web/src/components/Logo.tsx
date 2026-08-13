@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 /**
  * The Heirloom mark.
  *
- * A seal — the oldest instrument of inheritance — crossed by a cardiac pulse
+ * A seal, the oldest instrument of inheritance, crossed by a cardiac pulse
  * that beats once and then goes flat. The whole product in one glyph: a life
  * signal, its ending, and the sealed instrument that outlives it.
  *

@@ -11,7 +11,7 @@ import { deriveAddress, deriveKeypair, sign as rippleSign } from "ripple-keypair
  * actually broadcasts a distribution.
  */
 
-/** The classic address a seed controls — used to build transactions from it. */
+/** The classic address a seed controls, used to build transactions from it. */
 export function addressFromSeed(seed: string): string {
   return deriveAddress(deriveKeypair(seed.trim()).publicKey);
 }

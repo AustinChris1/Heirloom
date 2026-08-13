@@ -21,7 +21,7 @@ export function Landing({ chain }: { chain: ChainSnapshot | null }) {
 
   return (
     <div className="grain relative bg-black">
-      {/* Scroll progress — the only persistent chrome */}
+      {/* Scroll progress, the only persistent chrome */}
       <motion.div
         className="fixed inset-x-0 top-0 z-40 h-px origin-left bg-white"
         style={{ scaleX }}
@@ -86,13 +86,13 @@ function Hero({ chain }: { chain: ChainSnapshot | null }) {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3, duration: 1 }}
         >
-          Flare Summer Signal — live on Coston2
+          Flare Summer Signal, live on Coston2
         </motion.p>
 
         <h1 className="font-black uppercase leading-[0.82] tracking-crush text-[clamp(3.2rem,13vw,13rem)]">
           <WordReveal text="Your keys" delay={0.15} />
           <br />
-          {/* ink-400 on black is ~3.2:1 — under AA for body copy, but this is
+          {/* ink-400 on black is ~3.2:1, under AA for body copy, but this is
               display type at 13vw where 3:1 is the bar. Anything darker stops
               reading as a second voice and starts reading as a rendering bug. */}
           <span className="text-ink-400">
@@ -223,7 +223,7 @@ const BEATS = [
   },
   {
     label: "Silence",
-    body: "You stop. Nothing happens automatically — silence is not yet proof.",
+    body: "You stop. Nothing happens automatically, silence is not yet proof.",
   },
   {
     label: "FDC · XRPPaymentNonexistence 0x09",
@@ -242,8 +242,8 @@ function Flatline() {
   // One caption is mounted at a time, chosen by scroll position.
   //
   // The previous version cross-faded three absolutely-positioned captions with
-  // independent opacity ramps. Any drift between those ranges — or a viewport
-  // short enough to compress them — put two on screen at once, unreadable. With
+  // independent opacity ramps. Any drift between those ranges, or a viewport
+  // short enough to compress them, put two on screen at once, unreadable. With
   // a single index and AnimatePresence, overlap is structurally impossible
   // rather than merely tuned away.
   const [step, setStep] = useState(0);
@@ -280,7 +280,7 @@ function Flatline() {
           </AnimatePresence>
         </div>
 
-        {/* Which of the three you are on — otherwise a slow scroll feels stuck. */}
+        {/* Which of the three you are on, otherwise a slow scroll feels stuck. */}
         <div className="flex gap-2" aria-hidden="true">
           {BEATS.map((_, i) => (
             <span
@@ -301,7 +301,7 @@ const STAGES = [
     n: "01",
     title: "Seal",
     proof: "FCC · HEIRLOOM/SEAL",
-    body: "Your will is encrypted to the enclave's key before it leaves your browser. Flare stores only a commitment. The enclave then decrypts it while you are alive and attests that it is readable — because a corrupt ciphertext discovered at execution is discovered too late to fix.",
+    body: "Your will is encrypted to the enclave's key before it leaves your browser. Flare stores only a commitment. The enclave then decrypts it while you are alive and attests that it is readable, because a corrupt ciphertext discovered at execution is discovered too late to fix.",
   },
   {
     n: "02",
@@ -327,7 +327,7 @@ const STAGES = [
  * Horizontal scroll driven by vertical scroll.
  *
  * The travel distance is *measured*, not guessed. The previous version moved the
- * track by a fixed `-72%`, which is a percentage of the track's own width — and
+ * track by a fixed `-72%`, which is a percentage of the track's own width, and
  * because the cards are sized in `vw`, that percentage only lands correctly at
  * one viewport width. On narrower screens the cards are proportionally wider,
  * so 72% stopped short and the last two stages were never reached.
@@ -399,7 +399,7 @@ function Lifecycle() {
           </motion.div>
         </div>
 
-        {/* Which stage you are on — otherwise a long track feels directionless. */}
+        {/* Which stage you are on, otherwise a long track feels directionless. */}
         <div className="mt-10 flex gap-2 px-6 md:px-10" aria-hidden="true">
           {STAGES.map((_, i) => (
             <StageTick key={i} index={i} progress={scrollYProgress} total={STAGES.length} />
@@ -444,7 +444,7 @@ const PROTOCOLS = [
 function Protocols() {
   return (
     <section className="relative overflow-hidden px-6 py-32 md:px-10 md:py-48">
-      {/* Marquee — the one loud decorative element, and it says something true */}
+      {/* Marquee, the one loud decorative element, and it says something true */}
       <div className="pointer-events-none absolute inset-x-0 top-10 flex select-none overflow-hidden opacity-[0.06]">
         <div className="flex shrink-0 animate-marquee whitespace-nowrap font-black uppercase tracking-tightest text-[14vw] leading-none">
           {Array.from({ length: 4 }).map((_, i) => (
@@ -470,7 +470,7 @@ function Protocols() {
         <Rise delay={0.1} className="mt-10">
           <p className="max-w-[60ch] text-lg leading-relaxed text-ink-300">
             Without <code className="font-mono text-white">XRPPaymentNonexistence</code> there is no trustless
-            dead-man's switch — only a keeper you have to trust to tell the truth about silence. FDC is the only
+            dead-man's switch, only a keeper you have to trust to tell the truth about silence. FDC is the only
             oracle that makes that claim verifiable on-chain.
           </p>
         </Rise>
@@ -499,7 +499,7 @@ function Protocols() {
 const CANNOT = [
   ["Move funds early", "Settlement requires a proof of silence covering the full interval. There is no code path from a live vault to a payout."],
   ["Pay someone else", "The distribution must hash to the commitment the owner sealed. A substituted will produces a different hash and is rejected on-chain."],
-  ["Act alone", "Flare verifies the enclave's signature, the commitment, and that the price used sits within 5% of the live FTSO feed — three independent checks, none of which the enclave supplies."],
+  ["Act alone", "Flare verifies the enclave's signature, the commitment, and that the price used sits within 5% of the live FTSO feed, three independent checks, none of which the enclave supplies."],
   ["Outvote the owner", "One late heartbeat returns the vault to living and clears every guardian approval. The owner overrules everyone, right up to execution."],
   ["Read anything twice", "The will is encrypted to the enclave before it leaves the browser. Flare stores a hash. Nothing recoverable is ever published."],
 ];
@@ -527,8 +527,8 @@ function Boundaries() {
         <Rise delay={0.1} className="mt-10">
           <p className="max-w-[62ch] text-lg leading-relaxed text-ink-200">
             A hardware enclave is still a component you have to trust, and any honest reading of this design has
-            to say what happens if that trust is misplaced. So the enclave was given exactly one power — reading a
-            will nobody else can read — and no authority over whether, when, or to whom anything moves.
+            to say what happens if that trust is misplaced. So the enclave was given exactly one power, reading a
+            will nobody else can read, and no authority over whether, when, or to whom anything moves.
           </p>
         </Rise>
 
@@ -549,7 +549,7 @@ function Boundaries() {
 
         <Rise delay={0.1} className="mt-14">
           <p className="max-w-[62ch] text-lg leading-relaxed text-ink-200">
-            A compromised enclave leaks the contents of a will. That is a real and serious failure — and it is
+            A compromised enclave leaks the contents of a will. That is a real and serious failure, and it is
             strictly smaller than the failure every alternative already accepts, where somebody can simply take
             the coins.
           </p>
@@ -562,7 +562,7 @@ function Boundaries() {
 function Closing() {
   // Deliberately not scroll-linked. Tying opacity to scrollYProgress over a
   // tall section meant the content sat centred and fully visible while progress
-  // was still near zero — so it rendered invisible exactly when you were
+  // was still near zero, so it rendered invisible exactly when you were
   // looking at it. A viewport trigger fires when it is actually on screen.
   return (
     <section className="relative flex min-h-screen flex-col items-center justify-center px-6 py-32">

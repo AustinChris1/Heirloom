@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 
 /**
  * App-wide notifications. A module-level emitter rather than a context, so any
- * code path — including dynamically imported modules — can report in one call.
+ * code path, including dynamically imported modules, can report in one call.
  */
 
 export type ToastKind = "success" | "error" | "info";

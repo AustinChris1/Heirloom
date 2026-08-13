@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { AttestationFlow } from "./AttestationFlow";
 import { EnclaveFlow } from "./EnclaveFlow";
-import { COSTON2_RPC } from "../../lib/chain";
+import { COSTON2_RPC, PROVABLE_SILENCE_SECONDS } from "../../lib/chain";
 import { HEIRLOOM_VAULT, VAULT_ABI } from "../../lib/deployment";
 import { LiveVault } from "../../lib/chain";
 import {
@@ -57,7 +57,7 @@ export function VaultDetail({
   }, [address, vault.id, vault.guardianApprovals, vault.state]);
 
   const ACTION_LABELS: Record<string, string> = {
-    revoke: "Dormancy cancelled — the vault is active again and guardian approvals are cleared",
+    revoke: "Dormancy cancelled, the vault is active again and guardian approvals are cleared",
     approve: "Guardian confirmation recorded",
     close: "Vault closed permanently",
   };
@@ -121,7 +121,7 @@ export function VaultDetail({
 
           {signer && isOwner && vault.state === "Dormant" && (
             <button className="btn btn-solid" disabled={!!busy} onClick={() => run("revoke", (c) => c.revokeDormancy(vault.id))}>
-              {busy === "revoke" ? "Confirming…" : "I'm alive — cancel"}
+              {busy === "revoke" ? "Confirming…" : "I'm alive, cancel"}
             </button>
           )}
 
@@ -176,15 +176,14 @@ export function VaultDetail({
           <p className="label mb-3">Step 3 · Stay alive</p>
 
           <p className="mb-6 text-sm leading-relaxed text-ink-200">
-            Send this payment from your XRP Ledger account before the timer runs out.
-            <br />
-            <strong className="text-white">It is a signal, not a deposit</strong> — your estate never moves.
+            Send this before the timer runs out.{" "}
+            <strong className="text-white">It is a signal, not a deposit.</strong> Your estate never moves.
           </p>
 
           <div className="space-y-5">
             <CopyField label="To (beacon account)" value={BEACON_XRPL_ADDRESS} />
-            <CopyField label="Destination tag — identifies your vault" value={String(vault.heartbeatTag)} emphasise />
-            <CopyField label="Amount — send exactly this" value={`${Number(HEARTBEAT_DROPS) / 1e6} XRP`} />
+            <CopyField label="Destination tag, identifies your vault" value={String(vault.heartbeatTag)} emphasise />
+            <CopyField label="Amount, send exactly this" value={`${Number(HEARTBEAT_DROPS) / 1e6} XRP`} />
           </div>
 
           <TestnetHeartbeat tag={vault.heartbeatTag} />
@@ -198,7 +197,7 @@ export function VaultDetail({
           <div className="mt-3 space-y-2.5 leading-relaxed">
             <p>
               The <strong className="text-ink-100">tag</strong> is what identifies your vault. A payment without
-              it — or with someone else's — does not count, and the same tag is what later lets the network prove
+              it, or with someone else's, does not count, and the same tag is what later lets the network prove
               no heartbeat arrived.
             </p>
             <p>
@@ -206,7 +205,7 @@ export function VaultDetail({
               there. Sending more than the minimum buys you nothing and cannot be recovered.
             </p>
             <p>
-              No Flare transaction is needed to send it, and anyone can relay the proof on your behalf — so being
+              No Flare transaction is needed to send it, and anyone can relay the proof on your behalf, so being
               offline never puts you at risk.
             </p>
             <a
@@ -233,12 +232,11 @@ export function VaultDetail({
             <Step live>Cancel dormancy, guardian confirmation</Step>
             <Step live>Seal: browser-side ECIES to the enclave's attested key, attested via FCC</Step>
             <Step live>Execute: enclave decrypts, prices via FTSO, contract verifies its signature</Step>
-            <Step live>Payout: the enclave signs the XRPL payments with its own key — no seed anywhere</Step>
+            <Step live>Payout: the enclave signs the XRPL payments with its own key, no seed anywhere</Step>
           </ul>
           <p className="mt-4 max-w-[44ch] text-xs leading-relaxed text-ink-300">
-            The enclave serves at status PRODUCTION on extension 66025, and holds an XRPL key generated inside
-            the TEE that never touches disk. An estate authorises that key with one <code>SetRegularKey</code>{" "}
-            while alive — revocable any time — after which nobody, including us, holds a key that can move it.
+            Extension 66025 at PRODUCTION. The enclave's XRPL key is generated inside the TEE and never touches
+            disk, so once an estate authorises it, nobody holds a key that can move the funds.
           </p>
         </div>
       </div>
@@ -266,6 +264,7 @@ function AuthoriseEnclave({ vault }: { vault: LiveVault }) {
   const [seed, setSeed] = useState("");
   const [enclaveAddr, setEnclaveAddr] = useState<string | null>(null);
   const [wallets, setWallets] = useState<WalletAdapter[]>([]);
+  const [connected, setConnected] = useState<Record<string, string>>({});
   // Detection is async, so don't claim "no wallet" before it answers.
   const [detecting, setDetecting] = useState(true);
   const [current, setCurrent] = useState<string | null | undefined>(undefined);
@@ -282,14 +281,14 @@ function AuthoriseEnclave({ vault }: { vault: LiveVault }) {
         const addr = await enclaveXrplAddress();
         if (!cancelled) setEnclaveAddr(addr);
       } catch {
-        /* enclave unreachable — the panel still explains the step */
+        /* enclave unreachable, the panel still explains the step */
       }
       try {
         const { detectWallets } = await import("../../lib/xrplWallet");
         const found = await detectWallets();
         if (!cancelled) setWallets(found);
       } catch {
-        /* no wallets — the seed fallback covers it */
+        /* no wallets, the seed fallback covers it */
       } finally {
         if (!cancelled) setDetecting(false);
       }
@@ -316,7 +315,8 @@ function AuthoriseEnclave({ vault }: { vault: LiveVault }) {
     setError(null);
     setNote(null);
     try {
-      const account = await wallet.address();
+      const account = connected[wallet.id] || (await wallet.address());
+      setConnected((c) => ({ ...c, [wallet.id]: account }));
       const { engineResult } = await wallet.testSign(account);
       setNote(
         `${wallet.name} signed a 1-drop test payment (${engineResult}). Signing works for this account, so a ` +
@@ -340,14 +340,19 @@ function AuthoriseEnclave({ vault }: { vault: LiveVault }) {
     try {
       if (!enclaveAddr) throw new Error("Could not read the enclave's address.");
 
-      const account = await wallet.address();
+      // Reuse a connection from this session. Extensions queue prompts, so
+      // asking to connect and to sign back-to-back can leave the second popup
+      // hidden behind the first, connect once, then only sign.
+      const account = connected[wallet.id] || (await wallet.address());
+      setConnected((c) => ({ ...c, [wallet.id]: account }));
       if (estate.trim() && account !== estate.trim()) {
         // Forget the session so the retry re-prompts instead of silently
         // returning the same wrong account forever.
+        setConnected((c) => ({ ...c, [wallet.id]: "" }));
         await wallet.disconnect?.().catch(() => {});
         throw new Error(
           `${wallet.name} signed in as ${account}, but this vault's estate is ${estate.trim()}. ` +
-            `You've been signed out — click again and pick the estate's account in ${wallet.name}. ` +
+            `You've been signed out, click again and pick the estate's account in ${wallet.name}. ` +
             `(Or create your vault with your wallet's address as the estate: wallet first, vault second.)`,
         );
       }
@@ -402,7 +407,7 @@ function AuthoriseEnclave({ vault }: { vault: LiveVault }) {
       setSeed("");
       setNote(`Authorised — ${hash.slice(0, 16)}…`);
       toast.success(
-        "Enclave authorised — it can now sign this estate’s payouts",
+        "Enclave authorised, it can now sign this estate’s payouts",
         `${XRPL_TESTNET_EXPLORER}/transactions/${hash}`,
       );
     } catch (err) {
@@ -410,7 +415,7 @@ function AuthoriseEnclave({ vault }: { vault: LiveVault }) {
       // Xaman gates account-security tx types until an app is allowlisted (1217).
       setError(
         /1217/.test(msg)
-          ? "Xaman blocks SetRegularKey for unverified apps — it gates account-security transaction types until an app is allowlisted. Use the seed field above; the enclave-signed payout is identical whichever way the key was granted."
+          ? "Xaman blocks SetRegularKey for unverified apps, it gates account-security transaction types until an app is allowlisted. Use the seed field above; the enclave-signed payout is identical whichever way the key was granted."
           : /public key for this card|did not find a card/i.test(msg)
             ? `${msg} — Crossmark could not resolve signing material for this account. Usually a card that is view-only, imported incompletely, or on the wrong network. Try "Test signing" below: if a 1-drop payment also fails, it is the card, not the transaction type.`
             : msg,
@@ -426,35 +431,38 @@ function AuthoriseEnclave({ vault }: { vault: LiveVault }) {
 
       {delegated ? (
         <p className="max-w-[46ch] text-xs leading-relaxed text-ink-100">
-          ✓ This estate has authorised the enclave's key. When the will executes, the enclave signs the
-          payments itself — no seed, from anyone, ever. You can revoke this at any time while alive.
+          ✓ Authorised. The enclave signs this estate's payouts itself, revocable any time while alive.
         </p>
       ) : (
         <>
           <p className="mb-4 max-w-[46ch] text-xs leading-relaxed text-ink-300">
-            Grant the enclave's key as this estate's XRPL <em>regular key</em>. Your master key stays yours and
-            never leaves your wallet; the enclave gains only the ability to sign a distribution the chain has
-            already verified. Without this step, payouts fall back to someone pasting a seed.
+            Grant the enclave's key as this estate's XRPL <em>regular key</em>, so it can pay your heirs without
+            anyone holding a seed.
             {vault.state !== "Active" && (
               <>
                 {" "}
                 <strong className="text-white">
-                  A real owner does this while alive — after death nobody can.
+                  A real owner does this while alive, after death nobody can.
                 </strong>{" "}
                 On testnet you still hold this estate's seed, so you can authorise it now and see the
                 enclave-signed payout work.
               </>
             )}
           </p>
-          <p className="mb-4 max-w-[46ch] text-xs leading-relaxed text-ink-300">
-            Two addresses are involved: <strong className="text-white">your estate</strong> holds the XRP and
-            signs this authorisation; <strong className="text-white">the enclave's key</strong> below is what
-            receives signing rights. It lives inside the TEE and never holds funds.
-          </p>
-          {enclaveAddr && <CopyField label="The enclave's key — what you are authorising" value={enclaveAddr} />}
+          <details className="mb-4 max-w-[46ch] text-xs leading-relaxed text-ink-300">
+            <summary className="cursor-pointer font-mono text-[10px] uppercase tracking-[0.16em] hover:text-white">
+              Why this step
+            </summary>
+            <p className="mt-3">
+              Your estate holds the XRP and signs this grant; the enclave's key below receives signing rights.
+              It lives inside the TEE, never holds funds, and your master key never leaves your wallet. XRPL
+              calls this a regular key, and you can revoke it at any time while alive.
+            </p>
+          </details>
+          {enclaveAddr && <CopyField label="The enclave's key, what you are authorising" value={enclaveAddr} />}
 
           {/* Primary path: the owner approves in his own wallet. This is the
-              real gesture — the seed field below exists only for browsers with
+              real gesture, the seed field below exists only for browsers with
               no XRPL wallet, and for wallets that refuse the transaction type. */}
           {wallets.length > 0 ? (
             <div className="mt-5">
@@ -471,8 +479,7 @@ function AuthoriseEnclave({ vault }: { vault: LiveVault }) {
                 ))}
               </div>
               <p className="mt-3 max-w-[48ch] text-xs leading-relaxed text-ink-300">
-                Approve once in your wallet — your seed never leaves it, and this page only sees the transaction
-                hash. On mainnet this is the whole step. The wallet must hold this vault's estate account.
+                The wallet must hold this vault's estate account. Scroll inside its popup to reach Approve.
               </p>
 
               <div className="mt-4 flex flex-wrap items-center gap-3">
@@ -490,9 +497,21 @@ function AuthoriseEnclave({ vault }: { vault: LiveVault }) {
                   ))}
               </div>
               <p className="mt-2 max-w-[48ch] text-xs leading-relaxed text-ink-300">
-                If a wallet refuses, that diagnostic sends 1 drop to yourself: signing works but authorising
-                does not means the wallet blocks this transaction <em>type</em> (Xaman says so outright); both
-                failing means the wallet cannot sign for this account at all.
+                Diagnostic: sends 1 drop to yourself, to tell a blocked transaction type from a card that cannot
+                sign at all.
+              </p>
+              <p className="mt-3 max-w-[48ch] text-xs leading-relaxed text-ink-300">
+                Xaman refuses rekey requests from apps that are not allowlisted. Copy the key above and grant it
+                from{" "}
+                <a
+                  className="underline underline-offset-4 hover:text-white"
+                  href="https://xrpl.services"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  xrpl.services
+                </a>{" "}
+                instead, same transaction, signed in your own Xaman.
               </p>
             </div>
           ) : detecting ? (
@@ -515,7 +534,7 @@ function AuthoriseEnclave({ vault }: { vault: LiveVault }) {
               refuses the type. Never the intended path. */}
           <details className="mt-5 text-xs text-ink-300">
             <summary className="cursor-pointer font-mono text-[10px] uppercase tracking-[0.16em] hover:text-white">
-              Testnet fallback — sign with the estate seed
+              Testnet fallback, sign with the estate seed
             </summary>
             <div className="mt-4 space-y-3">
               <input
@@ -595,7 +614,7 @@ function CountdownPanel({ vault }: { vault: LiveVault }) {
   }
 
   if (vault.state === "Settled" || vault.state === "Revoked") {
-    // "Settled" means the distribution is verified and recorded on-chain — the
+    // "Settled" means the distribution is verified and recorded on-chain, the
     // XRP has not moved until it is broadcast, so do not claim it has.
     let paid = false;
     try {
@@ -634,16 +653,17 @@ function CountdownPanel({ vault }: { vault: LiveVault }) {
   const dueAt = vault.lastHeartbeat + vault.heartbeatInterval;
   const overdueBy = now - dueAt;
   const isOverdue = vault.overdue || overdueBy > 0;
+  const unprovable = isOverdue && overdueBy > PROVABLE_SILENCE_SECONDS;
 
   return (
     <>
       <p className="label mb-2">{isOverdue ? "Overdue by" : "Heartbeat due"}</p>
-      <p className="font-mono text-2xl tabular-nums">
+      <p className={`font-mono text-2xl tabular-nums ${unprovable ? "text-ink-500" : ""}`}>
         {isOverdue ? formatRemaining(overdueBy) : formatRemaining(dueAt - now)}
       </p>
       {isOverdue && (
         <p className="mt-1 font-mono text-[10px] uppercase tracking-wider text-ink-300">
-          dormancy may be claimed
+          {unprovable ? "too old to prove · heartbeat first" : "dormancy may be claimed"}
         </p>
       )}
     </>
@@ -671,7 +691,7 @@ function VaultTitle({ id, isOwner }: { id: number; isOwner: boolean }) {
       {isOwner && !editing && (
         <button
           className="font-mono text-[10px] text-ink-400 hover:text-white"
-          title="Private name — only visible in this browser"
+          title="Private name, only visible in this browser"
           onClick={() => {
             setDraft(name);
             setEditing(true);
@@ -740,7 +760,7 @@ function TestnetHeartbeat({ tag }: { tag: number }) {
       const { engineResult } = await submitPayment(blob);
       if (engineResult !== "tesSUCCESS") throw new Error(`XRPL returned ${engineResult}`);
       setSent(hash);
-      toast.success("Heartbeat sent on XRPL — now prove it with Prove life", `${XRPL_TESTNET_EXPLORER}/transactions/${hash}`);
+      toast.success("Heartbeat sent on XRPL, now prove it with Prove life", `${XRPL_TESTNET_EXPLORER}/transactions/${hash}`);
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -771,7 +791,7 @@ function TestnetHeartbeat({ tag }: { tag: number }) {
           </button>
           {sent && (
             <div className="space-y-1">
-              <CopyField label="Sent — paste this hash into Prove life below" value={sent} />
+              <CopyField label="Sent, paste this hash into Prove life below" value={sent} />
               <a
                 href={`${XRPL_TESTNET_EXPLORER}/transactions/${sent}`}
                 target="_blank"

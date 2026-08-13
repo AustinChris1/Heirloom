@@ -94,13 +94,13 @@ export function xrplAddressHash(address: string): string {
 /**
  * Custom errors the contract raises with arguments. ethers cannot name them
  * without the ABI in scope during estimateGas, so they arrive as a raw
- * selector — decode the ones a user can actually act on.
+ * selector, decode the ones a user can actually act on.
  */
 const SELECTORS: Record<string, string> = {
   "0xf79aebe5":
-    "The proof window ended before the heartbeat was due. The vault went overdue moments ago — wait a minute for the ledger to move past the deadline, then claim again.",
+    "The proof window ended before the heartbeat was due. The vault went overdue moments ago, wait a minute for the ledger to move past the deadline, then claim again.",
   "0x32901104":
-    "The proof window started after the last recorded heartbeat, so it could miss one. Try again — the range is recalculated each attempt.",
+    "The proof window started after the last recorded heartbeat, so it could miss one. Try again, the range is recalculated each attempt.",
   "0x8f4eb604": "The nonexistence bound does not match this deployment's heartbeat amount.",
 };
 
@@ -134,10 +134,10 @@ const EXPLAIN: Record<string, string> = {
   NoSuchVault: "That vault does not exist.",
   WrongState: "The vault is not in the right state for that action.",
   BeaconNotConfigured: "The heartbeat beacon has not been configured on this deployment.",
-  InvalidConfiguration: "Those settings aren't valid — check the guardian threshold and interval.",
+  InvalidConfiguration: "Those settings aren't valid, check the guardian threshold and interval.",
   ExtensionIdUnset: "The confidential compute extension isn't registered on this deployment yet.",
   TeeNotConfigured: "No TEE signing address is registered on this deployment yet.",
-  WillNotAttested: "Seal the will first — the enclave has to confirm it can read it.",
+  WillNotAttested: "Seal the will first, the enclave has to confirm it can read it.",
   GraceWindowOpen: "The grace window is still open. Execution has to wait.",
   GuardiansUnsatisfied: "Not enough guardians have confirmed yet.",
   NotGuardian: "You are not a guardian on this vault.",

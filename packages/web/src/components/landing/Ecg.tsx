@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
  * Builds an ECG trace whose beat amplitude is a parameter.
  *
  * At amplitude 1 it beats; at 0 it is a flat line. Driving that parameter from
- * scroll position is the page's central gesture — the reader's own scrolling is
+ * scroll position is the page's central gesture, the reader's own scrolling is
  * what kills the signal, which is exactly what the product detects.
  */
 export function ecgPath(amplitude: number, width = 1200, height = 200, beats = 6): string {

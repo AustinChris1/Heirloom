@@ -168,7 +168,7 @@ export async function waitForFinalisation(
 
 /**
  * Retrieves the Merkle proof. The DA Layer answers 400 "not found" while it
- * indexes, which is retryable — so inspect the body, not the status code.
+ * indexes, which is retryable, so inspect the body, not the status code.
  */
 export async function fetchProof(
   round: number,

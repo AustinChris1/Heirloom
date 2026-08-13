@@ -11,7 +11,7 @@ export function saveWill(commitment: string, will: unknown): void {
   try {
     localStorage.setItem(key(commitment), JSON.stringify(will));
   } catch {
-    /* private browsing — the download button is the fallback */
+    /* private browsing, the download button is the fallback */
   }
 }
 

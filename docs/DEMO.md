@@ -270,7 +270,7 @@ Being explicit about limits is worth more than hiding them, and each has a good 
 
 - **Timings are shortened.** The demo vault uses minutes instead of the ninety days a real vault would use, and no grace window instead of thirty days.
 - **The attestation waits were cut.** Say it; every judge accepts it.
-- **The authorisation was signed in GemWallet.** Xaman refuses this transaction type for apps that are not yet allowlisted, because rekey transactions are the classic phishing pattern. That is a wallet vendor's safety policy, not a limit of the design, and the request is filed.
+- **The authorisation was signed in a real wallet** (GemWallet and Crossmark both work). Xaman refuses this transaction type for apps that are not yet allowlisted, because rekey transactions are the classic phishing pattern. That is a wallet vendor's safety policy, not a limit of the design, and the request is filed.
 - **The encrypted will travels in the instruction payload.** Production keeps it off chain with only the fingerprint on chain, and the contract is already built for that.
 - **This is testnet.** No real money moved.
 

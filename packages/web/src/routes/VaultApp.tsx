@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { Logo } from "../components/Logo";
 import { CreateVault } from "../components/app/CreateVault";
 import { VaultDetail } from "../components/app/VaultDetail";
-import { ChainSnapshot } from "../lib/chain";
+import { ChainSnapshot, PROVABLE_SILENCE_SECONDS } from "../lib/chain";
 import { EXPLORER, HEIRLOOM_VAULT } from "../lib/deployment";
 import { useWallet } from "../lib/useWallet";
 
@@ -29,8 +29,24 @@ export function VaultApp({ chain, refresh }: { chain: ChainSnapshot | null; refr
           ? v.state === "Settled"
           : v.state === "Revoked";
 
+  /** Overdue past the provable window needs a heartbeat first, so it ranks below live vaults. */
+  const stale = (v: (typeof allVaults)[number]) =>
+    v.overdue && Date.now() / 1000 - (v.lastHeartbeat + v.heartbeatInterval) > PROVABLE_SILENCE_SECONDS;
+
   const rank = (v: (typeof allVaults)[number]) =>
-    v.state === "Dormant" ? 0 : v.state === "Executing" ? 1 : v.state === "Active" && v.overdue ? 2 : v.state === "Active" ? 3 : v.state === "Settled" ? 4 : 5;
+    v.state === "Dormant"
+      ? 0
+      : v.state === "Executing"
+        ? 1
+        : v.state === "Active" && v.overdue && !stale(v)
+          ? 2
+          : v.state === "Active" && !v.overdue
+            ? 3
+            : v.state === "Active"
+              ? 4
+              : v.state === "Settled"
+                ? 5
+                : 6;
 
   /** Live vaults sort by soonest due; finished ones by newest. */
   const tieBreak = (a: (typeof allVaults)[number], b: (typeof allVaults)[number]) => {
@@ -106,7 +122,7 @@ export function VaultApp({ chain, refresh }: { chain: ChainSnapshot | null; refr
 
         {!wallet.available && (
           <Notice>
-            No Ethereum wallet detected. Install MetaMask to create and manage vaults — you can still browse
+            No Ethereum wallet detected. Install MetaMask to create and manage vaults, you can still browse
             everything below without one.
           </Notice>
         )}
@@ -139,7 +155,7 @@ export function VaultApp({ chain, refresh }: { chain: ChainSnapshot | null; refr
                 />
               ) : (
                 <Notice>
-                  Connect a wallet on Coston2 to create a vault. You'll need a little C2FLR for gas — grab some
+                  Connect a wallet on Coston2 to create a vault. You'll need a little C2FLR for gas, grab some
                   free at{" "}
                   <a
                     className="underline underline-offset-4 hover:text-white"
@@ -342,7 +358,16 @@ function CardClock({ vault }: { vault: any }) {
   }
   const dueAt = vault.lastHeartbeat + vault.heartbeatInterval;
   const overdueBy = now - dueAt;
-  if (vault.overdue || overdueBy > 0) return <span title="overdue by">+{fmt(overdueBy)}</span>;
+  if (vault.overdue || overdueBy > 0) {
+    // Past the provable window the number is history, not a call to action.
+    const unprovable = overdueBy > PROVABLE_SILENCE_SECONDS;
+    return (
+      <span className={unprovable ? "text-[0.8em] text-ink-500" : "text-[0.8em]"}>
+        {fmt(overdueBy)} overdue
+        {unprovable && <span className="ml-2 text-[0.7em] uppercase tracking-wider">too old to prove</span>}
+      </span>
+    );
+  }
   return <>{fmt(dueAt - now)}</>;
 }
 

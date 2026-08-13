@@ -8,7 +8,7 @@ lecture about cryptography.
 
 ## The problem
 
-You hold XRP. Only you have the key. That is the point — nobody can take it.
+You hold XRP. Only you have the key. That is the point: nobody can take it.
 
 But it also means that if you die, **nobody can reach it either**. The coins sit
 there forever. This has already happened to a great deal of money.
@@ -64,7 +64,7 @@ The whole journey, in one picture:
 
 ## What you do
 
-### Step 1 — You write your wishes
+### Step 1. You write your wishes
 
 In the app, you list who gets what. You can say things like:
 
@@ -73,7 +73,7 @@ In the app, you list who gets what. You can say things like:
 - "everything remaining to my brother"
 
 **Your instructions are locked before they leave your computer.** What gets
-stored publicly is a *fingerprint* of them — a short string of letters and
+stored publicly is a *fingerprint* of them, a short string of letters and
 numbers that could not be turned back into the original, but which proves later
 that nothing was altered.
 
@@ -93,9 +93,9 @@ If that seems obvious, it is worth saying anyway: the natural assumption is that
 a system handling your inheritance must be *holding* it somewhere. This one
 never does, and that is the entire point.
 
-### Step 2 — You check in, now and then
+### Step 2. You check in, now and then
 
-Every so often — you choose how often, say every 90 days — you send a tiny
+Every so often, you choose how often, say every 90 days, you send a tiny
 payment on the XRP Ledger. A fraction of a penny. It carries a number that
 identifies your vault.
 
@@ -104,14 +104,14 @@ That is your **heartbeat**. It says: *still here*.
 It is deliberately trivial. No new account, no new password, no fee worth
 noticing. Just a small payment from the wallet you already use.
 
-### Step 3 — You stop
+### Step 3. You stop
 
 One day you stop sending it.
 
-**Nothing happens automatically.** Silence on its own proves nothing — you might
+**Nothing happens automatically.** Silence on its own proves nothing, you might
 be on holiday, or in hospital, or simply forgot.
 
-### Step 4 — The network checks
+### Step 4. The network checks
 
 Anyone can now ask the network a question:
 
@@ -129,23 +129,23 @@ built here and not somewhere else.
 
 Nobody is trusted to say you have gone. The network looked and agreed.
 
-### Step 5 — A waiting period
+### Step 5. A waiting period
 
 Even after that, nothing moves yet.
 
-A **grace window** opens — say 30 days. During this time:
+A **grace window** opens, say 30 days. During this time:
 
 - **If you send a single heartbeat, everything resets.** The vault goes back to
   normal. Any approvals collected are wiped clean.
 - **If you press the "I'm alive" button yourself, same thing.** Instantly.
 
 If you chose to have **guardians** — people you trust, perhaps your solicitor
-and your eldest child — they must also confirm during this window. Guardians can
+and your eldest child, they must also confirm during this window. Guardians can
 only *agree*. They cannot take anything, cannot change who receives what, cannot
 speed anything up, and cannot act while you are alive. Their only power is to
 refuse.
 
-### Step 6 — Your wishes are carried out
+### Step 6. Your wishes are carried out
 
 Only after all of that does a **sealed computer** open your instructions.
 
@@ -166,15 +166,15 @@ Then it locks again. Your wishes are never revealed to anyone.
 | "My family sees the will early" | They cannot. It is locked before it leaves your computer, and only ever opened after you are genuinely gone. |
 | "Someone swaps my will for a different one" | The fingerprint would not match, and the payment would be refused. |
 | "My guardians conspire against me" | They can only agree, never act. And you overrule them all with a single heartbeat. |
-| "The sealed computer is compromised" | It could reveal your wishes — a real risk, and a serious one. But it **cannot move your money**. Payment still requires proof of silence, an expired waiting period, guardian agreement, and a matching fingerprint. None of those come from the sealed computer. |
-| "I forget to check in" | You choose the interval. Ninety days is normal. And anyone — a family member, a friend — can send the proof on your behalf. Being offline never puts you at risk. |
+| "The sealed computer is compromised" | It could reveal your wishes, a real risk, and a serious one. But it **cannot move your money**. Payment still requires proof of silence, an expired waiting period, guardian agreement, and a matching fingerprint. None of those come from the sealed computer. |
+| "I forget to check in" | You choose the interval. Ninety days is normal. And anyone, a family member, a friend, can send the proof on your behalf. Being offline never puts you at risk. |
 | "The company running this disappears" | There is no company holding anything. Your XRP never leaves your own account until the rules you wrote are satisfied. |
 
 ---
 
 ## Will it pay my family automatically? — the honest answer
 
-**Yes — the whole journey now runs, on real test networks, end to end.**
+**Yes, the whole journey now runs, on real test networks, end to end.**
 
 Every step works today and you can watch it happen:
 
@@ -183,7 +183,7 @@ Every step works today and you can watch it happen:
 - The network proving, independently, that you have gone silent ✅
 - The waiting period, the reset button, and guardian approval ✅
 - Your instructions reaching the sealed computer ✅
-- The sealed computer unlocking them — and only it can ✅
+- The sealed computer unlocking them, and only it can ✅
 - The payments arriving in the beneficiaries' XRP Ledger accounts ✅
 
 A complete run exists on the public test networks: a vault was created, its
@@ -195,7 +195,7 @@ payments delivered on the XRP Ledger. The transaction trail is in
 **And the last signature belongs to nobody.** The payments out of your account
 are not signed by you, by us, or by any person. While you are alive you grant
 the sealed computer a *regular key* — XRPL's built-in way to authorise a second
-signer without handing over your master key — and that key was created inside
+signer without handing over your master key, and that key was created inside
 the sealed computer, where it stays: never written to a disk, never sent
 anywhere, never seen by a human. When the conditions are finally met, the
 sealed computer signs your bequests with it. You can revoke the grant at any
@@ -216,14 +216,14 @@ moment while you are alive, and your own key never leaves your hands.
 ## A worked example
 
 Mr. A holds 100 XRP. In Heirloom he writes: *70 to my daughter, 25 to my son,
-anything left to my daughter.* Neither child knows — not the amounts, not that
+anything left to my daughter.* Neither child knows, not the amounts, not that
 a plan exists. His 100 XRP stays in his own account, and he spends from it
 freely; the plan follows whatever is there on the day it matters.
 
 He checks in every 90 days. One day he stops. The network proves the silence,
 his month of grace passes untouched, and the sealed computer opens his
 instructions for the first time. His daughter's account receives 70 XRP, his
-son's 25 — ordinary payments on the XRP Ledger, nothing for them to claim,
+son's 25, ordinary payments on the XRP Ledger, nothing for them to claim,
 sign, or set up. A sliver stays behind for the ledger's own reserve and fees.
 
 Nobody was asked. Nobody could have acted earlier. Nobody read the will before

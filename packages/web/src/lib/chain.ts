@@ -3,6 +3,12 @@ import { HEIRLOOM_VAULT, STATE_NAMES, VAULT_ABI } from "./deployment";
 
 /** Vault destination tags are allocated from this base (HeirloomVault.TAG_BASE). */
 const TAG_BASE = 700_000_000;
+/**
+ * How long a vault can be silent and still have that silence provable. Testnet
+ * FDC providers will not confirm a search range stretching back much further,
+ * so beyond this a vault needs a fresh heartbeat before it can go anywhere.
+ */
+export const PROVABLE_SILENCE_SECONDS = 6 * 60 * 60;
 /** How many of the most recent vaults the list reads. Older ones stay on-chain. */
 export const MAX_VAULTS = 40;
 
@@ -33,7 +39,7 @@ export interface LiveVault {
   state: string;
   heartbeatTag: number;
   lastHeartbeat: number;
-  /** Seconds of silence before dormancy may be claimed — with lastHeartbeat, gives the due time. */
+  /** Seconds of silence before dormancy may be claimed, with lastHeartbeat, gives the due time. */
   heartbeatInterval: number;
   daysUntilDue: number;
   overdue: boolean;

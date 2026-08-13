@@ -2,7 +2,7 @@ import { standardAddressHash, xrplRequest } from "./fdc";
 
 /**
  * Turns a settled distribution into real XRPL payments. Amounts come from
- * `distributionOf(vaultId)` — TEE-signed and contract-checked — and the will
+ * `distributionOf(vaultId)` — TEE-signed and contract-checked, and the will
  * only maps address hashes back to r-addresses, so it cannot add a beneficiary.
  */
 
@@ -22,7 +22,7 @@ export interface PayoutPayment {
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const FEE_DROPS = "12";
 
-/** Finds the XRPL account that sent this vault's heartbeats — the estate itself. */
+/** Finds the XRPL account that sent this vault's heartbeats, the estate itself. */
 export async function findEstateAccount(beacon: string, heartbeatTag: number): Promise<string | null> {
   const out = await xrplRequest({
     method: "account_tx",

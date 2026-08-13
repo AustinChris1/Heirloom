@@ -5,13 +5,13 @@ reproduced on any host. The Coston2 FCC diamond was redeployed on 22 July 2026;
 most reported FCC failures are stacks still pointed at the dead
 `FlareTeeManager`, so start by confirming the registry.
 
-**At a glance — what you're signing up for:**
+**At a glance, what you're signing up for:**
 
 | | |
 |---|---|
 | Serving host | Any 1 GB VPS with a **stable public HTTPS hostname**. That's the whole spec |
 | Running footprint | 3 containers, ~150–240 MB resident (redis, proxy, extension) |
-| Build footprint | Heavy — build elsewhere, ship the image |
+| Build footprint | Heavy, build elsewhere, ship the image |
 | Elapsed time | ~1–2 hours first time, most of it waiting on registration |
 | Cost | Free: testnet gas from the faucet, `SIMULATED_TEE=true` is sanctioned on Coston2 |
 
@@ -22,7 +22,7 @@ most reported FCC failures are stacks still pointed at the dead
                                         instructions relay ◄──────────────────┘
 ```
 
-The two failure modes that eat whole evenings: a **rotating tunnel hostname** (machine sticks at INITIALIZED — data providers fetch your attestation from the URL recorded on-chain) and **dead indexer credentials** (proxy can't sync, looks identical to a broken registration). Both are covered below.
+The two failure modes that eat whole evenings: a **rotating tunnel hostname** (machine sticks at INITIALIZED, data providers fetch your attestation from the URL recorded on-chain) and **dead indexer credentials** (proxy can't sync, looks identical to a broken registration). Both are covered below.
 
 ## Preflight
 
@@ -69,15 +69,15 @@ one of them has to run on the serving host.
 |---|---|---|
 | `redis` | queue the proxy uses | ~15 MB |
 | `ext-proxy` | Go binary watching the chain | ~50–100 MB |
-| `extension-tee` | your handlers — Node for the TS target, a static binary for Go | ~80–120 MB (Node) / ~20–50 MB (Go) |
+| `extension-tee` | your handlers. Node for the TS target, a static binary for Go | ~80–120 MB (Node) / ~20–50 MB (Go) |
 
 So roughly **150–240 MB resident**. That is the number that matters, and it is small.
 
-**Building** is where the appetite is. `go build`, `npm install`, and `forge build` each spike to several hundred MB — solc and the Go compiler are the culprits. That is a one-off cost with no business happening on the machine that serves traffic.
+**Building** is where the appetite is. `go build`, `npm install`, and `forge build` each spike to several hundred MB, solc and the Go compiler are the culprits. That is a one-off cost with no business happening on the machine that serves traffic.
 
 **So build elsewhere and ship the image.** The deploy CLIs can also run off-host: `pre-build`, `post-build`, and `register-tee` are RPC calls plus HTTP requests to `EXT_PROXY_URL`, which is public by definition.
 
-That leaves the serving host doing only what it is good at — keeping three small containers reachable at a stable hostname. **A 1 GB instance is sufficient**, which is how Heirloom's extension runs.
+That leaves the serving host doing only what it is good at, keeping three small containers reachable at a stable hostname. **A 1 GB instance is sufficient**, which is how Heirloom's extension runs.
 
 Two things buy headroom cheaply on a small host:
 
@@ -110,7 +110,7 @@ Then `docker compose up -d --no-build` so Compose uses the loaded image. Note th
 ### Networking
 
 Terminate TLS on 443 and proxy to the extension on loopback. Only 80 and 443
-need to be reachable — 80 for the ACME HTTP-01 challenge, 443 to serve.
+need to be reachable, 80 for the ACME HTTP-01 challenge, 443 to serve.
 
 **Do not expose port 6674 to the internet.** The proxy's HTTP API is
 unauthenticated: anyone who can reach it can call it. Bind it to loopback and
@@ -127,7 +127,7 @@ ports:
 ```
 
 Cloud firewalls (security groups, NSGs) sit in front of the host firewall and
-usually deny by default — check both. And confirm the public IP is **static**:
+usually deny by default, check both. And confirm the public IP is **static**:
 an address that changes on restart leaves a dead hostname recorded on-chain,
 which is the classic cause of a machine stuck at `INITIALIZED`.
 
@@ -156,13 +156,13 @@ sudo ufw allow 80,443/tcp   # only if ufw is active
 
 ### End-to-end check before registering
 
-From a machine other than the serving host — this is the same path Flare's data providers will take:
+From a machine other than the serving host, this is the same path Flare's data providers will take:
 
 ```bash
 curl -sf https://tee.example.com/info | jq '.machineData'
 ```
 
-If that returns `machineData` with a `codeHash`, the URL you are about to write on-chain is genuinely reachable. If it hangs or 502s, fix that first — registering a URL that does not answer is exactly how machines end up stuck at `INITIALIZED`.
+If that returns `machineData` with a `codeHash`, the URL you are about to write on-chain is genuinely reachable. If it hangs or 502s, fix that first, registering a URL that does not answer is exactly how machines end up stuck at `INITIALIZED`.
 
 ## Two stale version defaults, already fixed in this repo
 
@@ -217,14 +217,14 @@ git checkout main && git pull
 ```bash
 DEPLOYMENT_PRIVATE_KEY="<funded coston2 key, no 0x>"
 INITIAL_OWNER="0x<your address>"
-EXT_PROXY_URL="https://tee.example.com"  # stable — not a quick tunnel
+EXT_PROXY_URL="https://tee.example.com"  # stable, not a quick tunnel
 ```
 
 Re-run `use-chain.sh` after editing so `.env` picks the values up.
 
 **3. Indexer DB.** Copy `config/proxy/extension_proxy.coston2.docker.toml.example` to `…docker.toml` and fill the `[db]` block with the credentials **from the pinned message**, not the ones in the example file.
 
-**4. Port the Heirloom handlers — done, in `packages/tee`.**
+**4. Port the Heirloom handlers, done, in `packages/tee`.**
 
 The scaffold lives at `packages/tee` with the KEY extension replaced by Heirloom:
 
@@ -262,7 +262,7 @@ docker build -f Dockerfile.tools -t heirloom-tools .
 docker run --rm -v "$PWD:/w" -w /w heirloom-tools ./scripts/heirloom-register.sh
 ```
 
-**6. Start the containers — this is the only step on the VPS.**
+**6. Start the containers, this is the only step on the VPS.**
 
 Build the image locally, ship it as above, then on the VPS:
 
@@ -302,7 +302,7 @@ cast send 0x250B6F94F8779a9CfbD826FD6CCF0a9845DcEb3A "setExtensionId()" ...
 cast send 0x250B6F94F8779a9CfbD826FD6CCF0a9845DcEb3A "setTeeAddress(address)" <teeId> ...
 ```
 
-`setExtensionId()` scans the registry from `0x10000` for the extension bound to the vault's address and caches it. It is set-once, so it will revert if called twice — and it will revert with `ExtensionNotFound` if step 5 registered against the wrong sender.
+`setExtensionId()` scans the registry from `0x10000` for the extension bound to the vault's address and caches it. It is set-once, so it will revert if called twice, and it will revert with `ExtensionNotFound` if step 5 registered against the wrong sender.
 
 `setTeeAddress` registers the key that settlements must recover to. Until it is set, `sealWill` and `requestExecution` route fine but `confirmSeal` / `settleEstate` reject everything with `TeeNotConfigured`.
 
@@ -327,7 +327,7 @@ Before a demo, check what the chain thinks is live rather than what your contain
 
 The enclave can hold its own XRPL key and sign the estate's payouts itself, so
 no human ever types a seed. Two operations make it work, both **direct actions**
-(proxy `POST /direct`) rather than on-chain instructions — they carry no
+(proxy `POST /direct`) rather than on-chain instructions, they carry no
 authority, so no contract change is needed:
 
 | Op | Does |
@@ -339,7 +339,7 @@ The key is **derived from the TEE identity, never stored**: the extension asks
 the node's sign port to sign a fixed derivation string and uses the
 (deterministic) signature as seed entropy. Nothing on disk to steal; the same
 identity always yields the same address; a rebuilt enclave yields a new one and
-owners must re-delegate — the same rule that already applies to sealed wills.
+owners must re-delegate, the same rule that already applies to sealed wills.
 
 **`/direct` is disabled by default.** In the proxy's `.toml`:
 
@@ -365,7 +365,7 @@ pnpm exec hardhat run scripts/delegate-to-enclave.ts --network coston2
 `delegate-to-enclave.ts` asks the enclave for its address and submits the
 estate's `SetRegularKey` to it. After that the app's **Let the enclave sign**
 button pays out with no seed anywhere, and `PAYOUT` refuses to sign the same
-vault twice — an untrusted caller supplies only the sequence and expiry, never
+vault twice, an untrusted caller supplies only the sequence and expiry, never
 the amounts or recipients, which are frozen at EXECUTE.
 
 > **Deploying this changes the running image**, which regenerates the TEE
@@ -377,7 +377,7 @@ the amounts or recipients, which are frozen at EXECUTE.
 
 A team hit this with a custom op named `VRF`/`PROVE`. Anything starting with `F_` is reserved, and reusing a system command word (`PAY`, `REISSUE`, `VRF`, `PROVE`, `KEY_GENERATE`, `TEE_INFO`) can stop an instruction being relayed.
 
-Heirloom uses `HEIRLOOM` / `SEAL` and `HEIRLOOM` / `EXECUTE`. The opType is unmistakably ours and none of the strings appear on that reserved list, so the risk is low — but `EXECUTE` is generic enough to be worth ruling out early. The cheap test is to send a `SEAL` instruction as soon as the proxy is live and watch whether it reaches `POST /instruction`. If it does not, renaming means changing the `bytes32` constants in `HeirloomVault.sol`, which are compile-time — that is a redeploy plus re-registration, so find out before demo day rather than during it.
+Heirloom uses `HEIRLOOM` / `SEAL` and `HEIRLOOM` / `EXECUTE`. The opType is unmistakably ours and none of the strings appear on that reserved list, so the risk is low, but `EXECUTE` is generic enough to be worth ruling out early. The cheap test is to send a `SEAL` instruction as soon as the proxy is live and watch whether it reaches `POST /instruction`. If it does not, renaming means changing the `bytes32` constants in `HeirloomVault.sol`, which are compile-time, that is a redeploy plus re-registration, so find out before demo day rather than during it.
 
 ## What lights up when this works
 
@@ -392,7 +392,7 @@ Nothing else in the repo changes. The contract already routes both instructions 
 
 Earlier this was not worth doing, on the assumption that credentials had unknown turnaround, that a laptop would have to stay awake, and that a stable public URL meant paying for GCP. With a VPS and pinned credentials, none of those hold. Two other teams reaching `PRODUCTION` today is the strongest signal available that the path is open.
 
-Do it — but in this order, so a bad afternoon on the TEE never costs the submission:
+Do it, but in this order, so a bad afternoon on the TEE never costs the submission:
 
 1. Record the demo video and host the web app. Both are done in an hour and neither can fail on judging day.
 2. Run one real FDC `XRPPayment` attestation end to end against vault `#0` on XRPL testnet. No Docker, and it exercises the most distinctive integration in the project.

@@ -24,6 +24,6 @@ export function saveVaultName(id: number, name: string): void {
     if (trimmed) localStorage.setItem(key(id), trimmed);
     else localStorage.removeItem(key(id));
   } catch {
-    /* private browsing — labels just don't persist */
+    /* private browsing, labels just don't persist */
   }
 }

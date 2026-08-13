@@ -10,7 +10,7 @@ import readme from "../../../../README.md?raw";
  * The repository's documentation, served from the app.
  *
  * Imported as raw text rather than duplicated, so the site and the repo can
- * never drift — editing a file in docs/ changes the published page on the next
+ * never drift, editing a file in docs/ changes the published page on the next
  * build. A judge should not have to browse GitHub to read any of this.
  */
 export interface Doc {
@@ -36,7 +36,7 @@ export const DOCS: Doc[] = [
   {
     slug: "usage",
     title: "Usage",
-    blurb: "Every button, step by step, for someone brand new — glossary included.",
+    blurb: "Every button, step by step, for someone brand new, glossary included.",
     body: usage,
   },
   {
@@ -63,7 +63,7 @@ export const DOCS: Doc[] = [
     blurb: "What needs a server, what does not, and what it costs.",
     body: hosting,
   },
-  // docs/DEMO.md is deliberately NOT listed — it is the private run-of-show
+  // docs/DEMO.md is deliberately NOT listed, it is the private run-of-show
   // for recording the demo video, not documentation for a visitor.
 ];
 

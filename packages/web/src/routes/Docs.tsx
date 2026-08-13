@@ -34,7 +34,7 @@ export function Docs() {
     const root = contentRef.current;
     if (!root) return;
 
-    // GitHub gives headings anchor ids; marked does not — add the same slugs
+    // GitHub gives headings anchor ids; marked does not, add the same slugs
     // so in-page links (e.g. the Usage glossary) work here too.
     root.querySelectorAll("h1, h2, h3").forEach((h) => {
       h.id = (h.textContent ?? "")
@@ -142,7 +142,7 @@ export function Docs() {
       </AnimatePresence>
 
       <div className="mx-auto flex max-w-[1500px] px-5 py-10 md:px-8 md:py-14">
-        {/* Desktop: a bordered rail, sticky with its own scrollbar — always
+        {/* Desktop: a bordered rail, sticky with its own scrollbar, always
             reachable, never scrolled away, collapsible from the header. No
             width animation: squishing text reads worse than an instant reflow. */}
         {navOpen && (

@@ -35,7 +35,7 @@ export function useWallet() {
       try {
         localStorage.setItem(CONNECTED_KEY, "1");
       } catch {
-        /* private browsing — session-only connection is fine */
+        /* private browsing, session-only connection is fine */
       }
       setState((s) => ({
         ...s,
@@ -49,7 +49,7 @@ export function useWallet() {
         if (chainId === COSTON2_CHAIN_ID) {
           toast.success(`Wallet connected — ${address.slice(0, 8)}…${address.slice(-4)}`);
         } else {
-          toast.error("Wallet connected, but on the wrong network — switch to Coston2");
+          toast.error("Wallet connected, but on the wrong network, switch to Coston2");
         }
       }
     } catch (err) {
@@ -92,7 +92,7 @@ export function useWallet() {
         if (cancelled || !accounts?.length) return;
         await doConnect(true);
       } catch {
-        /* no wallet, locked, or storage unavailable — stay disconnected */
+        /* no wallet, locked, or storage unavailable, stay disconnected */
       }
     })();
     return () => {

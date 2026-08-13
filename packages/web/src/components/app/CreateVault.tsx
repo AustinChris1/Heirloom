@@ -63,7 +63,7 @@ export function CreateVault({
   const [busy, setBusy] = useState(false);
   const [txHash, setTxHash] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  /** Snapshot of the will at creation time — offered as a download, since sealing needs this exact JSON. */
+  /** Snapshot of the will at creation time, offered as a download, since sealing needs this exact JSON. */
   const [createdWill, setCreatedWill] = useState<Will | null>(null);
 
   // The will the contract will be committed to. Validated with the exact parser
@@ -264,7 +264,7 @@ export function CreateVault({
 
         <Section
           title="Guardians"
-          hint="Optional Flare addresses that must confirm before execution. They can only confirm — never seize."
+          hint="Optional Flare addresses that must confirm before execution. They can only confirm, never seize."
         >
           <div className="space-y-3">
             {guardians.map((g, i) => (
@@ -344,7 +344,7 @@ export function CreateVault({
                   </div>
                   <p className="max-w-[42ch] text-xs leading-relaxed text-ink-300">
                     Your will is saved in this browser, so sealing and payout here just work. Download the file
-                    too if you want a copy that survives this device — the chain holds only the fingerprint.
+                    too if you want a copy that survives this device, the chain holds only the fingerprint.
                   </p>
                 </div>
               )}
@@ -376,7 +376,7 @@ export function CreateVault({
             <p className="font-mono text-[11px] text-ink-300">Complete the will to compute it.</p>
           )}
           <p className="mt-3 max-w-[42ch] text-xs leading-relaxed text-ink-300">
-            This hash is all the chain ever learns. Beneficiaries and amounts stay off-chain — change any term and
+            This hash is all the chain ever learns. Beneficiaries and amounts stay off-chain, change any term and
             the hash changes, which is what stops a substituted will from settling.
           </p>
         </div>
@@ -432,7 +432,7 @@ export function CreateVault({
         </div>
 
         <p className="max-w-[44ch] text-xs leading-relaxed text-ink-300">
-          This preview runs the exact allocation engine that executes inside the enclave — not a reimplementation.
+          This preview runs the exact allocation engine that executes inside the enclave, not a reimplementation.
         </p>
       </div>
     </div>

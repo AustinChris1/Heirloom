@@ -11,7 +11,7 @@ const ENCLAVE = "/enclave";
 export interface EnclaveKey {
   /** Uncompressed 65-byte public key, 0x04-prefixed. */
   publicKey: string;
-  /** Ethereum-style address derived from it — must equal the vault's teeAddress. */
+  /** Ethereum-style address derived from it, must equal the vault's teeAddress. */
   address: string;
 }
 
@@ -33,8 +33,8 @@ export async function fetchEnclaveKey(): Promise<EnclaveKey> {
 }
 
 /**
- * Direct actions carry no authority — ADDRESS reveals a public address, PAYOUT
- * signs a distribution the chain already verified — so they skip the contract.
+ * Direct actions carry no authority. ADDRESS reveals a public address, PAYOUT
+ * signs a distribution the chain already verified, so they skip the contract.
  */
 async function directAction(opCommand: string, payload?: unknown): Promise<unknown> {
   const message = payload
@@ -84,7 +84,7 @@ function hexToBytes(hex: string): Uint8Array {
   return out;
 }
 
-/** The enclave's own XRPL address — what an owner delegates to as a regular key. */
+/** The enclave's own XRPL address, what an owner delegates to as a regular key. */
 export async function enclaveXrplAddress(): Promise<string> {
   const out = (await directAction("ADDRESS")) as { address?: string };
   if (!out?.address) throw new Error("enclave returned no XRPL address");
@@ -108,14 +108,14 @@ export async function requestEnclavePayout(
 
 /** The signed result of one enclave action, exactly as the contract wants it. */
 export interface EnclaveResult {
-  /** ActionResult.Data — the ABI payload the extension produced. */
+  /** ActionResult.Data, the ABI payload the extension produced. */
   data: string;
-  /** ActionResult.ID — the instruction id from sendInstructions. */
+  /** ActionResult.ID, the instruction id from sendInstructions. */
   actionId: string;
   submissionTag: string;
   /** 0 = error, 1 = success, >=2 = pending. */
   status: number;
-  /** The extension's own log line — carries the decrypt/parse error on failure. */
+  /** The extension's own log line, carries the decrypt/parse error on failure. */
   log: string;
   /** TEE node signature; recovers to the registered teeAddress. */
   signature: string;

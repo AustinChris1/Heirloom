@@ -1,4 +1,4 @@
-# Flare Summer Signal — submission
+# Flare Summer Signal, submission
 
 Filled against the required fields from the [hackathon brief](https://dorahacks.io/hackathon/flaresummersignal/detail).
 
@@ -25,7 +25,7 @@ A trustless dead-man's switch for XRP holders. You bind a vault to your XRP Ledg
 
 ## Target user
 
-Long-term self-custodying XRP holders — the "held since 2013" cohort — who have no estate plan for their coins because every existing option requires either giving someone their keys today or giving up self-custody entirely. Secondarily: anyone who wants programmable custody over native XRP (social recovery, vesting, treasury continuity) without wrapping or bridging it.
+Long-term self-custodying XRP holders, the "held since 2013" cohort, who have no estate plan for their coins because every existing option requires either giving someone their keys today or giving up self-custody entirely. Secondarily: anyone who wants programmable custody over native XRP (social recovery, vesting, treasury continuity) without wrapping or bridging it.
 
 ## Demo
 
@@ -38,9 +38,9 @@ Everything below runs against live Coston2 and live XRPL testnet. Nothing is moc
 | **Proof of life** | `hardhat run scripts/live-heartbeat.ts --network coston2` — funds its own XRPL testnet wallet, sends a tagged heartbeat, obtains an FDC attestation, submits it. |
 | **Proof of silence** | `VAULT_ID=<n> hardhat run scripts/claim-dormancy.ts --network coston2` — proves no heartbeat exists across a ledger range and drives the vault to Dormant. |
 | **Confidential compute, end to end** | `hardhat run scripts/seal-live.ts --network coston2` — creates a vault with a real will, encrypts it to the enclave (geth-compatible ECIES), and has the enclave decrypt, verify, and attest it on-chain. Then `VAULT_ID=<n> … claim-dormancy.ts` and `… execute-live.ts` finish the story: enclave execution, on-chain settlement, real XRPL payouts. |
-| **Unattended lifecycle** | `hardhat run scripts/set-regular-key.ts` once, then `scripts/keeper.ts` on a timer — dormancy claim, execution, settlement, and regular-key-signed payouts with zero human involvement. |
+| **Unattended lifecycle** | `hardhat run scripts/set-regular-key.ts` once, then `scripts/keeper.ts` on a timer, dormancy claim, execution, settlement, and regular-key-signed payouts with zero human involvement. |
 
-**Test suites:** 65 tests — 30 contract, 20 extension (ethers), 15 TEE extension (viem).
+**Test suites:** 65 tests, 30 contract, 20 extension (ethers), 15 TEE extension (viem).
 
 ### Evidence from live runs
 
@@ -49,12 +49,12 @@ Everything below runs against live Coston2 and live XRPL testnet. Nothing is moc
 | XRPL heartbeat payment | [`84C0227…EDB8D`](https://testnet.xrpl.org/transactions/84C022779EF8DE35134FFB4C263A6A81CF150DE6C4BFFAE0D6DD4D369A7EDB8D) |
 | `proveLife` accepted (script) | `0xeafa132a60f30289001fda05debbc40b99c19230cc263d911c095ccd4c3f5d1b` |
 | `claimDormancy` accepted (script) | `0x2f4bf71b10d33e43f65843e144c144ef68a9fdd2e567efa24a0f2f97f2949ee7` |
-| **`proveLife` accepted — driven entirely from the web app** | `0x432299785c27536c48a0594e83cf064cb2f9eaec5f2bbd583d68b1dd4a3f30a9` |
-| **`claimDormancy` accepted — driven entirely from the web app** | `0x2203734cb790196287e1b6b2f2a53fdf5d756df53c4178883bf4335b8bd63c26` |
+| **`proveLife` accepted, driven entirely from the web app** | `0x432299785c27536c48a0594e83cf064cb2f9eaec5f2bbd583d68b1dd4a3f30a9` |
+| **`claimDormancy` accepted, driven entirely from the web app** | `0x2203734cb790196287e1b6b2f2a53fdf5d756df53c4178883bf4335b8bd63c26` |
 
-That web-app run matters: a visitor pasted an XRPL transaction hash into the app and the browser ran the whole attestation — encoded the request at the verifier, submitted it to `FdcHub` with their own wallet, waited out the voting round, pulled the Merkle proof from the DA Layer, and submitted it to the vault. No terminal, no operator keys. Proving life and proving silence are permissionless by design, and the app demonstrates that rather than describing it.
+That web-app run matters: a visitor pasted an XRPL transaction hash into the app and the browser ran the whole attestation, encoded the request at the verifier, submitted it to `FdcHub` with their own wallet, waited out the voting round, pulled the Merkle proof from the DA Layer, and submitted it to the vault. No terminal, no operator keys. Proving life and proving silence are permissionless by design, and the app demonstrates that rather than describing it.
 
-And the confidential third, live on 10 Aug 2026 — full trails with explorer links in [Usage](USAGE.md):
+And the confidential third, live on 10 Aug 2026, full trails with explorer links in [Usage](USAGE.md):
 
 | | |
 |---|---|
@@ -72,7 +72,7 @@ This repository. Layout:
 ```
 packages/contracts/   HeirloomVault.sol, TeeActionResult.sol, 30 tests, deploy + live-operation scripts
 packages/extension/   Will schema, allocation engine, SEAL/EXECUTE handlers (ethers)
-packages/tee/         Deployable Flare Compute Extension — viem port, Docker images, registration tooling
+packages/tee/         Deployable Flare Compute Extension, viem port, Docker images, registration tooling
 packages/web/         Landing page (/) and working vault client (/app)
 docs/                 SUBMISSION, ARCHITECTURE, USAGE, DEMO, TEE-DEPLOYMENT, HOSTING
 ```
@@ -87,15 +87,15 @@ Five integration points, each load-bearing:
 `HeirloomVault.proveLife` verifies an XRPL payment proof and requires that it originated from the estate's own XRPL account (`sourceAddressHash`), landed on the Heirloom beacon, carried this vault's unique destination tag, succeeded on the ledger, delivered at least the configured minimum, and is strictly newer than the heartbeat on record. Permissionless, so a relayer can rescue an offline holder.
 
 **2. FDC `XRPPaymentNonexistence` (`0x09`) — proof of silence.** *(verified live)*
-`claimDormancy` is the heart of the product, and the reason this is on Flare at all: proving a payment happened is common, proving that *none exists* is not. Without this attestation type there is no trustless dead-man's switch — only a keeper you have to trust to tell the truth about silence. It requires the attestation's search range to start no later than the last proven heartbeat and extend past the moment the next one was due — closing the gap a claimant could otherwise use to prove silence over an unrelated window. It also pins `requestBody.amount` to exactly `heartbeatDrops - 1`, because the attestation excludes payments delivering *more than* that bound; any larger value would let genuine heartbeats slip through the search.
+`claimDormancy` is the heart of the product, and the reason this is on Flare at all: proving a payment happened is common, proving that *none exists* is not. Without this attestation type there is no trustless dead-man's switch, only a keeper you have to trust to tell the truth about silence. It requires the attestation's search range to start no later than the last proven heartbeat and extend past the moment the next one was due, closing the gap a claimant could otherwise use to prove silence over an unrelated window. It also pins `requestBody.amount` to exactly `heartbeatDrops - 1`, because the attestation excludes payments delivering *more than* that bound; any larger value would let genuine heartbeats slip through the search.
 
-**3. FCC — the sealed will.** *(extension 66025 at PRODUCTION; wills sealed, attested, and executed by the live enclave)*
-`HeirloomVault` is itself the FCC InstructionSender — not a scaffold contract sitting in front of it. It routes `HEIRLOOM/SEAL` and `HEIRLOOM/EXECUTE` instructions through `TeeExtensionRegistry.sendInstructions`, and verifies returned results against the registered TEE address using the domain-separated scheme the TEE nodes actually sign: `keccak256(abi.encode("TEE_ACTION_RESULT", chainId, ActionResult.Hash()))` under the EIP-191 prefix, matching `go-flare-common`'s `signing.TEEActionResult`.
+**3. FCC, the sealed will.** *(extension 66025 at PRODUCTION; wills sealed, attested, and executed by the live enclave)*
+`HeirloomVault` is itself the FCC InstructionSender, not a scaffold contract sitting in front of it. It routes `HEIRLOOM/SEAL` and `HEIRLOOM/EXECUTE` instructions through `TeeExtensionRegistry.sendInstructions`, and verifies returned results against the registered TEE address using the domain-separated scheme the TEE nodes actually sign: `keccak256(abi.encode("TEE_ACTION_RESULT", chainId, ActionResult.Hash()))` under the EIP-191 prefix, matching `go-flare-common`'s `signing.TEEActionResult`.
 
-**4. FTSO — fiat-denominated bequests.** *(verified live)*
+**4. FTSO, fiat-denominated bequests.** *(verified live)*
 `requestExecution` reads XRP/USD from the block-latency feed and passes it into the enclave, so a will can say "$50,000 to my daughter". On settlement the contract re-reads the feed and rejects any distribution priced more than 5% away from it, bounding how far a stale or manipulated price could skew a bequest.
 
-**5. FAssets — optional delivery rail.**
+**5. FAssets, optional delivery rail.**
 Each bequest carries an optional `flareRecipient`; when set, the beneficiary's share is earmarked for FXRP delivery on Flare rather than native XRP, dropping them directly into XRPFi. Modelled and recorded end-to-end; the transfer itself is not yet wired.
 
 ## What was newly built during the program
@@ -106,20 +106,20 @@ Everything in this repository was written during the hackathon. There is no pre-
 |---|---|
 | `HeirloomVault.sol` | Full vault lifecycle state machine, both FDC verification paths, FTSO pricing with tolerance checking, FCC instruction routing, guardian logic, grace-window semantics |
 | `TeeActionResult.sol` | Library verifying TEE-signed results under Flare's domain-separated scheme |
-| Contract test suite | 30 tests covering every rejection path — spoofed heartbeat source, wrong destination tag, replayed heartbeat, mis-scoped nonexistence range, wrong nonexistence bound, forged TEE signature, cross-instruction signature reuse, tampered payload, substituted will, out-of-tolerance price |
+| Contract test suite | 30 tests covering every rejection path, spoofed heartbeat source, wrong destination tag, replayed heartbeat, mis-scoped nonexistence range, wrong nonexistence bound, forged TEE signature, cross-instruction signature reuse, tampered payload, substituted will, out-of-tolerance price |
 | Flare Compute Extension | Will schema with strict validation of untrusted input, canonical ABI commitment, estate allocation engine with proportional abatement, XRPL payment assembly, `SEAL` and `EXECUTE` handlers |
 | Extension test suite | 19 tests including drop-level conservation invariants and a crashed-price scenario |
-| Web app | Landing page and a working vault client — wallet connect, will builder, live commitment and distribution preview, vault operations, per-address guardian detection |
+| Web app | Landing page and a working vault client, wallet connect, will builder, live commitment and distribution preview, vault operations, per-address guardian detection |
 | FCC deployment | Vendored scaffold retargeted onto `HeirloomVault` as the InstructionSender, extension registered, TEE machine driven to PRODUCTION on a self-hosted enclave behind TLS |
 | viem port of the extension | Second implementation of the will schema and commitment, pinned by a cross-implementation test vector so client (ethers) and enclave (viem) provably agree byte-for-byte |
 | Live FDC client | Prepare → submit → await finalisation → fetch proof → verify on-chain, for both XRPL attestation types |
-| Browser-side ECIES | geth-compatible `ECIES_AES128_SHA256` implemented on ethers + WebCrypto, cross-verified against an independent implementation and accepted by the live enclave — the piece that turns "transport works" into "the product works" |
-| In-app confidential lifecycle | Seal, execute, settle, and payout panels — enclave key fetched from its attestation document and refused unless it derives to the contract's trusted address; sealed ciphertext recovered from chain calldata; payouts bound to the settled distribution |
-| Keeper + regular-key delegation | `SetRegularKey` performed live on the estate; a cron-friendly keeper that claims, executes, settles, and signs payouts — proven unattended end to end |
-| XRPL wallet integration | Adapter layer for GemWallet, Crossmark and Xaman so the owner grants the enclave's key from their own wallet — no seed in the browser. Verified live with GemWallet on vault #17 |
+| Browser-side ECIES | geth-compatible `ECIES_AES128_SHA256` implemented on ethers + WebCrypto, cross-verified against an independent implementation and accepted by the live enclave, the piece that turns "transport works" into "the product works" |
+| In-app confidential lifecycle | Seal, execute, settle, and payout panels, enclave key fetched from its attestation document and refused unless it derives to the contract's trusted address; sealed ciphertext recovered from chain calldata; payouts bound to the settled distribution |
+| Keeper + regular-key delegation | `SetRegularKey` performed live on the estate; a cron-friendly keeper that claims, executes, settles, and signs payouts, proven unattended end to end |
+| XRPL wallet integration | Adapter layer for GemWallet, Crossmark and Xaman so the owner grants the enclave's key from their own wallet, no seed in the browser. Verified live with GemWallet on vault #17 |
 | Deploy + operations tooling | Coston2 address book, deploy script, `health.ts` preflight, `tee-status.ts`, `set-tee-address.ts`, `live-heartbeat.ts`, `claim-dormancy.ts`, `seal-live.ts`, `execute-live.ts`, `set-regular-key.ts`, `keeper.ts` |
 
-**Ported or integrated:** the TEE result verification scheme and the InstructionSender registry pattern follow `flare-foundation/fce-weather-insurance`, Flare's reference FCC application. The pattern is theirs; the application of it — a two-phase seal-then-execute flow where the enclave attests a will is readable *before* it is ever needed — is new here.
+**Ported or integrated:** the TEE result verification scheme and the InstructionSender registry pattern follow `flare-foundation/fce-weather-insurance`, Flare's reference FCC application. The pattern is theirs; the application of it, a two-phase seal-then-execute flow where the enclave attests a will is readable *before* it is ever needed, is new here.
 
 ## Deployment details
 
@@ -153,12 +153,12 @@ Full deployment record: `packages/contracts/deployments/coston2.json`.
 
 Stated up front rather than left to be discovered.
 
-- **Wallet support for the one-time grant is uneven across vendors.** The owner authorises the enclave with `SetRegularKey` — a standard XRPL transaction — and this is verified working from **GemWallet**, which exposes it as a first-class call. **Xaman refuses it** (error 1217, "no permission to create this type of sign request") until an app is allowlisted, because rekey payloads are the classic phishing vector; that allowlist request is a post-hackathon queue, not a code change. **Crossmark** could not resolve signing material for the account in our testing. A testnet seed fallback covers browsers with no wallet. None of this touches the trust model: whichever way the grant is signed, every payment after death is signed inside the TEE.
+- **Wallet support for the one-time grant varies by vendor.** The owner authorises the enclave with `SetRegularKey`, a standard XRPL transaction. **GemWallet and Crossmark both sign it**, verified live on testnet. **Xaman refuses it** (error 1217, "no permission to create this type of sign request") until an app is allowlisted, because rekey payloads are the classic phishing vector, an allowlist request is a post-hackathon queue, not a code change, and Xaman users can meanwhile grant the same key from any already-verified rekey tool. One rough edge worth naming: Crossmark's popup does not scroll (reproduced in Edge and Vivaldi), so its Approve button can sit below the fold, opening the extension in a full tab works around it. None of this touches the trust model: whichever way the grant is signed, every payment after death is signed inside the TEE.
 - ~~**The delegated payout key lives with the keeper, not yet inside the enclave.**~~ **Resolved 11 Aug 2026** — the enclave now generates its own XRPL key inside the TEE (derived from the TEE identity, never written to disk or transmitted), publishes only the address, and signs payouts itself once an estate authorises it with `SetRegularKey`. Proven live on vault #14; trail in [Usage](USAGE.md). The note below is kept for the record of what the earlier runs did.
 
-- **(Historic) The delegated payout key lived with the keeper.** The full lifecycle — client-side ECIES seal, enclave attestation, FDC-proven dormancy, enclave execution, on-chain settlement of the TEE-signed distribution, and real XRPL payouts — has run end to end on this deployment (transaction trail in [Usage](USAGE.md)), unattended: a keeper process (`scripts/keeper.ts`, cron-friendly) claims dormancy, executes, settles, and signs the payouts with a *regular key* the estate genuinely delegated on XRPL via `SetRegularKey` — the master seed is never touched, and the owner can revoke the delegation at any time while alive. The remaining step is holding that delegated key inside the TEE itself (the tee-node's managed-wallet subsystem, XRPL signing algo included); two things block that today: XRPL signatures need SHA-512-half/DER, which the tee-node's plain `/sign` endpoint does not produce, and TEE identity does not survive container restarts on the current FCC testnet, which would orphan a delegated key on every reboot until the wallet backup/restore flows are in play.
-- **A failed enclave execution strands the vault in Executing.** `requestExecution` moves the state before the enclave answers, and there is no Executing → Dormant transition, so if the enclave refuses (e.g. the estate cannot cover reserve and fees — a refusal observed live and working as designed), the vault can only be closed with `revokeVault`, not retried. The fix is a re-request path guarded by the failed ActionResult; it needs a contract change and is noted rather than patched.
-- **The encrypted will travels in the instruction payload.** Flare's own guidance is explicit that on-chain storage of encrypted secrets is unsuitable for production. The production path is an off-chain blob with only the commitment on-chain — the contract is already structured for it, since the commitment is what settlement checks.
+- **(Historic) The delegated payout key lived with the keeper.** The full lifecycle, client-side ECIES seal, enclave attestation, FDC-proven dormancy, enclave execution, on-chain settlement of the TEE-signed distribution, and real XRPL payouts, has run end to end on this deployment (transaction trail in [Usage](USAGE.md)), unattended: a keeper process (`scripts/keeper.ts`, cron-friendly) claims dormancy, executes, settles, and signs the payouts with a *regular key* the estate genuinely delegated on XRPL via `SetRegularKey` — the master seed is never touched, and the owner can revoke the delegation at any time while alive. The remaining step is holding that delegated key inside the TEE itself (the tee-node's managed-wallet subsystem, XRPL signing algo included); two things block that today: XRPL signatures need SHA-512-half/DER, which the tee-node's plain `/sign` endpoint does not produce, and TEE identity does not survive container restarts on the current FCC testnet, which would orphan a delegated key on every reboot until the wallet backup/restore flows are in play.
+- **A failed enclave execution strands the vault in Executing.** `requestExecution` moves the state before the enclave answers, and there is no Executing → Dormant transition, so if the enclave refuses (e.g. the estate cannot cover reserve and fees, a refusal observed live and working as designed), the vault can only be closed with `revokeVault`, not retried. The fix is a re-request path guarded by the failed ActionResult; it needs a contract change and is noted rather than patched.
+- **The encrypted will travels in the instruction payload.** Flare's own guidance is explicit that on-chain storage of encrypted secrets is unsuitable for production. The production path is an off-chain blob with only the commitment on-chain, the contract is already structured for it, since the commitment is what settlement checks.
 - **FXRP delivery is modelled and recorded but the transfer is not wired.**
 - **Attestation is simulated, not hardware-backed.** `SIMULATED_TEE=true` is accepted on Coston2 and is the sanctioned path for testnet, but it is not a real Confidential Space measurement. Production would require `MODE=0` on a GCP Confidential Space VM.
 - **TEE identity does not survive a container restart.** Confirmed by Flare: recovery is registering a replacement machine, not restoring the old identity. `setTeeAddress` is deliberately re-callable for exactly this reason, and the procedure is scripted.
@@ -173,4 +173,4 @@ Stated up front rather than left to be discovered.
 
 ## Why this is worth continuing after the hackathon
 
-The problem does not go away when the deadline passes, and it gets worse every year as the original cohort of holders ages. Flare is pushing to bring idle XRP into programmable finance; a meaningful share of that XRP is idle precisely because its owners have no safe answer to *what happens if I am not here*. Heirloom is a reason for that XRP to touch Flare that has nothing to do with yield — which makes it durable in a way yield products are not.
+The problem does not go away when the deadline passes, and it gets worse every year as the original cohort of holders ages. Flare is pushing to bring idle XRP into programmable finance; a meaningful share of that XRP is idle precisely because its owners have no safe answer to *what happens if I am not here*. Heirloom is a reason for that XRP to touch Flare that has nothing to do with yield, which makes it durable in a way yield products are not.

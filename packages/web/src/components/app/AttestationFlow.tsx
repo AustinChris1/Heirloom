@@ -23,7 +23,7 @@ import { toast } from "../../lib/toast";
 import { humanError, VAULT_ABI_WRITE } from "../../lib/wallet";
 
 /**
- * Runs a full FDC attestation from the browser — both legs of the dead-man's
+ * Runs a full FDC attestation from the browser, both legs of the dead-man's
  * switch. The 90-180s round is shown as real progress, not a spinner.
  */
 
@@ -132,7 +132,7 @@ export function AttestationFlow({
         if (!hash) continue;
 
         if (when <= vault.lastHeartbeat) {
-          setScanNote("Found a heartbeat, but it is already proven — send a fresh one.");
+          setScanNote("Found a heartbeat, but it is already proven, send a fresh one.");
           return;
         }
         setXrplTx(hash);
@@ -192,8 +192,8 @@ export function AttestationFlow({
     });
     toast.success(
       method === "proveLife"
-        ? "Proof of life accepted — the heartbeat timer has reset"
-        : "Dormancy proven on-chain — the grace window is open",
+        ? "Proof of life accepted, the heartbeat timer has reset"
+        : "Dormancy proven on-chain, the grace window is open",
       `${EXPLORER}/tx/${receipt.hash}`,
     );
     onChanged();
@@ -249,7 +249,7 @@ export function AttestationFlow({
         phase: "error",
         message: "",
         error:
-          `This vault's last recorded heartbeat is ${silenceHours.toFixed(0)} hours old — the testnet ` +
+          `This vault's last recorded heartbeat is ${silenceHours.toFixed(0)} hours old, the testnet ` +
           `attestation providers won't confirm a silence range that long. Prove a recent heartbeat first, ` +
           `or demonstrate dormancy on a fresh short-interval vault.`,
       });
@@ -273,7 +273,7 @@ export function AttestationFlow({
       if (deadlineTimestamp <= dueAt) {
         const wait = dueAt - deadlineTimestamp + 20;
         throw new Error(
-          `This vault went overdue moments ago — the ledger has not yet closed past the deadline. ` +
+          `This vault went overdue moments ago, the ledger has not yet closed past the deadline. ` +
             `Wait about ${wait} seconds and claim again.`,
         );
       }
@@ -285,7 +285,7 @@ export function AttestationFlow({
       for (let i = 0; i < 8; i++) {
         const closeAt = await ledgerCloseTime(minimalBlock);
         if (closeAt <= target || minimalBlock <= 1) break;
-        // Still too late — jump back by the shortfall, assuming a fast 2s/ledger
+        // Still too late, jump back by the shortfall, assuming a fast 2s/ledger
         // so we overshoot rather than undershoot again.
         minimalBlock = Math.max(1, minimalBlock - Math.ceil((closeAt - target) / 2) - 100);
       }
@@ -321,7 +321,7 @@ export function AttestationFlow({
   }
 
   const canProve = vault.state === "Active" || vault.state === "Dormant";
-  // Claiming on an unsealed vault strands it — sealing needs Active.
+  // Claiming on an unsealed vault strands it, sealing needs Active.
   const claimBlockedUnsealed = vault.state === "Active" && vault.overdue && !vault.willAttested;
   const canClaim = vault.state === "Active" && vault.overdue && vault.willAttested;
 
@@ -353,7 +353,7 @@ export function AttestationFlow({
             <div className="mb-7">
               <h4 className="mb-1.5 text-sm font-semibold">Prove life</h4>
               <p className="mb-3 max-w-[46ch] text-xs leading-relaxed text-ink-300">
-                Send the heartbeat above from your XRPL account, then let the app find it — or paste the
+                Send the heartbeat above from your XRPL account, then let the app find it, or paste the
                 transaction hash yourself. Anyone can relay this; it does not have to be the owner.
               </p>
               <input
@@ -381,9 +381,9 @@ export function AttestationFlow({
             <h4 className="mb-1.5 text-sm font-semibold">Prove silence</h4>
             <p className="mb-3 max-w-[46ch] text-xs leading-relaxed text-ink-300">
               {canClaim
-                ? "Proves that across an entire ledger range, no payment carrying this vault's tag reached the beacon. This opens the grace window — it releases nothing."
+                ? "Proves that across an entire ledger range, no payment carrying this vault's tag reached the beacon. This opens the grace window, it releases nothing."
                 : claimBlockedUnsealed
-                  ? "Blocked until the will is sealed — see step 1 above."
+                  ? "Blocked until the will is sealed, see step 1 above."
                   : vault.state !== "Active"
                     ? `Only available while the vault is Active. This one is ${vault.state}.`
                     : "Available once the heartbeat interval has lapsed with no heartbeat."}
@@ -449,7 +449,7 @@ export function AttestationFlow({
                     {progress.phase === "waiting" && (
                       <p className="mt-3 max-w-[44ch] text-[11px] leading-relaxed text-ink-400">
                         A voting round takes 90–180 seconds. Data providers are reaching consensus on this
-                        attestation right now — this wait is the oracle working, not the page hanging.
+                        attestation right now, this wait is the oracle working, not the page hanging.
                       </p>
                     )}
                   </>

@@ -73,7 +73,7 @@ const crossmark: WalletAdapter = {
     if (!address) {
       throw new Error(
         crossmarkError(res) ??
-          "Crossmark returned no address — make sure an account is created and the wallet is unlocked.",
+          "Crossmark returned no address, make sure an account is created and the wallet is unlocked.",
       );
     }
     return address;
@@ -134,7 +134,7 @@ const gemwallet: WalletAdapter = {
     const { getAddress } = await import("@gemwallet/api");
     const res = await getAddress();
     const address = res?.result?.address;
-    if (!address) throw new Error("GemWallet did not return an address — is it unlocked?");
+    if (!address) throw new Error("GemWallet did not return an address, is it unlocked?");
     return address;
   },
   setRegularKey: async (account, regularKey) => {
@@ -189,7 +189,7 @@ const xaman: WalletAdapter = {
   },
   setRegularKey: async (account, regularKey) => {
     const sdk = await xumm();
-    if (!sdk.payload) throw new Error("Xaman payloads unavailable — sign in first.");
+    if (!sdk.payload) throw new Error("Xaman payloads unavailable, sign in first.");
 
     const { created, resolved } = await sdk.payload.createAndSubscribe(
       {

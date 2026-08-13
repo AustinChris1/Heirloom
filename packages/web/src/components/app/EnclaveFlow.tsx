@@ -32,7 +32,7 @@ import {
 
 /** Fee forwarded to the FCC registry with each instruction. */
 const INSTRUCTION_FEE = parseEther("1");
-/** The vault contract's deploy block — event scans never need to look earlier. */
+/** The vault contract's deploy block, event scans never need to look earlier. */
 const DEPLOY_BLOCK = 33_500_000;
 /** The public RPC caps eth_getLogs at 30 blocks; the explorer indexes everything. */
 const EXPLORER_API = "https://coston2-explorer.flare.network/api";
@@ -113,7 +113,7 @@ function SealPanel({
   signer: JsonRpcSigner | null;
   onChanged: () => void;
 }) {
-  // Saved at creation, keyed by commitment — nothing to paste here.
+  // Saved at creation, keyed by commitment, nothing to paste here.
   const [willText, setWillText] = useState(() => loadWill(vault.willCommitment));
   const [flow, setFlow] = useState<Flow>(IDLE);
   const [pending, setPending] = useState<string | null>(null);
@@ -206,7 +206,7 @@ function SealPanel({
       await tx2.wait();
 
       setFlow({ step: 4, message: "Sealed and attested. The enclave can read this will; nobody else can." });
-      toast.success("Will sealed — the enclave confirmed it can decrypt and execute it");
+      toast.success("Will sealed, the enclave confirmed it can decrypt and execute it");
       onChanged();
     } catch (err) {
       { const m = humanError(err); setFlow((f) => ({ ...f, error: m })); toast.error(m); }
@@ -217,9 +217,8 @@ function SealPanel({
 
   return (
     <Panel label="Step 1 · Seal the will" steps={SEAL_STEPS} flow={flow}>
-      <p className="mb-5 max-w-[46ch] text-xs leading-relaxed text-ink-300">
-        Paste the will file this vault was created with. It is encrypted to the enclave's key in your browser —
-        the plaintext never leaves this page — and the enclave attests it can decrypt and execute it.
+      <p className="mb-4 max-w-[46ch] text-xs leading-relaxed text-ink-300">
+        Encrypted in your browser to the enclave's attested key. The plaintext never leaves this page.
       </p>
 
       <textarea
@@ -271,7 +270,7 @@ function ExecutePanel({
   // The estate is normally discovered from its own heartbeats on the beacon. A
   // vault that never heartbeated (short-interval demo vaults) has nothing to
   // discover, so the executor can supply the r-address directly.
-  // The estate address is in the will this browser saved at creation — no need
+  // The estate address is in the will this browser saved at creation, no need
   // to ask for it. Falls back to heartbeat discovery, then to typing it in.
   const [estateOverride, setEstateOverride] = useState(() => {
     try {
@@ -297,7 +296,7 @@ function ExecutePanel({
       const estate = estateOverride.trim() || (await findEstateAccount(BEACON_XRPL_ADDRESS, vault.heartbeatTag));
       if (!estate) {
         throw new Error(
-          "No heartbeat names this vault's tag on the beacon, so the estate can't be auto-detected — enter its r-address below.",
+          "No heartbeat names this vault's tag on the beacon, so the estate can't be auto-detected, enter its r-address below.",
         );
       }
       const { balanceDrops } = await accountInfo(estate);
@@ -360,7 +359,7 @@ function ExecutePanel({
       await tx2.wait();
 
       setFlow({ step: 5, message: "Settled. The distribution is recorded and ready to broadcast." });
-      toast.success("Estate settled — the enclave’s signed distribution is verified on-chain");
+      toast.success("Estate settled, the enclave’s signed distribution is verified on-chain");
       onChanged();
     } catch (err) {
       { const m = humanError(err); setFlow((f) => ({ ...f, error: m })); toast.error(m); }
@@ -371,7 +370,7 @@ function ExecutePanel({
     <Panel label="Step 5 · Execute the will" steps={EXEC_STEPS} flow={flow}>
       {vault.state === "Dormant" && !vault.canExecute && (
         <p className="max-w-[46ch] text-xs leading-relaxed text-ink-300">
-          Dormancy is proven but execution is still gated:{" "}
+          Gated:{" "}
           {graceRemainingDays > 0 && <>the grace window runs another {graceRemainingDays.toFixed(1)} days</>}
           {graceRemainingDays > 0 && vault.guardianApprovals < vault.guardianThreshold && <> and </>}
           {vault.guardianApprovals < vault.guardianThreshold && (
@@ -385,14 +384,13 @@ function ExecutePanel({
 
       {vault.state === "Dormant" && vault.canExecute && (
         <>
-          <p className="mb-5 max-w-[46ch] text-xs leading-relaxed text-ink-300">
-            Grace elapsed, guardians satisfied. Anyone may now instruct the enclave: the sealed ciphertext is
-            recovered from the chain, the estate balance is read from the XRP Ledger, and the enclave returns a
-            signed distribution priced at the live FTSO feed.
+          <p className="mb-4 max-w-[46ch] text-xs leading-relaxed text-ink-300">
+            Grace elapsed. Anyone may instruct the enclave, it decrypts, prices at the live FTSO feed, and
+            returns a signed distribution.
           </p>
           <input
             className="field mb-4 w-full font-mono text-xs"
-            placeholder="Estate r-address — from your will file, or auto-detected from heartbeats"
+            placeholder="Estate r-address, from your will file, or auto-detected from heartbeats"
             value={estateOverride}
             onChange={(e) => setEstateOverride(e.target.value)}
             spellCheck={false}
@@ -406,9 +404,8 @@ function ExecutePanel({
 
       {vault.state === "Executing" && !busy && flow.step < 5 && (
         <>
-          <p className="mb-5 max-w-[46ch] text-xs leading-relaxed text-ink-300">
-            An EXECUTE instruction is already with the enclave. Fetch its signed distribution and settle it
-            on-chain — this step is permissionless.
+          <p className="mb-4 max-w-[46ch] text-xs leading-relaxed text-ink-300">
+            An EXECUTE instruction is already with the enclave. Fetching its result is permissionless.
           </p>
           <button className="btn btn-solid" disabled={!signer} onClick={() => settle()}>
             Fetch result & settle
@@ -492,7 +489,7 @@ function PayoutPanel({ vault }: { vault: LiveVault }) {
         throw new Error(
           current
             ? `This estate authorises ${current}, not the enclave (${enclaveAddr}). Re-authorise while the vault is Active, or sign locally below.`
-            : `This estate has not authorised the enclave (${enclaveAddr}) as its regular key. That is done while the owner is alive — use "Authorise the enclave to pay out" on an Active vault, or sign locally below.`,
+            : `This estate has not authorised the enclave (${enclaveAddr}) as its regular key. That is done while the owner is alive, use "Authorise the enclave to pay out" on an Active vault, or sign locally below.`,
         );
       }
 
@@ -580,9 +577,8 @@ function PayoutPanel({ vault }: { vault: LiveVault }) {
   return (
     <Panel label="Step 6 · Distribute the estate" steps={[]} flow={IDLE}>
       <p className="mb-5 max-w-[46ch] text-xs leading-relaxed text-ink-300">
-        The distribution below is what the enclave signed and the contract verified. Broadcasting it moves the
-        actual XRP: each settled bequest becomes one XRPL payment, built from this table — a will file can only
-        name addresses, never change amounts.
+        Signed by the enclave, verified by the contract. Broadcasting moves the actual XRP, the will file only
+        maps hashes to addresses, it cannot change amounts.
       </p>
 
       {distribution && distribution.length > 0 && (
@@ -602,7 +598,7 @@ function PayoutPanel({ vault }: { vault: LiveVault }) {
 
       <textarea
         className="field h-24 w-full resize-y font-mono text-[11px] leading-relaxed"
-        placeholder="Will file — supplies the r-addresses behind the settled hashes"
+        placeholder="Will file, supplies the r-addresses behind the settled hashes"
         value={willText}
         onChange={(e) => setWillText(e.target.value)}
         spellCheck={false}
@@ -614,9 +610,8 @@ function PayoutPanel({ vault }: { vault: LiveVault }) {
           Let the enclave sign
         </p>
         <p className="mb-4 max-w-[46ch] text-xs leading-relaxed text-ink-300">
-          The estate delegated the enclave's key as an XRPL regular key while alive, so the enclave signs these
-          payments itself and returns blobs anyone may broadcast. No seed is entered by anyone — this is how a
-          real estate pays out after its owner is gone.
+          The enclave signs these payments itself, with the key this estate authorised while alive. No seed,
+          from anyone.
         </p>
         <button
           className="btn btn-solid"
@@ -634,8 +629,7 @@ function PayoutPanel({ vault }: { vault: LiveVault }) {
         </summary>
         <div className="mt-4 space-y-4">
           <p className="max-w-[46ch] leading-relaxed">
-            For an estate that never delegated a regular key. Pasting a seed into any web page is a real risk —
-            it exists here so the demo works without delegation, and because on testnet the seed is disposable.
+            For an estate that never authorised the enclave. Testnet only.
           </p>
           <input
             className="field w-full font-mono text-sm"
@@ -657,7 +651,7 @@ function PayoutPanel({ vault }: { vault: LiveVault }) {
       {alreadySent && !busy && (
         <p className="mt-3 max-w-[46ch] font-mono text-[11px] leading-relaxed text-ink-300">
           This vault's distribution has been broadcast from this browser. Broadcasting again would pay every
-          beneficiary twice — the ledger has no undo.
+          beneficiary twice, the ledger has no undo.
         </p>
       )}
 

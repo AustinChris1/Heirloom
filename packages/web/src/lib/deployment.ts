@@ -10,7 +10,7 @@ export const EXPLORER = "https://coston2-explorer.flare.network";
 
 /**
  * The XRPL account every heartbeat is sent to. The contract stores only its
- * hash, so the readable address is carried here — it must match what
+ * hash, so the readable address is carried here, it must match what
  * `configureBeacon` was called with, or heartbeats will not verify.
  */
 export const BEACON_XRPL_ADDRESS = "rHb9CJAWyB4rj91VRWn96DkukG4bwdtyTh";

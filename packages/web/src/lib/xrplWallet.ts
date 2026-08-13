@@ -1,18 +1,7 @@
 /**
- * XRPL wallet adapters, for the one transaction the owner signs himself:
- * authorising the enclave as his estate's regular key.
- *
- * This step must never involve a pasted seed. `SetRegularKey` is an ordinary
- * XRPL transaction, so the owner approves it in whatever wallet he already
- * uses — the key stays there, and this page only ever sees a hash.
- *
- * XRPL has no single connector standard (no EIP-1193 equivalent), so each
- * wallet gets a small adapter behind one interface. Adding another is a matter
- * of writing `detect`, `address`, and `setRegularKey`.
- *
- *   Crossmark  — injected at `window.crossmark`
- *   GemWallet  — official API package, message-based
- *   Xaman      — needs a hosted API key; documented, not wired here
+ * XRPL wallet adapters for the one transaction the owner signs himself:
+ * `SetRegularKey`, authorising the enclave. XRPL has no EIP-1193 equivalent,
+ * so each wallet gets an adapter behind one interface.
  */
 
 declare global {
@@ -39,19 +28,9 @@ export interface WalletAdapter {
   address: () => Promise<string>;
   /** Signs and submits SetRegularKey. Returns the ledger outcome. */
   setRegularKey: (account: string, regularKey: string) => Promise<{ hash: string | null; engineResult: string }>;
-  /**
-   * Signs a trivial 1-drop self-payment. Purely diagnostic: if this succeeds
-   * while SetRegularKey fails, the wallet is refusing the *transaction type*.
-   * If both fail identically, the wallet cannot sign for that account at all
-   * (bad import, wrong network, view-only card) — a different problem with a
-   * different fix, and worth knowing which before blaming vendor policy.
-   */
+  /** Diagnostic 1-drop self-payment: isolates "refuses this type" from "cannot sign at all". */
   testSign?: (account: string) => Promise<{ hash: string | null; engineResult: string }>;
-  /**
-   * Forgets the cached session, so the next `address()` genuinely re-prompts.
-   * Matters for wallets with sticky sign-ins (Xaman): connecting the wrong
-   * account must be recoverable by just trying again.
-   */
+  /** Forgets a cached session so the next `address()` re-prompts (Xaman is sticky). */
   disconnect?: () => Promise<void>;
 }
 
@@ -59,7 +38,7 @@ export interface WalletAdapter {
 /* Crossmark                                                         */
 /* ---------------------------------------------------------------- */
 
-/** Crossmark has moved these between namespaces across versions; accept either. */
+/** Crossmark moved these between namespaces across versions. */
 function crossmarkApi(): CrossmarkMethods {
   const cm = window.crossmark;
   const m = cm?.methods ?? cm?.async;
@@ -67,7 +46,6 @@ function crossmarkApi(): CrossmarkMethods {
   return m;
 }
 
-/** Surfaces the wallet's own complaint rather than a generic failure. */
 function crossmarkError(res: any): string | null {
   const meta = res?.response?.data?.meta ?? res?.data?.meta ?? res?.meta;
   if (meta?.isRejected) return "You rejected the request in Crossmark.";
@@ -104,9 +82,7 @@ const crossmark: WalletAdapter = {
     const submit = crossmarkApi().signAndSubmitAndWait;
     if (!submit) throw new Error("This Crossmark version cannot submit transactions.");
 
-    // Account is deliberately omitted: Crossmark fills it from the active card,
-    // and supplying it has produced "no card matches an account address in this
-    // payload" when the session's card and the passed address disagree.
+    // Account omitted: Crossmark fills it from the active card.
     void account;
     const res = await submit({ TransactionType: "SetRegularKey", RegularKey: regularKey });
     const failure = crossmarkError(res);
@@ -162,9 +138,7 @@ const gemwallet: WalletAdapter = {
     return address;
   },
   setRegularKey: async (account, regularKey) => {
-    // GemWallet exposes a first-class helper for this transaction type; it is
-    // more reliable than the generic submitTransaction path and fills Account
-    // from the connected wallet itself.
+    // GemWallet's first-class helper; more reliable than generic submitTransaction.
     void account;
     const { setRegularKey } = await import("@gemwallet/api");
     const res = await setRegularKey({ regularKey });
@@ -186,11 +160,8 @@ const gemwallet: WalletAdapter = {
 /* ---------------------------------------------------------------- */
 
 /**
- * Xaman is not an extension: sign requests travel through Xaman's hosted API
- * and the owner approves on their phone. That needs a (free) API key from
- * apps.xaman.dev with this site's origin allowed, so the adapter is gated
- * behind VITE_XAMAN_API_KEY — the button simply doesn't exist until a key is
- * configured. The key is public-safe: it identifies the app, it signs nothing.
+ * Xaman signs on the phone via its hosted API, so it needs a (public-safe) API
+ * key from apps.xaman.dev. Gated behind VITE_XAMAN_API_KEY.
  */
 let xummSdk: any | null = null;
 
@@ -223,10 +194,7 @@ const xaman: WalletAdapter = {
     const { created, resolved } = await sdk.payload.createAndSubscribe(
       {
         txjson: { TransactionType: "SetRegularKey", Account: account, RegularKey: regularKey },
-        // The whole demo lives on testnet. Without this, payloads validate
-        // against the signed-in profile's network (mainnet by default), where
-        // the estate does not exist — and the Xaman app is told to switch to
-        // the right node when it opens the request.
+        // Without this, payloads validate against the profile's network (mainnet).
         options: { force_network: "TESTNET" },
       } as never,
       (event: any) => {
@@ -234,8 +202,6 @@ const xaman: WalletAdapter = {
       },
     );
 
-    // Signed-in users get a push notification; the sign page covers everyone
-    // else (QR on desktop, deeplink on the phone itself).
     if (created?.next?.always) window.open(created.next.always, "_blank", "noopener");
 
     const outcome: any = await resolved;
@@ -256,12 +222,7 @@ const xaman: WalletAdapter = {
 
 /* ---------------------------------------------------------------- */
 
-/**
- * Order matters — the first is the one users reach for. GemWallet is first
- * because it exposes `setRegularKey` as a first-class call and signs it without
- * app verification; Crossmark next; Xaman last, since it blocks this
- * transaction type until an app is allowlisted.
- */
+/** GemWallet first: the one verified signing SetRegularKey without app verification. */
 export const WALLETS: WalletAdapter[] = [gemwallet, crossmark, xaman];
 
 /** Every wallet currently present in this browser. */

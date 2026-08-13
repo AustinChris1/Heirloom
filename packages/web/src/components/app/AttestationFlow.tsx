@@ -23,21 +23,13 @@ import { toast } from "../../lib/toast";
 import { humanError, VAULT_ABI_WRITE } from "../../lib/wallet";
 
 /**
- * Runs a full FDC attestation from the browser.
- *
- * Both legs of the dead-man's switch live here, so a judge never has to open a
- * terminal to see the thing the project is actually about. The round wait is
- * 90–180 seconds of genuine protocol latency; it is shown as a real progress
- * bar with an elapsed counter rather than hidden behind a spinner, because
- * pretending it is instant would misrepresent how the oracle works.
+ * Runs a full FDC attestation from the browser — both legs of the dead-man's
+ * switch. The 90-180s round is shown as real progress, not a spinner.
  */
 
 const STEPS = ["Prepare", "Submit", "Await round", "Fetch proof", "Finalise"] as const;
 
-/**
- * An attestation already submitted to FdcHub but not yet finalised on the
- * vault. Persisted so a refresh mid-round resumes instead of paying again.
- */
+/** Submitted to FdcHub but not yet finalised; persisted so a refresh resumes. */
 interface PendingAttestation {
   method: "proveLife" | "claimDormancy";
   encoded: string;
@@ -120,12 +112,7 @@ export function AttestationFlow({
   }, [vault.id, vault.state, vault.lastHeartbeat]);
   const busy = !["idle", "done", "error"].includes(progress.phase);
 
-  /**
-   * Heartbeats are public payments to a known beacon carrying this vault's
-   * tag — nothing about them needs to be pasted by hand. Scan the beacon's
-   * recent transactions and pick the newest one the contract would accept
-   * (it rejects anything at or before the recorded lastHeartbeat as stale).
-   */
+  /** Finds the newest heartbeat for this vault that the contract would accept. */
   async function scanForHeartbeat() {
     setScanning(true);
     setScanNote(null);
@@ -160,8 +147,7 @@ export function AttestationFlow({
     }
   }
 
-  // Remember the last live phase so an error can point at the step that
-  // failed instead of resetting the whole strip to "not started".
+  // Remember the last live phase so errors mark the step that failed.
   const lastLivePhase = useRef<Progress["phase"]>("idle");
   const set = (p: Partial<Progress>) => {
     if (p.phase && p.phase !== "error") lastLivePhase.current = p.phase;
@@ -176,9 +162,7 @@ export function AttestationFlow({
   ) {
     const contract = new Contract(HEIRLOOM_VAULT, VAULT_ABI_WRITE, signer!);
 
-    // Remember the in-flight attestation. The request is already paid for and
-    // sitting in a voting round; a refresh or a closed tab should not cost
-    // another fee and another three minutes.
+    // Already paid for and in a round: a refresh shouldn't cost another.
     savePending(vault.id, { method, encoded, round, at: Date.now() });
 
     set({ phase: "waiting", message: `Round ${round} — waiting for finalisation`, fraction: 0 });
@@ -249,8 +233,6 @@ export function AttestationFlow({
 
       await completeWith("proveLife", encoded, round);
     } catch (e) {
-      // humanError can come back empty for exotic reverts — fall through to
-      // the raw message rather than showing a bare ✕.
       const m = humanError(e) || (e as Error)?.message || String(e);
       set({ phase: "error", message: "", error: m });
       toast.error(m);
@@ -260,10 +242,7 @@ export function AttestationFlow({
   async function runClaimDormancy() {
     if (!signer) return;
 
-    // The nonexistence search must reach back past the vault's last recorded
-    // heartbeat. Testnet data providers will not confirm ranges that stretch
-    // back many hours, so a long-silent vault is honestly unprovable here —
-    // say so up front instead of failing after four slow steps.
+    // Testnet providers won't confirm very long ranges; say so before four slow steps.
     const silenceHours = (Date.now() / 1000 - vault.lastHeartbeat) / 3600;
     if (silenceHours > 6) {
       set({
@@ -280,15 +259,24 @@ export function AttestationFlow({
     try {
       set({ phase: "preparing", message: "Reading the XRP Ledger for a search range" });
 
-      // The contract requires the search range to START at or before the
-      // vault's last recorded heartbeat (SearchRangeTooLate otherwise). A
-      // ledgers-from-seconds estimate is fragile — testnet close times vary —
-      // so instead of guessing, verify: read the candidate ledger's actual
-      // close time and step further back until it is genuinely before the last
-      // heartbeat, with a safety margin.
+      // Range must START before lastHeartbeat (SearchRangeTooLate). Verify real
+      // close times rather than estimating ledgers from seconds.
+      // ...and END after the heartbeat was due (SearchRangeTooShort).
       const head = await currentLedger();
-      const deadlineBlock = head - 5;
-      const deadlineTimestamp = await ledgerCloseTime(deadlineBlock);
+      const dueAt = vault.lastHeartbeat + vault.heartbeatInterval;
+      let deadlineBlock = head - 5;
+      let deadlineTimestamp = await ledgerCloseTime(deadlineBlock);
+      for (let i = 0; deadlineTimestamp <= dueAt && deadlineBlock < head && i < 6; i++) {
+        deadlineBlock = Math.min(head, deadlineBlock + 3);
+        deadlineTimestamp = await ledgerCloseTime(deadlineBlock);
+      }
+      if (deadlineTimestamp <= dueAt) {
+        const wait = dueAt - deadlineTimestamp + 20;
+        throw new Error(
+          `This vault went overdue moments ago — the ledger has not yet closed past the deadline. ` +
+            `Wait about ${wait} seconds and claim again.`,
+        );
+      }
 
       const MARGIN = 120; // seconds of slack below lastHeartbeat
       const target = vault.lastHeartbeat - MARGIN;
@@ -326,8 +314,6 @@ export function AttestationFlow({
 
       await completeWith("claimDormancy", encoded, round);
     } catch (e) {
-      // humanError can come back empty for exotic reverts — fall through to
-      // the raw message rather than showing a bare ✕.
       const m = humanError(e) || (e as Error)?.message || String(e);
       set({ phase: "error", message: "", error: m });
       toast.error(m);
@@ -335,9 +321,7 @@ export function AttestationFlow({
   }
 
   const canProve = vault.state === "Active" || vault.state === "Dormant";
-  // Sealing is only possible while Active, so claiming dormancy on an unsealed
-  // vault strands it: it can never execute without the owner reviving it first.
-  // Block the claim rather than warn about it.
+  // Claiming on an unsealed vault strands it — sealing needs Active.
   const claimBlockedUnsealed = vault.state === "Active" && vault.overdue && !vault.willAttested;
   const canClaim = vault.state === "Active" && vault.overdue && vault.willAttested;
 

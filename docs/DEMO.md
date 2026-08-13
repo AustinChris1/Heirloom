@@ -1,143 +1,293 @@
-# Demo video script
+# Heirloom demo video: production brief
 
-*Private run-of-show for recording. Not listed on the docs site.*
+*Private. Not listed on the docs site.*
 
-Target: **~3½ minutes of finished video**, shot **entirely in the browser** — every step of the lifecycle is clickable in the app, no terminal on camera. The full unattended lifecycle has also been proven (vault #8, keeper-driven, transaction trail in USAGE.md), so nothing here is a mock-up.
+The footage is already recorded. This document is the narration and the edit: every scene says what is on screen, what happens in it, and the exact words to read over it.
 
-Every quoted speech below is **TTS-ready**: no em dashes, no code formatting or symbols an AI voice would read literally, sentences kept short. Paste them into the voice tool as they are.
+**Final video target:** 4 minutes 30 seconds, 1920 x 1080, MP4 with burned-in captions.
 
-> ## Read this first: the waits are longer than the video
->
-> An FDC round takes **90–180 seconds to finalise**, and the demo runs two of them (prove-life, claim-dormancy). The enclave itself answers **within seconds** — the FDC rounds are the only real waits.
->
-> Do **not** record those waits in one take. Record start and finish, cut the middle, and say "this takes about two minutes, cut for time" — honest, and every judge accepts it.
-
-## Before recording
-
-- [ ] **Health, without a terminal:** open the app and check vault #6 or #8 shows *Settled* (proves contract reads) and the FTSO price ticks (proves the feed). The definitive check is simply that the seal step attests during rehearsal. *(Optional terminal equivalent: `scripts/health.ts` → `✓ ALL SYSTEMS GO`. If the TEE is not status 2, the enclave container restarted — re-run `post-build.sh` + `set-tee-address.ts` and re-seal a fresh vault; old vaults are sealed to the dead key.)*
-- [ ] **Estate funded:** ~100 XRP. Payouts drain it, and an estate below reserve+fees makes the enclave refuse execution (correctly) — the refused vault is stuck in Executing and only `revokeVault` clears it. Refill: `curl -X POST https://faucet.altnet.rippletest.net/accounts -H "Content-Type: application/json" -d '{"destination":"<estate r-address>"}'` (or ask Claude).
-- [ ] **Install GemWallet, set it to Testnet, and hold the estate account.** The authorisation beat is signed there — one approval, no seed on screen. (Crossmark failed to resolve signing material in testing; Xaman refuses this transaction type until the app is allowlisted. GemWallet is the one to film.)
-- [ ] **Three strings in a notepad:** the estate r-address, the estate seed (`packages/contracts/deployments/xrpl-testnet-wallet.json`), and MetaMask unlocked on Coston2 with the owner account (~5 C2FLR; each SEAL/EXECUTE carries a 1 C2FLR fee).
-- [ ] **Know the two-vault rule:** a "life" vault for the heartbeat/prove-life beat, and a "death" vault that is **never heartbeated** — a heartbeat with a vault's tag blocks that vault's nonexistence proof for ~25 minutes.
-- [ ] **Rehearse the full click-through once off-camera.** Also do the negative test then: paste a will with one amount changed and watch the seal panel refuse it.
-- [ ] **Keeper off.** `scripts/keeper.ts` runs the whole post-death sequence unattended — great as a closing *line* ("a cron job does all of this with nobody watching"), fatal if it races you to the demo vault mid-recording. Don't schedule it while filming.
-- [ ] Browser at 1280×720 or larger, zoom 100%, dark room for the black UI. Proxy logs tailing in a second window — a real instruction arriving at a real enclave is your most credible shot.
+**Every quoted line is written for an AI voice.** No em dashes, no code formatting, no symbols a reader would say out loud, short sentences. Paste them in exactly as written. Generate each scene as its own clip so it can be nudged against the picture.
 
 ---
 
-## 0:00 — The problem (20s)
+## 1. What Heirloom is, in two sentences
 
-Land on the hero. Let the ECG run.
+Heirloom is a dead man's switch for XRP. You write a will that nobody can read, you prove you are alive with a tiny payment now and then, and if you go silent the network proves it, a sealed computer opens your will, and your heirs are paid from your own account.
 
-> "Billions in crypto are lost forever when holders die. If you self-custody XRP, your options today are: give someone your keys, hand it to a custodian, put your seed phrase in a legal document, or do nothing. Almost everyone does nothing."
-
-Scroll to the four options. Let them read.
-
-## 0:20 — The insight (25s)
-
-Scroll into the flatline section slowly. Let the trace die as you scroll — the page does this for you.
-
-> "A dead man's switch needs to prove something unusual. Not that a payment happened, but that none did. Proving absence is the hard part. Flare's Data Connector has an attestation type for exactly that, called XRP Payment Nonexistence. That's the whole reason this is built on Flare."
-
-## 0:45 — Create the death vault and seal the will (60s)
-
-Go to `/app`. Connect wallet.
-
-> "This is live on Coston 2, against a deployed contract."
-
-Create a vault:
-- Paste the estate r-address
-- Heartbeat **5 minutes (testnet demo)** — the unit selector is there for exactly this — grace **0** *(say: "shortened for the demo — real vaults use 90 days and a 30-day grace window")*
-- Two bequests: **2 XRP fixed** and a **50% share**, plus a residuary address
-
-Point at the right-hand panel:
-
-> "The commitment updates as I type. That hash is the only thing that reaches the chain. Beneficiaries and amounts never leave the browser. And this distribution preview isn't a mock-up. It's the exact allocation engine that runs inside the enclave. Watch what happens if the estate can't cover the fixed bequest."
-
-Drop the estate-size preview below the fixed bequest so **abatement** kicks in.
-
-> "Every bequest shrinks proportionally, preserving the ratios that were written."
-
-Submit → **Download will file**. Then, still on the vault, **Authorise with GemWallet** — one approval on screen:
-
-> "Before he ever goes quiet, the owner does one more thing: he grants the enclave's key permission to sign for his account. One standard XRPL transaction, approved in his own wallet. His own key never leaves it, and he can revoke this any time he's alive."
-
-> "The chain holds the hash. I hold the will."
-
-Open the vault, paste the will file into **Seal the will**:
-
-> "Before anything is encrypted, the app fetches the enclave's public key from its attestation document, and refuses unless it matches the exact address the contract trusts. Then the will is encrypted right here in the browser, to the enclave's own key, and sealed."
-
-Click **Encrypt & seal in the enclave**. Two wallet confirmations; between them the enclave's attestation lands in seconds — cut to the proxy logs (`HEIRLOOM / SEAL … ok`) and back.
-
-> "The enclave just proved it can decrypt and execute this will, over its own signature, without revealing a single beneficiary. That's the dry run you do while you're alive, so a corrupt ciphertext can't surface after you're gone."
-
-## 1:45 — Proof of life (30s on screen, ~4 min real time)
-
-Create the **life vault** (interval 1 day, same estate). In its **Stay alive** panel, open **+ Testnet helper: send it from here**, paste the estate seed, **Sign & send heartbeat** — the app builds the dust payment with the right destination tag itself, which is why this exists: most wallets bury the tag, and an untagged heartbeat silently doesn't count.
-
-Copy the printed hash into **Prove life**.
-
-> "To stay alive, I send a dust payment on the XRP Ledger carrying my vault's destination tag. A fraction of a cent, with no Flare-side key, and anyone can relay the proof for me. Watch the round. Prepare, submit, wait for finalisation, fetch the Merkle proof, and verify it on chain."
-
-Heartbeat timer resets on screen.
-
-## 2:15 — Proof of silence (30s on screen, ~5 min real time)
-
-Back to the **death vault** — its 5 minutes are long gone. Click **Claim dormancy**.
-
-> "Now the hard direction. This proves that across hundreds of ledgers, no payment carrying my tag reached the beacon. Proving something happened is easy. Proving nothing happened is the whole problem, and it's why this is on Flare."
-
-**Narrate over the round wait — the most valuable 30 seconds in the video:**
-
-> "This wait is the point. My request sits in a voting round while Flare's data providers, the same validators that secure the price feeds, each independently read the XRP Ledger and satisfy themselves that no payment with my tag exists in that range. Consensus needs more than half the network's weight. Nobody asserts that I've gone silent. A majority of the network's economic weight looked, and agreed."
-
-Vault flips **DORMANT**; the **Execute the will** panel appears (grace 0, no guardians).
-
-## 2:45 — Execute and pay out (35s)
-
-Paste the estate r-address into the estate field *(this vault never heartbeated, so there's nothing to auto-detect — a real vault's estate is found from its own heartbeats)*, click **Execute in the enclave**:
-
-> "Watch what it does. The sealed ciphertext comes back off the chain itself. It's public data, so execution needs no private copy of anything. The estate balance is read live from the XRP Ledger. And inside the enclave, the will is decrypted and priced against the live price feed, so a bequest written in dollars means the right amount of XRP today."
-
-Signed distribution lands in seconds; the app settles it.
-
-> "The contract verified three things independently. The signature recovers to the registered enclave. The revealed commitment matches what I sealed. And the price sits within tolerance of the live feed."
-
-**Distribute the estate** appears. Paste will file + estate seed → **Sign & broadcast**:
-
-> "And there it is. The will, executed. Real payments on the XRP Ledger, to the people it named. This is also the first moment anyone learns who they were."
-
-Click through to a `tesSUCCESS` on the XRPL explorer — the closing money shot. Then one line, over the settled vault:
-
-> "And none of my clicks were needed. A keeper cron job runs this whole sequence unattended, signing with a regular key the owner delegated while alive. We've run it end to end with zero human steps. The clicks are for you."
-
-## 3:20 — The trust boundary (15s)
-
-Scroll the landing page to **The enclave holds your secret. It does not hold your money.**
-
-> "The obvious objection is that the enclave is a trusted component. So it was given exactly one power, reading a will nobody else can read, and no authority over whether, when, or to whom anything moves. It can't move funds early. It can't pay someone else. It can't act alone. And it can't outvote the owner. One late heartbeat resets everything."
-
-## 3:35 — Close (10s)
-
-> "Inheritance is the demo. The primitive is private, programmable rules over native XRP, enforced by an enclave and triggered by provable on-ledger facts. The same machinery does social recovery, vesting, and savings locks, for the two billion XRP sitting idle that Flare is trying to activate."
+The thing that makes it special: your XRP never moves while you are alive, nobody can read the will early, and after you are gone no human being holds a key that could move the money.
 
 ---
 
-## Say these out loud
+## 2. The recorded flow
 
-Being explicit about limits is worth more than hiding them:
+Scenes follow the recording exactly:
 
-- Timings are shortened — **5 minutes** on the death vault, **1 day** on the life vault. Real vaults use 90 days with a 30-day grace window.
-- The FDC round waits were **cut for time**. Say so; do not let it look instant.
-- The authorisation is signed in **GemWallet**. Say that Xaman blocks this transaction type for apps that are not yet allowlisted — it is a wallet-vendor safety policy about rekey transactions, not a limitation of the design, and the allowlist request is filed.
-- The payout signature comes from a **delegated regular key** — the estate performed a real `SetRegularKey`, the master seed is never touched, and the owner can revoke at any moment while alive. The remaining production step is holding that delegated key **inside the TEE** (tee-node managed-wallet subsystem); today the keeper holds it. Same mechanism, one rung earlier.
-- The encrypted will travels in the instruction payload; production keeps it off-chain with only the commitment on-chain — the contract is already structured for that.
+| # | Scene | Footage |
+|---|---|---|
+| 1 | The problem | Landing hero, scrolling the four bad options |
+| 2 | The insight | Landing flatline section |
+| 3 | The documentation | Docs, flicking through each page |
+| 4 | Test networks | `/app`, then the Flare and XRP faucets |
+| 5 | Live vaults | Scrolling the vault list |
+| 6 | Writing the will | New vault form, commitment, preview, abatement |
+| 7 | Authorising the enclave | GemWallet approval |
+| 8 | Sealing the will | Encrypt and seal, enclave attests |
+| 9 | Staying alive | Heartbeat, then Prove life |
+| 10 | Proving silence | Claim dormancy, vault turns Dormant |
+| 11 | Execution | Execute the will, vault turns Settled |
+| 12 | The payout | Enclave signs, payments land on XRPL |
+| 13 | Close | End card |
 
-## Don't
+---
 
-- Don't skip the seal beat. Browser-side encryption to an attested enclave key is the confidential-compute story — the difference between "routing works" and "the product works".
-- Don't heartbeat the death vault — its nonexistence proof will (correctly) refuse for ~25 minutes afterwards. Life vault and death vault, always separate.
-- Don't run the keeper on a timer while filming — it will race you to the death vault and win.
-- Don't scroll fast through the flatline section — it's the best thing on the page and needs about four seconds.
-- Don't skip the proxy logs, and don't let the final reveal go unremarked: the distribution appearing on-chain is the first time the beneficiaries become public, and only because the will legitimately executed.
+## 3. The script
+
+Read slowly. Almost everyone goes too fast on the first pass; slow down about twenty percent from what feels natural.
+
+---
+
+### Scene 1: The problem (0:00 to 0:35)
+
+**Show:** Landing hero, the ECG pulse running. Then the scroll into the four options.
+
+**Do:** Let the hero sit for three seconds before any voice starts. Scroll slowly through the four options; each one wants about two seconds on screen.
+
+**Say:**
+
+> Billions in crypto are lost forever when the people holding it die. If you hold XRP yourself, every option you have today is bad. Give someone your keys, and they can take everything tomorrow, while you are alive and well. Move it to a custodian, and you have given up the one thing you were protecting. Write your seed phrase into a legal will, and it sits in a document handled by people you did not choose. Or do nothing, which is what almost everyone does.
+
+---
+
+### Scene 2: The insight (0:35 to 1:00)
+
+**Show:** The flatline section. The heartbeat trace dies as the page scrolls.
+
+**Do:** Scroll into it slowly. Let the trace finish dying before the voice starts. This section does the work; do not rush it.
+
+**Say:**
+
+> A dead man's switch has to prove something unusual. Not that a payment happened, but that none did. Proving absence is the hard part, and almost nothing on chain can do it. Flare's Data Connector has an attestation type for exactly this. It is called XRP Payment Nonexistence, and it is the reason this is built on Flare.
+
+**Editing note:** Hold the final frame of the flatline for one extra second before cutting to Scene 3. Silence there is good.
+
+---
+
+### Scene 3: The documentation (1:00 to 1:15)
+
+**Show:** The docs site, flicking through the pages.
+
+**Do:** Keep each page on screen about two seconds. Do not linger or scroll deeply; this is a flick, not a read.
+
+**Say:**
+
+> Everything here is written down. How it works in plain language, the architecture, the deployment, and the honest limits. The docs are served from the same repository they describe, so they cannot drift from what is running.
+
+---
+
+### Scene 4: Test networks (1:15 to 1:35)
+
+**Show:** The app at `/app`, then the Flare faucet and the XRP Ledger faucet.
+
+**Do:** Show each faucet page for about four seconds.
+
+**Say:**
+
+> This runs on test networks. Flare's Coston 2 for the contract, and the XRP Ledger testnet for the money. Both faucets are free and open, so everything you are about to see can be reproduced by anyone, with nothing real at risk.
+
+---
+
+### Scene 5: Live vaults (1:35 to 1:50)
+
+**Show:** The vault list, scrolling.
+
+**Do:** Scroll gently. Let one or two vault cards with live countdown timers stay on screen long enough to see the seconds moving.
+
+**Say:**
+
+> These are real vaults on a deployed contract, and anyone can read them. The timers are live. What you cannot see is who inherits, or how much, because that never touches the chain.
+
+---
+
+### Scene 6: Writing the will (1:50 to 2:35)
+
+**Show:** The New vault form. Estate account, timings, beneficiaries, residue. The right-hand panel updating as you type.
+
+**Do:**
+
+1. Fill in the estate account.
+2. Set the interval to minutes and the grace window to zero.
+3. Add the beneficiaries, one row at a time, slowly enough that the commitment visibly changes.
+4. Drop the estate size below the fixed bequests so the abatement warning appears. Hold two seconds.
+5. Create the vault.
+
+**Say:**
+
+> I bind a vault to my own XRP Ledger account. This is the account holding my savings, and it is the account my heirs are paid from. Nothing is deposited into Heirloom. Nothing moves at all.
+
+> Watch the commitment on the right. It updates as I type. That hash is the only thing that ever reaches the chain. The beneficiaries and the amounts never leave this browser. And the distribution preview underneath is not a mock-up. It is the same allocation engine that runs inside the enclave later.
+
+> If the estate cannot cover everything I promised, every bequest shrinks in proportion, preserving the ratios I wrote.
+
+**Editing note:** A subtle zoom into the commitment hash as it changes makes the point land. One point one times is enough.
+
+---
+
+### Scene 7: Authorising the enclave (2:35 to 3:00)
+
+**Show:** The authorisation panel, the GemWallet popup, then the green confirmation.
+
+**Do:** Click authorise, approve in the wallet, and hold on the green confirmation line for two full seconds.
+
+**Say:**
+
+> Now the step that makes everything after my death possible. I grant the enclave's key permission to sign for my account. This is one ordinary XRP Ledger transaction, approved in my own wallet. My key never leaves that wallet. The enclave's key was generated inside the hardware and has never been exported to anyone, including me. And I can revoke this at any time while I am alive.
+
+**Editing note:** This is the second most important frame in the video. Zoom slightly on the green confirmation.
+
+---
+
+### Scene 8: Sealing the will (3:00 to 3:25)
+
+**Show:** The seal panel with the will matched to the commitment, then the encrypt and seal step running.
+
+**Do:** Click seal. Two wallet confirmations. The enclave answers in seconds, so this needs no trimming.
+
+**Say:**
+
+> Before anything is encrypted, the app fetches the enclave's public key from its attestation document, and refuses to continue unless that key matches the exact identity the contract trusts. Then the will is encrypted here in the browser and sent to the sealed computer.
+
+> It just proved it can open my will and execute it, and it said so with its own signature, without revealing a single beneficiary. That is the rehearsal you run while you are alive, so a broken will cannot surface after you are gone.
+
+---
+
+### Scene 9: Staying alive (3:25 to 3:45)
+
+**Show:** The Stay alive panel, the heartbeat being sent, then Prove life running its five steps.
+
+**Do:** Send the heartbeat, then start Prove life. Let the progress bar move for a few seconds before cutting.
+
+**Say:**
+
+> To stay alive I send a tiny payment on the XRP Ledger, carrying a destination tag unique to my vault. A fraction of a cent. No Flare transaction needed, and anyone can relay the proof on my behalf, so being offline never puts me at risk.
+
+**Editing note:** The voting round takes two to three minutes. Speed-ramp it to about four seconds and let the caption say the wait was shortened.
+
+---
+
+### Scene 10: Proving silence (3:45 to 4:20)
+
+**Show:** The overdue vault, its counter climbing. Claim dormancy running. The vault turning Dormant.
+
+**Do:** Start the claim. Hold on the progress bar during the narration below, then cut to the moment the state changes.
+
+**Say:**
+
+> Now the hard direction. This proves that across hundreds of ledgers, no payment carrying my tag ever reached the beacon.
+
+> This wait is the point. My request is sitting in a voting round while Flare's data providers, the same validators that secure the price feeds, each go and read the XRP Ledger for themselves. Each one satisfies itself that no payment with my tag exists in that range. More than half the network's economic weight has to agree. Nobody asserts that I am gone. The network looked, and agreed.
+
+> And even now, nothing has moved. This opens a waiting period. One heartbeat from me, or one button, cancels all of it and clears every approval.
+
+**Editing note:** This is the centrepiece. Keep the start and the end of the round, speed-ramp the middle, and let the narration run across the cut so it feels continuous.
+
+---
+
+### Scene 11: Execution (4:20 to 4:40)
+
+**Show:** Execute the will, the confirmations, the vault reaching Settled with the distribution table.
+
+**Say:**
+
+> The waiting period has passed, so the will can execute. The sealed will is recovered from the chain itself, because the encrypted copy is public and useless to anyone but the enclave. The estate balance is read live from the XRP Ledger. Inside the enclave the will is decrypted and priced against Flare's live XRP price feed, so a bequest written in dollars means the right amount of XRP today.
+
+> The contract then checks three things before accepting anything. That the signature really came from the registered enclave. That the will matches the fingerprint I sealed. And that the price is close to the live feed.
+
+---
+
+### Scene 12: The payout (4:40 to 5:05)
+
+**Show:** The distribution table, the enclave signing, the results with tesSUCCESS, then the XRPL explorer.
+
+**Do:** Click through to one transaction on the explorer and hold for three seconds.
+
+**Say:**
+
+> And here is the part that matters most. I am not signing this. Nobody is. The enclave signs these payments with the key it generated inside itself, using the permission I granted while I was alive. No seed is entered by anyone, anywhere.
+
+> Real payments, on the XRP Ledger, to the people my will named. This is also the first moment anyone learns who they were.
+
+---
+
+### Scene 13: Close (5:05 to 5:15)
+
+**Show:** Back on the landing page, or an end card.
+
+**Say:**
+
+> Inheritance is the demonstration. The primitive underneath is private, programmable rules over native XRP, enforced by an enclave and triggered by facts the network proves for itself. My coins never left my account while I was alive. Nobody could read my will. Nobody could act early. And when the network agreed I was gone, no human being had to be trusted to carry it out.
+
+---
+
+## 4. Editing checklist
+
+### Audio
+
+- [ ] Remove silences longer than half a second, except the deliberate holds noted in Scenes 2 and 7.
+- [ ] Ambient instrumental bed at about minus twenty five decibels. No vocals.
+- [ ] Normalise the voice to minus three decibels peak. Light noise reduction only.
+- [ ] Optional: a soft chime when the vault state changes in Scenes 10 and 12.
+
+### Captions
+
+- [ ] Auto-generate, then proofread every line. Watch these specifically: **Heirloom, Coston 2, XRPL, XRP Ledger, FDC, FTSO, GemWallet, enclave, TEE, tesSUCCESS, dormancy, attestation, Merkle**.
+- [ ] Style: bold sans-serif white, black drop shadow, bottom centre, burned in.
+- [ ] Where a wait is speed-ramped, add a caption saying the wait was shortened. Do not let it look instant.
+
+### Visuals
+
+- [ ] Hard cuts only. Fade only at the very end.
+- [ ] Subtle zooms, one point one times, on exactly three frames: the commitment hash in Scene 6, the green authorisation confirmation in Scene 7, and the tesSUCCESS result in Scene 12.
+- [ ] Speed-ramp the two voting rounds in Scenes 9 and 10. Nothing else needs it; the enclave answers in seconds.
+- [ ] No filters or grading. The app is already monochrome by design.
+
+---
+
+## 5. Delivery
+
+- **Format:** MP4, H.264
+- **Resolution:** 1920 x 1080
+- **Frame rate:** 30 fps
+- **Audio:** AAC, 192 kbps stereo
+- **Length:** aim for 4:30 to 5:15. Past 5:30 it starts to feel long.
+
+If you need to cut for time, drop Scene 3 (documentation) first, then tighten Scene 5 (vault list).
+
+---
+
+## 6. Say these out loud
+
+Being explicit about limits is worth more than hiding them, and each has a good answer:
+
+- **Timings are shortened.** The demo vault uses minutes instead of the ninety days a real vault would use, and no grace window instead of thirty days.
+- **The attestation waits were cut.** Say it; every judge accepts it.
+- **The authorisation was signed in GemWallet.** Xaman refuses this transaction type for apps that are not yet allowlisted, because rekey transactions are the classic phishing pattern. That is a wallet vendor's safety policy, not a limit of the design, and the request is filed.
+- **The encrypted will travels in the instruction payload.** Production keeps it off chain with only the fingerprint on chain, and the contract is already built for that.
+- **This is testnet.** No real money moved.
+
+## 7. Don't
+
+- Don't skip the sealing scene. Browser-side encryption to an attested enclave key is the confidential compute story.
+- Don't say the enclave holds the money. It holds a signing key and a secret. The XRP never leaves the owner's account until the will executes.
+- Don't rush the flatline scroll or the voting-round narration. Those two moments carry the argument.
+- Don't let the final reveal go unremarked. The distribution appearing on chain is the first time the beneficiaries become public, and only because the will legitimately executed.
+
+## 8. If you re-record
+
+The order that works, and the traps:
+
+1. Create the vault **wallet first**. The estate must be an account your XRPL wallet actually holds, or the authorisation cannot be signed.
+2. **Seal before anything else.** A will can only be sealed while the vault is Active. The app blocks a dormancy claim on an unsealed vault, but the order still matters.
+3. Authorise the enclave while the vault is Active.
+4. Use two vaults: a life vault for the heartbeat scene, and a death vault that is **never heartbeated**. A heartbeat blocks that vault's silence proof for about twenty five minutes.
+5. Keep the estate funded. A balance below the ledger reserve plus fees makes the enclave refuse to execute. Correct behaviour, bad look on camera.
+6. Don't run the keeper on a timer while filming. It will do your clicks for you.

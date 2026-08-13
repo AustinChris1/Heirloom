@@ -26,25 +26,15 @@ import {
 } from "../../lib/xrplPayout";
 
 /**
- * The confidential third of the lifecycle, run entirely from the browser:
- *
- *   seal     — encrypt the will to the enclave's attested key, send SEAL,
- *              wait for the enclave's signed attestation, record it on-chain;
- *   execute  — recover the sealed ciphertext from the chain itself, send
- *              EXECUTE with the live estate balance, settle the enclave's
- *              signed distribution;
- *   payout   — turn the settled distribution into real XRPL payments and
- *              broadcast them.
- *
- * Every leg resumes: the instruction id lives in an on-chain event, so a
- * closed tab never strands a vault mid-flow.
+ * The confidential third of the lifecycle: seal, execute, payout. Every leg
+ * resumes from an on-chain event, so a closed tab never strands a vault.
  */
 
 /** Fee forwarded to the FCC registry with each instruction. */
 const INSTRUCTION_FEE = parseEther("1");
 /** The vault contract's deploy block — event scans never need to look earlier. */
 const DEPLOY_BLOCK = 33_500_000;
-/** Blockscout API — the public RPC caps eth_getLogs at 30 blocks, the explorer indexes everything. */
+/** The public RPC caps eth_getLogs at 30 blocks; the explorer indexes everything. */
 const EXPLORER_API = "https://coston2-explorer.flare.network/api";
 
 const read = new JsonRpcProvider(COSTON2_RPC);
@@ -80,8 +70,7 @@ async function latestInstruction(
 
   if (!wantCiphertext) return { instructionId };
 
-  // The sealed ciphertext is public calldata — recover it from the seal tx so
-  // execution needs no copy of anything private.
+  // The ciphertext is public calldata: execution needs no private copy.
   const tx = await read.getTransaction(last.transactionHash);
   if (!tx) return { instructionId };
   const parsed = iface.parseTransaction({ data: tx.data });
@@ -124,8 +113,7 @@ function SealPanel({
   signer: JsonRpcSigner | null;
   onChanged: () => void;
 }) {
-  // Wills created in this browser were saved at creation, keyed by their
-  // commitment — start from that copy so nothing needs pasting here.
+  // Saved at creation, keyed by commitment — nothing to paste here.
   const [willText, setWillText] = useState(() => loadWill(vault.willCommitment));
   const [flow, setFlow] = useState<Flow>(IDLE);
   const [pending, setPending] = useState<string | null>(null);
@@ -440,8 +428,7 @@ function ExecutePanel({
 function PayoutPanel({ vault }: { vault: LiveVault }) {
   const [distribution, setDistribution] = useState<SettledBequest[] | null>(null);
   const [willText, setWillText] = useState(() => loadWill(vault.willCommitment));
-  // Broadcasting a settled distribution twice pays everyone twice — remember,
-  // per browser, that this vault has already been paid out.
+  // Broadcasting twice pays everyone twice; remember it per browser.
   const distributedKey = `heirloom:distributed:${vault.id}`;
   const [alreadySent, setAlreadySent] = useState(() => {
     try {
@@ -484,11 +471,7 @@ function PayoutPanel({ vault }: { vault: LiveVault }) {
     }
   }, [willText]);
 
-  /**
-   * The production path: the enclave signs with the regular key the estate
-   * delegated while alive, and hands back broadcastable blobs. No seed is
-   * entered anywhere, by anyone — which is the whole point.
-   */
+  /** The enclave signs with the delegated regular key and returns broadcastable blobs. */
   async function broadcastViaEnclave() {
     if (!will) return;
     setBusy(true);
@@ -625,7 +608,7 @@ function PayoutPanel({ vault }: { vault: LiveVault }) {
         spellCheck={false}
       />
 
-      {/* The production path: nobody holds or types a key. */}
+
       <div className="mt-6 border border-ink-700 p-5">
         <p className="mb-2 font-mono text-[11px] uppercase tracking-[0.14em] text-white">
           Let the enclave sign
@@ -644,7 +627,7 @@ function PayoutPanel({ vault }: { vault: LiveVault }) {
         </button>
       </div>
 
-      {/* Fallback for estates that never delegated. */}
+
       <details className="mt-5 text-xs text-ink-300">
         <summary className="cursor-pointer font-mono text-[10px] uppercase tracking-[0.16em] hover:text-white">
           Or sign locally with the estate seed

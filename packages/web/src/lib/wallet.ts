@@ -91,9 +91,30 @@ export function xrplAddressHash(address: string): string {
  * Turns a wallet/RPC error into something a person can act on.
  * Ethers nests the useful part several levels down and prefixes it with noise.
  */
+/**
+ * Custom errors the contract raises with arguments. ethers cannot name them
+ * without the ABI in scope during estimateGas, so they arrive as a raw
+ * selector — decode the ones a user can actually act on.
+ */
+const SELECTORS: Record<string, string> = {
+  "0xf79aebe5":
+    "The proof window ended before the heartbeat was due. The vault went overdue moments ago — wait a minute for the ledger to move past the deadline, then claim again.",
+  "0x32901104":
+    "The proof window started after the last recorded heartbeat, so it could miss one. Try again — the range is recalculated each attempt.",
+  "0x8f4eb604": "The nonexistence bound does not match this deployment's heartbeat amount.",
+};
+
 export function humanError(err: unknown): string {
   const e = err as any;
   if (e?.code === "ACTION_REJECTED" || e?.code === 4001) return "You rejected the transaction.";
+
+  // Look for a known custom-error selector anywhere in the payload.
+  const blob = typeof e?.data === "string" ? e.data : (e?.info?.error?.data ?? e?.message ?? "");
+  if (typeof blob === "string") {
+    for (const [selector, explanation] of Object.entries(SELECTORS)) {
+      if (blob.includes(selector.slice(2))) return explanation;
+    }
+  }
 
   const revert = e?.revert?.name ?? e?.info?.error?.data?.message ?? e?.shortMessage ?? e?.message;
   if (typeof revert === "string") {

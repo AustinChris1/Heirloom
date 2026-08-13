@@ -2,16 +2,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
 
 /**
- * App-wide notifications.
- *
- * Deliberately not a React context: actions fire from deep inside panels,
- * async callbacks, and dynamically imported modules, and threading a provider
- * through all of that would be noise. A module-level emitter lets any code
- * path say what happened with one call.
- *
- * Long-running steps (an FDC round, an enclave instruction) still report
- * progress in place — a toast says *what happened*, the panel says *what is
- * happening*.
+ * App-wide notifications. A module-level emitter rather than a context, so any
+ * code path — including dynamically imported modules — can report in one call.
  */
 
 export type ToastKind = "success" | "error" | "info";
@@ -35,11 +27,18 @@ function emit(): void {
   for (const l of listeners) l(toasts);
 }
 
+/** Chain errors carry ABI dumps; a toast is a glance, so keep only the sentence. */
+function condense(message: string): string {
+  const cut = message.search(/\s*\((action=|transaction=|data=|code=|version=)/);
+  let out = cut > 0 ? message.slice(0, cut) : message;
+  out = out.trim().replace(/\s+/g, " ");
+  return out.length > 200 ? `${out.slice(0, 197)}…` : out;
+}
+
 function push(kind: ToastKind, message: string, href?: string, hrefLabel?: string): void {
-  const t: Toast = { id: nextId++, kind, message, href, hrefLabel };
+  const t: Toast = { id: nextId++, kind, message: condense(message), href, hrefLabel };
   toasts = [...toasts, t];
   emit();
-  // Errors linger — they usually need reading and acting on.
   setTimeout(() => dismiss(t.id), kind === "error" ? 12_000 : 6_000);
 }
 

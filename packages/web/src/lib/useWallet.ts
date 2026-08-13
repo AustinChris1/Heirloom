@@ -27,8 +27,7 @@ export function useWallet() {
     available: hasWallet(),
   });
 
-  // `silent` suppresses toasts for the automatic reconnect on page load —
-  // a notification nobody asked for is noise, not feedback.
+  // `silent` suppresses toasts for the automatic reconnect on load.
   const doConnect = useCallback(async (silent = false) => {
     setState((s) => ({ ...s, connecting: true, error: null }));
     try {
@@ -79,14 +78,9 @@ export function useWallet() {
     setState((s) => ({ ...s, address: null, signer: null, chainId: null, onCoston2: false }));
   }, []);
 
-  /**
-   * Reconnect silently on load.
-   *
-   * A wallet the user already authorised stays authorised across reloads —
-   * `eth_accounts` returns it without prompting. Without this the app looks
-   * disconnected after every refresh, which is both wrong and alarming
-   * mid-flow. Only reconnects if the user connected here before, so a visitor
-   * who never clicked Connect is not silently attached to a page.
+/**
+   * Reconnect silently on load via `eth_accounts`, which returns an already
+   * authorised wallet without prompting. Only if the user connected here before.
    */
   useEffect(() => {
     if (!hasWallet()) return;
@@ -106,8 +100,7 @@ export function useWallet() {
     };
   }, [doConnect]);
 
-  // Re-read on wallet-side account or network changes, otherwise the UI silently
-  // keeps transacting as whoever was connected a moment ago.
+  // Re-read on account or network changes.
   useEffect(() => {
     if (!hasWallet()) return;
     const eth = window.ethereum!;

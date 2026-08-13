@@ -1,19 +1,9 @@
 import { standardAddressHash, xrplRequest } from "./fdc";
 
 /**
- * The final third of the lifecycle: turning a settled distribution into real
- * XRP Ledger payments.
- *
- * Everything here is bound to what the chain already verified. Payments are
- * built from `distributionOf(vaultId)` — the TEE-signed, contract-checked
- * bequest list — with the will supplying only the mapping from address hashes
- * back to r-addresses. An address that doesn't hash to a settled bequest never
- * makes it into a payment, so the will file cannot smuggle in a beneficiary
- * the enclave didn't sign off on.
- *
- * Signing happens locally with the estate's testnet seed. In the full design
- * the enclave holds a delegated regular key and returns signed blobs; on this
- * deployment the seed-holder plays that role, and the UI says so plainly.
+ * Turns a settled distribution into real XRPL payments. Amounts come from
+ * `distributionOf(vaultId)` — TEE-signed and contract-checked — and the will
+ * only maps address hashes back to r-addresses, so it cannot add a beneficiary.
  */
 
 /** A settled bequest as read from distributionOf(vaultId). */
@@ -75,11 +65,8 @@ function utf8ToHex(value: string): string {
 }
 
 /**
- * Builds one unsigned Payment per settled bequest.
- *
- * `willAddresses` are the candidate beneficiaries from the will file; each
- * settled hash must resolve to exactly one of them. FXRP deliveries
- * (flareRecipient set) are FAssets-side and excluded from the XRPL leg.
+ * One unsigned Payment per settled bequest. FXRP deliveries (flareRecipient
+ * set) are FAssets-side and excluded from the XRPL leg.
  */
 export function buildPayoutPayments(input: {
   vaultId: number;

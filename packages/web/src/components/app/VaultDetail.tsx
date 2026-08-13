@@ -39,9 +39,7 @@ export function VaultDetail({
 
   const isOwner = !!address && address.toLowerCase() === vault.owner.toLowerCase();
 
-  // Guardianship is independent of ownership — the contract lets an owner also
-  // be a guardian — so this has to be read per address rather than inferred
-  // from "not the owner", which is what the first version got wrong.
+  // An owner can also be a guardian, so read the role per address.
   const [role, setRole] = useState({ guardian: false, approved: false });
   useEffect(() => {
     if (!address) {
@@ -165,21 +163,15 @@ export function VaultDetail({
         )}
       </div>
 
-      {/* ---- the lifecycle, in the order it actually happens ----
-
-          Setup first (seal, then authorise), then living (heartbeat, prove
-          life), then the after-death legs (dormancy, execute, payout). The
-          previous layout put "Stay alive" above sealing, which reads as an
-          instruction to heartbeat before the will is even sealed — and made it
-          easy to claim dormancy on a vault that could never execute. */}
+      {/* The lifecycle in the order it happens: setup, living, then after-death. */}
       <div className="bg-black p-7 md:p-9">
-        {/* 1 — Seal (Active + unsealed) and 5/6 — execute + payout live here. */}
+        {/* Steps 1, 5 and 6: seal, execute, payout. */}
         <EnclaveFlow vault={vault} signer={signer} onChanged={onChanged} />
 
-        {/* 2 — Authorise the enclave. Setup, done while alive. */}
+
         {isOwner && vault.state !== "Revoked" && <AuthoriseEnclave vault={vault} />}
 
-        {/* 3 — Stay alive. */}
+
         <div className={vault.state === "Settled" || vault.state === "Revoked" ? "hidden" : "mt-9 border-t border-ink-800 pt-6"}>
           <p className="label mb-3">Step 3 · Stay alive</p>
 
@@ -198,7 +190,7 @@ export function VaultDetail({
           <TestnetHeartbeat tag={vault.heartbeatTag} />
         </div>
 
-        {/* Detail belongs behind a disclosure, not in front of the fields. */}
+
         <details className="mt-5 text-xs text-ink-300">
           <summary className="cursor-pointer font-mono text-[10px] uppercase tracking-[0.16em] hover:text-white">
             Why these three fields
@@ -228,7 +220,7 @@ export function VaultDetail({
           </div>
         </details>
 
-        {/* 4 — Attestations: prove life, and prove silence once overdue. */}
+
         <AttestationFlow vault={vault} signer={signer} onChanged={onChanged} />
 
         {/* What is live on this deployment, and what still needs infrastructure. */}
@@ -257,17 +249,9 @@ export function VaultDetail({
 /* ---------------------------------------------------------------- */
 
 /**
- * The owner's one-time authorisation: grant the enclave's XRPL key as this
- * estate's *regular key*, while alive.
- *
- * This is the step that removes every human from the payout. XRPL lets an
- * account authorise a second signer without surrendering its master key, so
- * after this the enclave can sign the inheritance and nobody — not the owner's
- * family, not this app, not the machine's operator — holds a key that could
- * move the estate early. Revocable by the owner at any time.
- *
- * In a product this is one tap in Xaman. Here it needs the estate seed once,
- * because the demo has no wallet connection to the XRP Ledger.
+ * The owner's one-time grant of the enclave's key as this estate's XRPL
+ * regular key. This is what removes every human from the payout: the master
+ * key is never surrendered, and the grant is revocable while alive.
  */
 function AuthoriseEnclave({ vault }: { vault: LiveVault }) {
   const [open, setOpen] = useState(false);
@@ -282,16 +266,14 @@ function AuthoriseEnclave({ vault }: { vault: LiveVault }) {
   const [seed, setSeed] = useState("");
   const [enclaveAddr, setEnclaveAddr] = useState<string | null>(null);
   const [wallets, setWallets] = useState<WalletAdapter[]>([]);
-  // Detection is async (GemWallet answers over a message channel), so the panel
-  // must not claim "no wallet" before it has finished asking.
+  // Detection is async, so don't claim "no wallet" before it answers.
   const [detecting, setDetecting] = useState(true);
   const [current, setCurrent] = useState<string | null | undefined>(undefined);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Read both sides of the question: who the enclave is, and who this estate
-  // currently trusts.
+  // Who the enclave is, and who this estate currently trusts.
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -327,11 +309,7 @@ function AuthoriseEnclave({ vault }: { vault: LiveVault }) {
 
   const delegated = !!enclaveAddr && !!current && current === enclaveAddr;
 
-  /**
-   * Isolates "this wallet won't sign SetRegularKey" from "this wallet can't
-   * sign for this account at all" — the two failures look identical from the
-   * outside and have completely different fixes.
-   */
+  /** Isolates "won't sign this type" from "can't sign for this account at all". */
   async function testWallet(wallet: WalletAdapter) {
     if (!wallet.testSign) return;
     setBusy(true);
@@ -429,9 +407,7 @@ function AuthoriseEnclave({ vault }: { vault: LiveVault }) {
       );
     } catch (err) {
       const msg = (err as Error).message ?? String(err);
-      // Xaman gates account-security tx types (SetRegularKey, SignerListSet)
-      // behind app verification; a fresh app hits 1217. Nothing we can fix in
-      // code — say so and point at the wallets that work.
+      // Xaman gates account-security tx types until an app is allowlisted (1217).
       setError(
         /1217/.test(msg)
           ? "Xaman blocks SetRegularKey for unverified apps — it gates account-security transaction types until an app is allowlisted. Use the seed field above; the enclave-signed payout is identical whichever way the key was granted."
@@ -594,14 +570,7 @@ function formatElapsed(seconds: number): string {
   return `${m}m ago`;
 }
 
-/**
- * The vault's clock, ticking once a second.
- *
- * Which clock matters depends on the state: an Active vault is counting down
- * to its next heartbeat, a Dormant one is counting down the grace window the
- * owner still has to overturn the claim. A static "5.0d" told you neither
- * whether it was moving nor how close the edge was.
- */
+/** The vault's clock: heartbeat countdown when Active, grace window when Dormant. */
 function CountdownPanel({ vault }: { vault: LiveVault }) {
   const [now, setNow] = useState(() => Date.now() / 1000);
   useEffect(() => {
@@ -640,9 +609,12 @@ function CountdownPanel({ vault }: { vault: LiveVault }) {
         <p className="font-mono text-2xl tabular-nums">
           {vault.state === "Revoked" ? "CLOSED" : paid ? "PAID" : "SETTLED"}
         </p>
-        {vault.state === "Settled" && !paid && (
+        {vault.state === "Settled" && (
           <p className="mt-1 font-mono text-[10px] uppercase tracking-wider text-ink-300">
-            awaiting payout
+            {/* Only the browser that broadcast knows the payout happened: the
+                chain stores hashes of the estate and beneficiaries, so nobody
+                else can even tell which XRPL account to check. */}
+            {paid ? "broadcast from this browser" : "awaiting payout"}
           </p>
         )}
       </>
@@ -658,8 +630,7 @@ function CountdownPanel({ vault }: { vault: LiveVault }) {
     );
   }
 
-  // Active: count down to the heartbeat, then count up past it — "how long
-  // overdue" is what decides whether silence is provable yet.
+  // Count down to the heartbeat, then up past it.
   const dueAt = vault.lastHeartbeat + vault.heartbeatInterval;
   const overdueBy = now - dueAt;
   const isOverdue = vault.overdue || overdueBy > 0;
@@ -679,11 +650,7 @@ function CountdownPanel({ vault }: { vault: LiveVault }) {
   );
 }
 
-/**
- * "Vault #9", plus a private label the owner can set — stored only in this
- * browser, never on-chain, so naming a vault "Mom's plan" leaks nothing to
- * anyone else. Other visitors see just the number.
- */
+/** "Vault #9", plus a private label stored only in this browser. */
 function VaultTitle({ id, isOwner }: { id: number; isOwner: boolean }) {
   const [name, setName] = useState(() => loadVaultName(id));
   const [editing, setEditing] = useState(false);
@@ -735,11 +702,8 @@ function VaultTitle({ id, isOwner }: { id: number; isOwner: boolean }) {
 }
 
 /**
- * Testnet-only convenience: sign and send the heartbeat right here, so the
- * whole demo needs no external XRPL wallet. Most wallet UIs bury the
- * destination tag, and a heartbeat without the tag silently doesn't count —
- * this path can't make that mistake. Pasting a seed into a page is acceptable
- * exactly because this is testnet; a real product would never ask.
+ * Testnet-only: sends the heartbeat with the right destination tag, which most
+ * wallet UIs bury and which silently doesn't count if omitted.
  */
 function TestnetHeartbeat({ tag }: { tag: number }) {
   const [open, setOpen] = useState(false);

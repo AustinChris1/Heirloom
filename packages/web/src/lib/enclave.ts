@@ -1,18 +1,9 @@
 import { computeAddress, concat, zeroPadValue } from "ethers";
 
 /**
- * Client for the live Heirloom enclave (TEE node + extension behind its proxy).
- *
- * Reached through the same-origin `/enclave` proxy — the host sends no CORS
- * headers, mirroring how the DA Layer and XRPL are already handled.
- *
- * Two things live here:
- *
- *   - the enclave's encryption key, fetched from its attested /info document
- *     and cross-checked against the TEE address the vault contract trusts, so
- *     the browser never encrypts a will to an unverified key;
- *   - polling for signed ActionResults, which is how a SEAL or EXECUTE
- *     instruction's outcome travels back to be settled on-chain.
+ * Client for the live enclave, reached through the same-origin `/enclave`
+ * proxy (the host sends no CORS headers). Serves its attested public key and
+ * polls for the signed ActionResults that settle on-chain.
  */
 
 const ENCLAVE = "/enclave";
@@ -25,12 +16,9 @@ export interface EnclaveKey {
 }
 
 /**
- * Fetches the enclave's public key from its signed TeeInfo document.
- *
- * The caller is expected to compare `address` against the contract's
- * registered `teeAddress`: that one check ties the key served over HTTPS to
- * the identity the chain verifies signatures against, so a spoofed endpoint
- * cannot trick the browser into encrypting to an attacker's key.
+ * The enclave's public key from its signed TeeInfo document. Callers must
+ * compare `address` against the contract's `teeAddress` before encrypting —
+ * that check is what stops a spoofed endpoint substituting its own key.
  */
 export async function fetchEnclaveKey(): Promise<EnclaveKey> {
   const res = await fetch(`${ENCLAVE}/info`);
@@ -45,12 +33,8 @@ export async function fetchEnclaveKey(): Promise<EnclaveKey> {
 }
 
 /**
- * Direct actions — enclave operations that need no on-chain instruction.
- *
- * These go to the proxy's `/direct` endpoint rather than through the vault
- * contract, because they carry no authority: ADDRESS reveals a public
- * address, and PAYOUT only signs a distribution the chain has *already*
- * verified and settled. Both return their payload as hex-encoded JSON.
+ * Direct actions carry no authority — ADDRESS reveals a public address, PAYOUT
+ * signs a distribution the chain already verified — so they skip the contract.
  */
 async function directAction(opCommand: string, payload?: unknown): Promise<unknown> {
   const message = payload
@@ -81,8 +65,7 @@ async function directAction(opCommand: string, payload?: unknown): Promise<unkno
   const actionId = queued?.data?.id;
   if (!actionId) throw new Error("enclave did not queue the action");
 
-  // Direct results are stored under the "submit" tag; /action/result defaults
-  // to "threshold" and would 404 forever without this.
+  // Direct results live under the "submit" tag; the endpoint defaults to "threshold".
   const result = await pollActionResult(actionId, undefined, 120_000, "submit");
   if (result.status !== 1) throw new Error(result.log || "the enclave refused the request");
   return JSON.parse(new TextDecoder().decode(hexToBytes(result.data)));
@@ -114,10 +97,7 @@ export interface SignedPayout {
   payments: Array<{ to: string; drops: string; blob: string; hash: string }>;
 }
 
-/**
- * Asks the enclave to sign a settled vault's payouts with its own key.
- * Nobody supplies a seed: the estate delegated this key while alive.
- */
+/** Asks the enclave to sign a settled vault's payouts with its own key. */
 export async function requestEnclavePayout(
   vaultId: number,
   sequence: number,
@@ -142,11 +122,8 @@ export interface EnclaveResult {
 }
 
 /**
- * Polls the enclave for the result of an instruction.
- *
- * An instruction travels vault → registry → data providers → proxy → enclave
- * before a result exists, so 404s are the normal state for a while — they mean
- * "not arrived yet", not "failed". Polls every 6 s for up to 10 minutes.
+ * Polls for an instruction's result. 404s are normal while it travels
+ * vault → registry → providers → proxy → enclave.
  */
 export async function pollActionResult(
   instructionId: string,
@@ -162,9 +139,7 @@ export async function pollActionResult(
     if (res.ok) {
       const out = await res.json();
       const r = out?.result;
-      // Status >= 2 means PENDING — the node is still retrying delivery to the
-      // extension (observed live: a slow first response gets recorded as 3,
-      // then replaced). Only 0 (error) and 1 (success) are final.
+      // Status >= 2 is pending: the node is still retrying the extension.
       if (r?.id && Number(r.status ?? 0) < 2) {
         return {
           data: r.data ?? "0x",

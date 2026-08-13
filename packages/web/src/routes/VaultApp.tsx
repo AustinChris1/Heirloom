@@ -15,9 +15,7 @@ export function VaultApp({ chain, refresh }: { chain: ChainSnapshot | null; refr
   const [tab, setTab] = useState<Tab>("vaults");
   const [selected, setSelected] = useState<number | null>(null);
 
-  // Closed vaults stay on-chain forever, but showing them clutters the list.
-  // Filter chips scope the view; within a view, vaults needing attention sort
-  // first (Dormant → Executing → overdue → Active), newest first within a rank.
+  // Closed vaults stay on-chain forever; chips scope the view.
   type Filter = "open" | "settled" | "closed" | "all";
   const [filter, setFilter] = useState<Filter>("open");
   const allVaults = chain?.vaults ?? [];
@@ -34,7 +32,14 @@ export function VaultApp({ chain, refresh }: { chain: ChainSnapshot | null; refr
   const rank = (v: (typeof allVaults)[number]) =>
     v.state === "Dormant" ? 0 : v.state === "Executing" ? 1 : v.state === "Active" && v.overdue ? 2 : v.state === "Active" ? 3 : v.state === "Settled" ? 4 : 5;
 
-  const vaults = allVaults.filter(matches).sort((a, b) => rank(a) - rank(b) || b.id - a.id);
+  /** Live vaults sort by soonest due; finished ones by newest. */
+  const tieBreak = (a: (typeof allVaults)[number], b: (typeof allVaults)[number]) => {
+    const dueAt = (v: (typeof allVaults)[number]) => v.lastHeartbeat + v.heartbeatInterval;
+    if (a.state === "Active" && b.state === "Active") return dueAt(a) - dueAt(b);
+    return b.id - a.id;
+  };
+
+  const vaults = allVaults.filter(matches).sort((a, b) => rank(a) - rank(b) || tieBreak(a, b));
   const counts = {
     open: allVaults.filter((v) => v.state === "Active" || v.state === "Dormant" || v.state === "Executing").length,
     settled: allVaults.filter((v) => v.state === "Settled").length,
@@ -91,7 +96,7 @@ export function VaultApp({ chain, refresh }: { chain: ChainSnapshot | null; refr
 
           <nav className="flex gap-2">
             <TabButton active={tab === "vaults"} onClick={() => setTab("vaults")}>
-              Vaults {chain ? `(${chain.vaultCount})` : ""}
+              Vaults {chain ? `(${chain.vaults.length})` : ""}
             </TabButton>
             <TabButton active={tab === "create"} onClick={() => setTab("create")}>
               New vault
@@ -179,6 +184,12 @@ export function VaultApp({ chain, refresh }: { chain: ChainSnapshot | null; refr
                   </button>
                 ))}
               </div>
+
+              {chain && chain.vaultCount > chain.vaults.length && (
+                <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-400">
+                  showing the {chain.vaults.length} most recent of {chain.vaultCount} vaults on this contract
+                </p>
+              )}
 
               {wallet.address && mine.length > 0 && (
                 <VaultGroup
@@ -296,13 +307,7 @@ function VaultGroup({
   );
 }
 
-/**
- * The headline number on a vault card, ticking live.
- *
- * Active vaults count down to the next heartbeat; Dormant ones count down the
- * grace window, which is the number that actually decides whether the estate
- * is about to move.
- */
+/** The card's headline clock: countdown when Active, grace window when Dormant. */
 function CardClock({ vault }: { vault: any }) {
   const [now, setNow] = useState(() => Date.now() / 1000);
   useEffect(() => {
@@ -320,7 +325,6 @@ function CardClock({ vault }: { vault: any }) {
     return `${m}m ${String(Math.floor(s % 60)).padStart(2, "0")}s`;
   };
 
-  // Settled = distribution verified on-chain; the XRP moves only when broadcast.
   if (vault.state === "Settled") {
     let paid = false;
     try {
@@ -336,7 +340,6 @@ function CardClock({ vault }: { vault: any }) {
     const graceLeft = vault.dormantSince + vault.graceWindow - now;
     return <>{graceLeft > 0 ? fmt(graceLeft) : "READY"}</>;
   }
-  // Counts down to the heartbeat, then counts up past it.
   const dueAt = vault.lastHeartbeat + vault.heartbeatInterval;
   const overdueBy = now - dueAt;
   if (vault.overdue || overdueBy > 0) return <span title="overdue by">+{fmt(overdueBy)}</span>;

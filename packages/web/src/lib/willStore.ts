@@ -1,16 +1,9 @@
 import { HEIRLOOM_VAULT } from "./deployment";
 
 /**
- * Browser-local copies of wills created here, keyed by their on-chain
- * commitment.
- *
- * The chain deliberately stores only the fingerprint, so if the plaintext is
- * lost, sealing and payout need it re-supplied. Saving it in localStorage at
- * creation means the machine that wrote the will can always produce it again —
- * the download button stays for moving it to another device or keeping a
- * durable copy, but forgetting to click it is no longer fatal.
- *
- * Same privacy story as the vault-name labels: this never leaves the browser.
+ * Browser-local copies of wills, keyed by commitment. The chain stores only
+ * the fingerprint, so sealing and payout need the plaintext re-supplied;
+ * keeping it here means forgetting the download is not fatal. Never leaves the browser.
  */
 const key = (commitment: string) => `heirloom:will:${HEIRLOOM_VAULT.toLowerCase()}:${commitment.toLowerCase()}`;
 

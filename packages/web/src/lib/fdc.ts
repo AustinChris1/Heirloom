@@ -1,16 +1,9 @@
 import { AbiCoder, BrowserProvider, Contract, JsonRpcSigner, keccak256, toUtf8Bytes, zeroPadBytes } from "ethers";
 
 /**
- * Browser port of scripts/fdc.ts.
- *
- * Same four-step flow — prepare → submit → await finalisation → fetch proof —
- * but the submitting transaction is signed by the visitor's own wallet rather
- * than a deployer key, so anybody can relay a proof for a vault they do not own.
- * That is the point: proving life or silence is permissionless.
- *
- * Two of the three endpoints send no CORS headers, so the DA Layer and XRPL are
- * reached through same-origin proxies (see vite.config.ts / vercel.json). The
- * verifier allows `*` and is called directly.
+ * Browser port of scripts/fdc.ts: prepare → submit → await finalisation →
+ * fetch proof, signed by the visitor's own wallet, because proving life or
+ * silence is permissionless. The DA Layer and XRPL need same-origin proxies.
  */
 
 const VERIFIER = "https://fdc-verifiers-testnet.flare.network";
@@ -143,12 +136,7 @@ export async function submitRequest(signer: JsonRpcSigner, abiEncodedRequest: st
   return Number((BigInt(block!.timestamp) - first) / duration);
 }
 
-/**
- * Polls the Relay until the round finalises, reporting progress as it goes.
- *
- * Rounds take 90–180 seconds. Reporting a fraction against the upper bound
- * gives an honest, monotonic bar rather than a spinner that says nothing.
- */
+/** Polls the Relay until the round finalises. Rounds take 90-180 seconds. */
 export async function waitForFinalisation(
   signer: JsonRpcSigner,
   round: number,
@@ -179,9 +167,8 @@ export async function waitForFinalisation(
 }
 
 /**
- * Retrieves the Merkle proof. The DA Layer answers 400 "not found" for up to a
- * minute after finalisation while it indexes, which is retryable rather than an
- * error — so this inspects the body instead of trusting the status code.
+ * Retrieves the Merkle proof. The DA Layer answers 400 "not found" while it
+ * indexes, which is retryable — so inspect the body, not the status code.
  */
 export async function fetchProof(
   round: number,

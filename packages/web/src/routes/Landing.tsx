@@ -34,6 +34,7 @@ export function Landing({ chain }: { chain: ChainSnapshot | null }) {
       <Lifecycle />
       <Protocols />
       <Boundaries />
+      <Questions />
       <Closing />
     </div>
   );
@@ -559,7 +560,114 @@ function Boundaries() {
   );
 }
 
+/**
+ * The objections people actually raise, answered where they raise them. Anyone
+ * arriving from a link will not click into the docs first, so the questions
+ * that decide whether they trust this belong before the closing call.
+ */
+const FAQ: Array<{ q: string; a: React.ReactNode }> = [
+  {
+    q: "Do I have to deposit my XRP?",
+    a: (
+      <>
+        No. It never leaves your account. Heirloom holds a rule, not your money, and you keep spending as
+        normal.
+      </>
+    ),
+  },
+  {
+    q: "What if I spend it before I die?",
+    a: (
+      <>
+        Nothing breaks. The will pays out whatever is actually there on the day. Percentages scale, and fixed
+        amounts shrink in proportion if the estate cannot cover them.
+      </>
+    ),
+  },
+  {
+    q: "Who signs the payment when I am gone?",
+    a: (
+      <>
+        Nobody. The enclave signs it with a key generated inside the hardware that has never been exported. You
+        authorise that key once, while alive, and can revoke it at any time.
+      </>
+    ),
+  },
+  {
+    q: "Can anyone read my will?",
+    a: (
+      <>
+        No. It is encrypted in your browser before it is sent, and only the enclave can open it. Not us, not
+        Flare, not your heirs, until it legitimately executes.
+      </>
+    ),
+  },
+  {
+    q: "What if someone claims I am dead while I am alive?",
+    a: (
+      <>
+        They need the network to prove your silence, and then you get a grace window. One heartbeat, or one
+        button, reverts everything and clears every approval.
+      </>
+    ),
+  },
+  {
+    q: "What if Heirloom disappears?",
+    a: (
+      <>
+        The contract, the proofs and the encrypted will are on-chain. Every step after death is permissionless,
+        so anyone can run the keeper that submits them.
+      </>
+    ),
+  },
+  {
+    q: "What does it cost?",
+    a: (
+      <>
+        Nothing today. The proposal is a fraction of a percent taken once at payout, and nothing at all if the
+        switch never fires. We cannot take custody, so we cannot charge for it.
+      </>
+    ),
+  },
+  {
+    q: "Is this real money?",
+    a: (
+      <>
+        Not yet. Heirloom runs on Coston2 and the XRP Ledger testnet, so everything here can be reproduced by
+        anyone with nothing at risk.
+      </>
+    ),
+  },
+];
+
+function Questions() {
+  return (
+    <section className="relative px-6 py-32">
+      <div className="mx-auto w-full max-w-[1100px]">
+        <p className="label mb-10">Questions</p>
+
+        <dl className="grid gap-px bg-ink-800 sm:grid-cols-2">
+          {FAQ.map(({ q, a }, i) => (
+            <motion.div
+              key={q}
+              className="bg-black p-7 md:p-9"
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.4 }}
+              transition={{ duration: 0.5, delay: (i % 2) * 0.08, ease: EASE }}
+            >
+              <dt className="mb-3 text-base font-semibold tracking-tight text-white">{q}</dt>
+              <dd className="max-w-[46ch] text-sm leading-relaxed text-ink-300">{a}</dd>
+            </motion.div>
+          ))}
+        </dl>
+      </div>
+    </section>
+  );
+}
+
 function Closing() {
+
   // Deliberately not scroll-linked. Tying opacity to scrollYProgress over a
   // tall section meant the content sat centred and fully visible while progress
   // was still near zero, so it rendered invisible exactly when you were

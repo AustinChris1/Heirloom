@@ -49,3 +49,14 @@ packages/tee/typescript/node_modules/
 
 # Rendered video output — large binaries, regenerate with pnpm remotion render
 packages/video/out/
+
+docs/DEMO.md
+
+# The delegated regular-key seed and the keeper's local state. The key can sign
+# payouts for any estate that authorised it, so it never belongs in the repo.
+packages/contracts/deployments/keeper-key.json
+packages/contracts/deployments/keeper-state.json
+
+# Will plaintexts written by seal-live.ts. The chain stores only the
+# commitment; these hold the beneficiaries the whole design keeps private.
+packages/contracts/deployments/will-vault-*.json

@@ -5,10 +5,14 @@ import { Logo } from "../components/Logo";
 import { CreateVault } from "../components/app/CreateVault";
 import { VaultDetail } from "../components/app/VaultDetail";
 import { ChainSnapshot, PROVABLE_SILENCE_SECONDS } from "../lib/chain";
+import { loadVaultName } from "../lib/vaultNames";
 import { EXPLORER, HEIRLOOM_VAULT } from "../lib/deployment";
 import { useWallet } from "../lib/useWallet";
 
 type Tab = "vaults" | "create";
+
+/** Vaults shown before "Show more". */
+const PAGE = 12;
 
 export function VaultApp({ chain, refresh }: { chain: ChainSnapshot | null; refresh: () => void }) {
   const wallet = useWallet();
@@ -18,6 +22,8 @@ export function VaultApp({ chain, refresh }: { chain: ChainSnapshot | null; refr
   // Closed vaults stay on-chain forever; chips scope the view.
   type Filter = "open" | "settled" | "closed" | "all";
   const [filter, setFilter] = useState<Filter>("open");
+  const [query, setQuery] = useState("");
+  const [visible, setVisible] = useState(PAGE);
   const allVaults = chain?.vaults ?? [];
 
   const matches = (v: (typeof allVaults)[number]) =>
@@ -55,7 +61,28 @@ export function VaultApp({ chain, refresh }: { chain: ChainSnapshot | null; refr
     return b.id - a.id;
   };
 
-  const vaults = allVaults.filter(matches).sort((a, b) => rank(a) - rank(b) || tieBreak(a, b));
+  /**
+   * Matches a vault number, its destination tag, the owner address, or the
+   * private label this browser has for it. The estate account is deliberately
+   * absent: the chain stores only its hash, so there is nothing to search.
+   */
+  const searched = (v: (typeof allVaults)[number]) => {
+    const q = query.trim().toLowerCase().replace(/^#/, "");
+    if (!q) return true;
+    return (
+      String(v.id) === q ||
+      String(v.heartbeatTag).includes(q) ||
+      v.owner.toLowerCase().includes(q) ||
+      (loadVaultName(v.id) || "").toLowerCase().includes(q)
+    );
+  };
+
+  const vaults = allVaults
+    .filter((v) => matches(v) && searched(v))
+    .sort((a, b) => rank(a) - rank(b) || tieBreak(a, b));
+
+  // A new filter or query should start from the top of its own list.
+  useEffect(() => setVisible(PAGE), [filter, query]);
   const counts = {
     open: allVaults.filter((v) => v.state === "Active" || v.state === "Dormant" || v.state === "Executing").length,
     settled: allVaults.filter((v) => v.state === "Settled").length,
@@ -178,7 +205,7 @@ export function VaultApp({ chain, refresh }: { chain: ChainSnapshot | null; refr
               transition={{ duration: 0.35 }}
               className="space-y-8"
             >
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 {(
                   [
                     ["open", `Open (${counts.open})`],
@@ -199,6 +226,14 @@ export function VaultApp({ chain, refresh }: { chain: ChainSnapshot | null; refr
                     {label}
                   </button>
                 ))}
+
+                <input
+                  className="ml-auto w-full border-b border-ink-700 bg-transparent py-1.5 font-mono text-[11px] text-white placeholder:text-ink-500 focus:border-white focus:outline-none sm:w-56"
+                  placeholder="Find #id, tag, owner, name"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  spellCheck={false}
+                />
               </div>
 
               {chain && chain.vaultCount > chain.vaults.length && (
@@ -218,15 +253,26 @@ export function VaultApp({ chain, refresh }: { chain: ChainSnapshot | null; refr
 
               <VaultGroup
                 title={wallet.address && mine.length > 0 ? "All vaults" : "All vaults on this deployment"}
-                vaults={vaults}
+                vaults={vaults.slice(0, visible)}
                 selected={selected}
                 onSelect={setSelected}
                 empty={
-                  filter === "open"
-                    ? "No open vaults. Create one, or check the other filters."
-                    : "Nothing under this filter."
+                  query.trim()
+                    ? `Nothing matches "${query.trim()}".`
+                    : filter === "open"
+                      ? "No open vaults. Create one, or check the other filters."
+                      : "Nothing under this filter."
                 }
               />
+
+              {vaults.length > visible && (
+                <button
+                  className="btn px-4 py-2"
+                  onClick={() => setVisible((v) => v + PAGE)}
+                >
+                  Show {Math.min(PAGE, vaults.length - visible)} more ({vaults.length - visible} left)
+                </button>
+              )}
 
               <AnimatePresence>
                 {shown && (
@@ -364,7 +410,9 @@ function CardClock({ vault }: { vault: any }) {
     return (
       <span className={unprovable ? "text-[0.8em] text-ink-500" : "text-[0.8em]"}>
         {fmt(overdueBy)} overdue
-        {unprovable && <span className="ml-2 text-[0.7em] uppercase tracking-wider">too old to prove</span>}
+        {unprovable && (
+          <span className="mt-1 block text-[0.62em] uppercase tracking-wider">too old to prove</span>
+        )}
       </span>
     );
   }

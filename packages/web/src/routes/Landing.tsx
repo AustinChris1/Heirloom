@@ -607,6 +607,30 @@ function Closing() {
         <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-300">
           Flare Summer Signal 2026 · Coston2 · chain 114
         </p>
+        <nav className="flex flex-wrap items-center gap-5">
+          <Link
+            to="/docs/privacy"
+            className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-300 hover:text-white"
+          >
+            Privacy
+          </Link>
+          <a
+            href="https://x.com/heirloom_xrp"
+            target="_blank"
+            rel="noreferrer"
+            className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-300 hover:text-white"
+          >
+            X ↗
+          </a>
+          <a
+            href="https://github.com/AustinChris1/Heirloom"
+            target="_blank"
+            rel="noreferrer"
+            className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-300 hover:text-white"
+          >
+            GitHub ↗
+          </a>
+        </nav>
       </footer>
     </section>
   );

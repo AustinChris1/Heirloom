@@ -81,7 +81,7 @@ Both FDC attestation legs run against live infrastructure, including **from the 
 | Demo app, reads the live contract and the live FTSO feed | Complete, builds clean |
 | TEE extension registered on live FCC infrastructure | **Live** — extension 66025, TEE machine `0x554f…7475` at status 2 (PRODUCTION) |
 | Seal → execute → settle → payout | **Live** — full runs on vaults #6, #8 (unattended) and #14 (payouts signed *inside* the TEE) |
-| Enclave-held XRPL key + wallet-signed authorisation | **Live** — enclave signs payouts with `rKMNKKuF…`, a key generated in the TEE; owners grant it from GemWallet with one `SetRegularKey` |
+| Enclave-held XRPL key + wallet-signed authorisation | **Live** — enclave signs payouts with `rKMNKKuF…`, a key generated in the TEE; owners grant it from GemWallet or Crossmark with one `SetRegularKey` |
 
 ## Repository layout
 
@@ -94,7 +94,7 @@ packages/
 
 The web app is two surfaces on purpose. `/` is a scroll-driven landing page; `/app` is the working client where you connect a wallet, build a will, create a vault, and act on it. A page that is read and a dashboard that is operated want different designs, so they get different routes.
 
-**What you can actually do at `/app` right now:** connect a wallet and switch to Coston2, compose a will with fixed-dollar, fixed-XRP and percentage bequests, watch the commitment and the full distribution recompute live against the real allocation engine, create a vault on-chain and download its will file, read every vault's live state, copy the exact XRPL heartbeat payment your vault needs, confirm as a guardian, and cancel a dormancy claim as the owner. Then the confidential legs: authorise the enclave's XRPL key from your own wallet (GemWallet, one approval, no seed), seal the will, encrypted in your browser to the enclave's attested key, refused unless that key derives to the address the contract trusts, watch the enclave attest it, execute a dormant vault (the sealed ciphertext is recovered from the chain itself, the estate balance read live from XRPL), settle the TEE-signed distribution, and broadcast the settled bequests as real XRPL payments.
+**What you can actually do at `/app` right now:** connect a wallet and switch to Coston2, compose a will with fixed-dollar, fixed-XRP and percentage bequests, watch the commitment and the full distribution recompute live against the real allocation engine, create a vault on-chain and download its will file, read every vault's live state, copy the exact XRPL heartbeat payment your vault needs, confirm as a guardian, and cancel a dormancy claim as the owner. Then the confidential legs: authorise the enclave's XRPL key from your own wallet (GemWallet or Crossmark, one approval, no seed), seal the will, encrypted in your browser to the enclave's attested key, refused unless that key derives to the address the contract trusts, watch the enclave attest it, execute a dormant vault (the sealed ciphertext is recovered from the chain itself, the estate balance read live from XRPL), settle the TEE-signed distribution, and broadcast the settled bequests as real XRPL payments.
 
 ## Running it
 

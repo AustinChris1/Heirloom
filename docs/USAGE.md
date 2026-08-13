@@ -75,9 +75,7 @@ On your vault, find **Authorise the enclave to pay out**. This is the one-time g
 
 1. Install an XRPL wallet — [GemWallet](https://gemwallet.app) or [Crossmark](https://crossmark.io), both verified for this step, and switch it to **Testnet**.
 2. Make sure the wallet holds your **estate account** (the same r-address the vault was created with), and that it is the selected account.
-3. Click **Authorise with GemWallet** (or Crossmark) and approve. Your seed never leaves the wallet; the page sees only a transaction hash.
-
-> Crossmark's popup does not scroll, so its Approve button can fall below the fold. Open the extension in a full browser tab if you cannot reach it.
+3. Click **Authorise with GemWallet** or **Authorise with Crossmark** and approve. Your seed never leaves the wallet; the page sees only a transaction hash.
 
 The panel then reads "✓ This estate has authorised the enclave's key." You can revoke it at any time while alive.
 

@@ -1,6 +1,8 @@
 import architecture from "../../../../docs/ARCHITECTURE.md?raw";
 import howItWorks from "../../../../docs/HOW-IT-WORKS.md?raw";
 import hosting from "../../../../docs/HOSTING.md?raw";
+import privacy from "../../../../docs/PRIVACY.md?raw";
+import roadmap from "../../../../docs/ROADMAP.md?raw";
 import submission from "../../../../docs/SUBMISSION.md?raw";
 import teeDeployment from "../../../../docs/TEE-DEPLOYMENT.md?raw";
 import usage from "../../../../docs/USAGE.md?raw";
@@ -62,6 +64,18 @@ export const DOCS: Doc[] = [
     title: "Hosting",
     blurb: "What needs a server, what does not, and what it costs.",
     body: hosting,
+  },
+  {
+    slug: "roadmap",
+    title: "Business model & roadmap",
+    blurb: "What it would cost, what it charges (nothing yet), and what comes after the hackathon.",
+    body: roadmap,
+  },
+  {
+    slug: "privacy",
+    title: "Privacy",
+    blurb: "What the app knows, stores, and tells anyone else. Short answer: almost nothing.",
+    body: privacy,
   },
   // docs/DEMO.md is deliberately NOT listed, it is the private run-of-show
   // for recording the demo video, not documentation for a visitor.

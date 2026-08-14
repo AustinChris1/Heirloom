@@ -4,13 +4,14 @@ Short version: **the web app hosts free as a static site and needs no Docker.** 
 
 ## What actually needs hosting
 
-Heirloom has three parts and they have completely different requirements.
+Heirloom has four parts and they have completely different requirements.
 
 | Part | Where it runs | Cost | Docker? |
 |---|---|---|---|
 | `HeirloomVault` contract | Coston2, already deployed | Free (testnet gas from the faucet) | No |
 | Demo web app | Any static host | Free forever | No |
 | TEE extension | Your machine, or a Confidential Space VM | Free locally; paid on GCP | Yes, this is the only part |
+| Keeper | Optional. Any machine that stays awake | Gas only | No |
 
 The contract is already live at [`0x250B6F94F8779a9CfbD826FD6CCF0a9845DcEb3A`](https://coston2-explorer.flare.network/address/0x250B6F94F8779a9CfbD826FD6CCF0a9845DcEb3A). Nothing to host.
 
@@ -63,6 +64,44 @@ The contract address is baked in with an env override:
 ```bash
 VITE_HEIRLOOM_VAULT=0xYourVault pnpm build
 ```
+
+## The keeper, the only part that runs on a timer
+
+Every step after an owner goes silent is permissionless, which is a nice property and a practical problem: permissionless means anyone *may* submit those transactions, not that anyone *will*. The keeper is the thing that does. It is a cron job, nothing more, and running one is entirely optional.
+
+`scripts/keeper.ts` makes one pass over every vault it holds a will file for, looks at the state, and advances whatever can be advanced:
+
+| Vault state | What the keeper does |
+|---|---|
+| **Active** and overdue | Claims dormancy. Builds the `XRPPaymentNonexistence` request, sizes the ledger range from how long the silence has actually run, submits it, waits for the voting round to finalise, fetches the Merkle proof, and calls `claimDormancy` |
+| **Dormant**, past the grace window | Recovers the sealed ciphertext from the original seal transaction's calldata, reads the live estate balance from XRPL, calls `requestExecution`, polls the enclave, then `settleEstate` with the TEE signature |
+| **Executing** (interrupted) | Resume path. Finds the pending `ExecutionRequested` event and settles it, so a crash mid-flight is not fatal |
+| **Settled**, not yet paid | Signs each XRPL payment with the delegated regular key, broadcasts it, and records the hashes so a distribution is never sent twice |
+
+Two things it deliberately does not do. It **never sends heartbeats**, because a keeper that could prove you were alive on your behalf would defeat the entire mechanism. And it **never holds the estate's master seed**: payouts are signed with a regular key the owner delegated while alive and can revoke at any moment.
+
+That is what makes it safe to automate blindly. Every action it takes is fact-checked on-chain, so a keeper that fires early or dishonestly just wastes its own gas on a revert. Kill it and anyone else can run one.
+
+### Running it
+
+It needs a funded Coston2 key in `packages/contracts/.env` (`PRIVATE_KEY`), since it pays FDC fees and sends `1 C2FLR` with every execution request. It only manages vaults it has a `deployments/will-vault-<id>.json` for, because payout needs the beneficiary address mapping, and strangers' vaults are someone else's to crank.
+
+```bash
+cd packages/contracts
+pnpm exec hardhat run scripts/keeper.ts --network coston2
+```
+
+A pass with nothing due prints `pass complete` and exits, so it is safe to run at any interval. Fifteen minutes is plenty.
+
+**Linux, cron:**
+
+```
+*/15 * * * * cd /path/heirloom/packages/contracts && pnpm exec hardhat run scripts/keeper.ts --network coston2 >> keeper.log 2>&1
+```
+
+**Windows, Task Scheduler:** point a scheduled task at a one-line `.bat` that does the same `cd` and `pnpm exec`.
+
+A hosted HTTP cron service such as cron-job.org **cannot run this**. Those services fire a request at a URL and time out after tens of seconds; a single dormancy claim waits out a full FDC voting round, and execution polls the enclave for up to ten minutes. The keeper is a process, not an endpoint.
 
 ## The TEE extension, the only part that needs Docker
 

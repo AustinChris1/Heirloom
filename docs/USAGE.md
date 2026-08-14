@@ -175,7 +175,7 @@ The heirs did nothing. No sign-ups, no claims, no wallets to install. Money arri
 | **Attestation / FDC** | Flare's mechanism where ~100 independent machines check the XRP Ledger and vote on what they saw |
 | **FTSO** | Flare's live price feed, how "$50,000 worth" becomes the right amount of XRP on the day |
 | **Settle** | The moment the enclave's signed distribution is verified and recorded on-chain |
-| **Keeper** | An optional background bot that clicks all the after-death buttons so nobody has to. It can't cheat, every action it takes is fact-checked by the chain |
+| **Keeper** | An optional cron job that clicks all the after-death buttons so nobody has to. It can't cheat, every action it takes is fact-checked by the chain, and it can't heartbeat for you. [What it does, step by step](HOSTING.md#the-keeper-the-only-part-that-runs-on-a-timer) |
 | **Regular key** | XRPL's built-in way to let a second key sign for your account without giving up your master key. Granted while alive, revocable any time, it's how payouts get signed when you're gone |
 | **Drops** | XRP's smallest unit: one millionth of an XRP |
 | **C2FLR** | The test network's gas token. Free from the faucet |

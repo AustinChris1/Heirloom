@@ -663,7 +663,7 @@ function CountdownPanel({ vault }: { vault: LiveVault }) {
       </p>
       {isOverdue && (
         <p className="mt-1 font-mono text-[10px] uppercase tracking-wider text-ink-300">
-          {unprovable ? "too old to prove · heartbeat first" : "dormancy may be claimed"}
+          {unprovable ? "silence too long to prove · heartbeat to reset" : "dormancy may be claimed"}
         </p>
       )}
     </>

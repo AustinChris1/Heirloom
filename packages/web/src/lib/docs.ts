@@ -76,10 +76,7 @@ export const DOCS: Doc[] = [
   // for recording the demo video, not documentation for a visitor.
 ];
 
-/**
- * The legal pages live at /privacy and /terms rather than inside the docs
- * index. They are not documentation, and people look for them at the top level.
- */
+/** Served at /privacy and /terms, deliberately outside the docs index. */
 export const LEGAL: Doc[] = [
   {
     slug: "privacy",

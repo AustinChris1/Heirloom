@@ -435,13 +435,17 @@ function CardClock({ vault }: { vault: any }) {
   const dueAt = vault.lastHeartbeat + vault.heartbeatInterval;
   const overdueBy = now - dueAt;
   if (vault.overdue || overdueBy > 0) {
-    // Past the provable window the number is history, not a call to action.
     const unprovable = overdueBy > PROVABLE_SILENCE_SECONDS;
     return (
       <span className={unprovable ? "text-[0.8em] text-ink-500" : "text-[0.8em]"}>
         {fmt(overdueBy)} overdue
         {unprovable && (
-          <span className="mt-1 block text-[0.62em] uppercase tracking-wider">too old to prove</span>
+          <span
+            className="mt-1 block text-[0.62em] uppercase tracking-wider"
+            title="The silence reaches back further than an attestation can cover. Send a heartbeat to reset the window."
+          >
+            needs a heartbeat
+          </span>
         )}
       </span>
     );

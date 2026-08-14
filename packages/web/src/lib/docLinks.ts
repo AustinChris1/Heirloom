@@ -1,13 +1,6 @@
 import { DOCS, LEGAL } from "./docs";
 
-/**
- * Makes rendered markdown behave like a page rather than a file.
- *
- * Headings get GitHub's anchor slugs, which marked does not add, so in-page
- * links keep working. Relative links between markdown files (USAGE.md,
- * docs/PRIVACY.md) become in-app routes instead of 404s, and anything external
- * opens in a new tab.
- */
+/** Gives headings GitHub's anchor slugs and turns relative .md links into in-app routes. */
 export function rewriteDocLinks(root: HTMLElement | null): void {
   if (!root) return;
 

@@ -6,13 +6,7 @@ import { Logo } from "../components/Logo";
 import { LEGAL, findLegal } from "../lib/docs";
 import { rewriteDocLinks } from "../lib/docLinks";
 
-/**
- * The privacy policy and the terms, at /privacy and /terms.
- *
- * Deliberately outside the docs index: these are the two pages people look for
- * at the top level of a domain, and they read better without a documentation
- * sidebar beside them.
- */
+/** The privacy policy and terms, at /privacy and /terms rather than inside the docs index. */
 export function Legal() {
   const { pathname } = useLocation();
   const doc = findLegal(pathname.replace(/^\//, "")) ?? LEGAL[0];

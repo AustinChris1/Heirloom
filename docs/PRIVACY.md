@@ -1,68 +1,120 @@
-# Privacy
+# Privacy Policy
 
-Heirloom is a dead man's switch for XRP. Its whole purpose is that nobody learns who inherits from you, or how much, until your will legitimately executes. This page says exactly what the product knows, what it stores, and who else sees anything.
+**Last updated: 14 August 2026**
 
-Short version: **there is no Heirloom server, no account, and no database.** The app is a static page that talks to public infrastructure from your own browser.
+This policy explains what information Heirloom ("we", "us") collects when you use heirloom.wtf and the Heirloom application (the "Service"), how it is handled, and what rights you have over it.
+
+Heirloom is a dead man's switch for XRP. Its entire purpose is that nobody learns who inherits from you, or how much, until your will legitimately executes. The design follows from that, and so does this policy.
+
+**In short: there is no Heirloom server, no user account, and no database.** The Service is a static web page that runs in your browser and talks directly to public blockchain infrastructure. We do not collect, store, or process personal data about you, because there is nowhere for it to go.
 
 ---
 
-## What never leaves your browser
+## 1. Who we are
 
-- **Your will.** Beneficiaries, amounts, and the residuary address are typed into the page and encrypted there, to the enclave's public key, before anything is sent. The plaintext is never transmitted to us or to anyone else.
-- **Your seed.** The app never asks for it in normal use. Authorisation and payouts are signed by your own wallet. The testnet seed fields that exist for fallback are used locally to sign a transaction and are never stored or sent anywhere.
-- **Private vault names.** A label like "Mom's plan" is stored in your browser only. Other visitors see the vault number.
+Heirloom is an open-source project. The source code for the Service, including this policy, is published at [github.com/AustinChris1/Heirloom](https://github.com/AustinChris1/Heirloom), so every statement below can be checked against what actually runs.
 
-## What is stored on your device
+Contact: [@heirloom_xrp](https://x.com/heirloom_xrp) on X, or open an issue on GitHub.
 
-The app uses your browser's local storage for convenience, never for tracking:
+## 2. Information we do not collect
 
-| Stored | Why |
+We do not ask for, receive, or store:
+
+- Your name, email address, postal address, or phone number
+- An account, username, or password
+- Your will: beneficiaries, amounts, or the residuary address
+- Your seed phrase or private keys
+- Analytics, advertising identifiers, or behavioural profiles
+
+The Service sets **no cookies of its own** and runs **no analytics, advertising, or tracking pixels**.
+
+## 3. Information that stays in your browser
+
+Some information is created by you while using the Service and is stored **only on your own device**, in your browser's local storage. It is never transmitted to us:
+
+| Stored on your device | Purpose |
 |---|---|
-| A copy of each will you create | So sealing and payout work later without re-typing it |
-| Private vault labels | Naming a vault for yourself |
-| Whether you connected a wallet here | So a page refresh does not appear to disconnect you |
-| An in-flight attestation request | So a refresh mid-round does not cost another fee |
+| A copy of each will you create | So sealing and payout work later without re-entering it |
+| Private vault labels, such as "Mom's plan" | So you can name a vault for yourself; others see only the vault number |
+| A record that you connected a wallet | So refreshing the page does not appear to disconnect you |
+| An in-flight attestation request | So refreshing mid-round does not cost you a second fee |
 | Which vaults you have already paid out | So a distribution is not broadcast twice |
 
-Clearing your browser data removes all of it. Nothing there is recoverable by us, because it never reaches us.
+Clearing your browser data deletes all of it permanently. We cannot recover it, because we never had it.
 
-## What is public, by design
+**Your will is encrypted inside your browser**, to the enclave's public key, before any part of it is transmitted. The plaintext never reaches us, the enclave host, Flare, or your beneficiaries.
 
-Heirloom writes to public blockchains. Anyone can read:
+## 4. Information that is public by design
 
-- That a vault exists, its owner's Flare address, its state, and its timers
-- A **hash** of your will, never its contents
-- A **hash** of your XRP Ledger account, never the address itself
+Heirloom writes to public blockchains. Blockchain data is permanent, worldwide, and readable by anyone. It cannot be edited or deleted by us or by you.
+
+The following becomes public when you use the Service:
+
+- That a vault exists, the Flare address that owns it, its state, and its timers
+- A **cryptographic hash** of your will, never its contents
+- A **cryptographic hash** of your XRP Ledger account, never the address itself
 - Your heartbeat payments on the XRP Ledger, which are ordinary tagged payments
-- After a will executes: the distribution amounts and the beneficiary address hashes, and the XRPL payments themselves
+- After a will executes: the distribution amounts, the beneficiary address hashes, and the XRP Ledger payments themselves
 
-That last point matters. Execution is the moment your beneficiaries become discoverable, and that only happens after the network has proven you went silent.
+Execution is the point at which your beneficiaries become discoverable, and it only occurs after the network has proven you went silent. A public blockchain address may be personal data in some jurisdictions if it can be linked to you. Please consider that before publishing an address that identifies you.
 
-## Who else your browser talks to
+## 5. Third parties your browser contacts
 
-Using the app means making requests to third parties, each of which can see your IP address:
+Using the Service means your browser makes requests to independent third parties. Each can see your IP address and the fact that a request was made. None of them receive your will.
 
-| Service | Why |
+| Service | Why your browser contacts it |
 |---|---|
-| Flare's Coston2 RPC | Reading vaults and sending transactions |
-| The XRP Ledger public API | Reading balances and ledger data, broadcasting payments |
-| Flare's FDC verifier and Data Availability layer | Preparing and fetching attestation proofs |
+| Flare Coston2 RPC | Reading vaults, sending transactions |
+| XRP Ledger public API | Reading balances and ledger data, broadcasting payments |
+| Flare Data Connector verifier and Data Availability layer | Preparing and fetching attestation proofs |
 | The Heirloom enclave host | Fetching the enclave's public key and instruction results |
-| Your wallet extension | Signing |
-| Vercel, which hosts the page | Serving the site |
+| Your wallet extension (GemWallet, Crossmark, Xaman) | Signing transactions you approve |
+| Vercel | Serving the web page |
 
-We do not run analytics, advertising, tracking pixels, or cookies. The site sets no cookies of its own.
+These parties have their own privacy policies, which govern what they do with the requests they receive. We do not control them.
 
-## What we cannot do
+## 6. Retention
 
-- We cannot read your will. Only the enclave can, and only after execution conditions are met.
-- We cannot move your XRP. Your funds stay in your own account, and the enclave can only sign a distribution the contract has already verified.
-- We cannot recover anything for you. There is no account to reset and no support key.
+We retain nothing, because we collect nothing. Data in your browser stays until you clear it. Data on a blockchain is permanent by the nature of the technology.
 
-## Testnet
+## 7. Your rights
 
-Heirloom currently runs on Coston2 and the XRP Ledger testnet. No real funds are involved, and testnet data is disposable. Treat anything you enter here as a demonstration, not as a real estate plan.
+Depending on where you live, data protection law may give you the right to access, correct, delete, port, or restrict the processing of your personal data, and to object to it.
 
-## Contact
+We hold no personal data about you, so there is nothing for us to disclose, correct, or erase. You can exercise the practical equivalent yourself at any time:
 
-Questions, or something in this page that does not match what the code does: open an issue on [GitHub](https://github.com/AustinChris1/Heirloom) or reach us on [X](https://x.com/heirloom_xrp). The code is public, and this page is meant to be checkable against it.
+- **Delete your local data** by clearing your browser's site data for heirloom.wtf.
+- **Revoke the enclave's authority** over your XRP Ledger account at any time while you are alive, using your own wallet.
+- **Stop using the Service**, which requires no notice to us.
+
+We cannot delete data from a public blockchain. Nobody can. That limitation is inherent to every blockchain application and is the reason the Service publishes hashes rather than contents.
+
+If you believe we hold personal data about you, contact us and we will look into it.
+
+## 8. Security
+
+Your will is encrypted in your browser using ECIES to a public key fetched from the enclave's attestation, and the application refuses to encrypt anything unless that key matches the exact enclave identity the smart contract trusts. Your private keys stay in your own wallet and are never requested by the Service in normal use.
+
+No system is perfectly secure. The Service is open source specifically so its security claims can be independently verified rather than taken on trust, and its known limitations are documented publicly in the repository.
+
+## 9. Children
+
+The Service is not directed at anyone under 18, and we do not knowingly collect information from children.
+
+## 10. International use
+
+The Service is a static page served from a content delivery network and is reachable worldwide. Because we operate no server and hold no personal data, there is no international transfer of your personal data by us. Requests your browser makes to third parties may be served from infrastructure anywhere in the world.
+
+## 11. Testnet
+
+Heirloom currently runs on the Flare Coston2 test network and the XRP Ledger testnet. No real funds are involved, and testnet data is disposable and may be reset without notice. Anything you enter is a demonstration, not a real estate plan.
+
+## 12. Changes to this policy
+
+If this policy changes, the updated version is published in the same public repository as the code, with a new date at the top. The revision history is visible in the repository's commit log.
+
+## 13. Contact
+
+Questions about this policy, or anything in it that does not match what the code does: open an issue on [GitHub](https://github.com/AustinChris1/Heirloom) or reach us on [X](https://x.com/heirloom_xrp). This page is meant to be checkable against the source.
+
+See also: [Terms and Conditions](TERMS.md).

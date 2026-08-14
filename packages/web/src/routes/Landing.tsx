@@ -717,10 +717,16 @@ function Closing() {
         </p>
         <nav className="flex flex-wrap items-center gap-5">
           <Link
-            to="/docs/privacy"
+            to="/privacy"
             className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-300 hover:text-white"
           >
             Privacy
+          </Link>
+          <Link
+            to="/terms"
+            className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-300 hover:text-white"
+          >
+            Terms
           </Link>
           <a
             href="https://x.com/heirloom_xrp"

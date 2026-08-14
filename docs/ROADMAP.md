@@ -1,35 +1,6 @@
-# Business model and roadmap
+# Roadmap and business model
 
-Heirloom charges nothing today. No fee logic exists in the contract, the allocation engine, or the enclave, and this page is the proposal rather than a description of something already running. It is written down because "how does this survive after the hackathon" is a fair question, and the answer shapes what gets built next.
-
----
-
-## What it costs to run
-
-| | |
-|---|---|
-| Domain, VPS, static hosting | ~$20 a month |
-| The enclave (three small containers on a 1 GB host) | included above |
-| The keeper, if run as a service | negligible per vault, real at scale |
-| Gas | paid by whoever sends the transaction, not by us |
-
-Heirloom never touches user funds, so it has no float, no custody revenue, and no yield to skim. Whatever it charges has to be charged openly.
-
-## The proposal
-
-**Free to create a vault.** The funnel should be as wide as possible at the moment someone is least sure about a system they have just met. A vault is a row in a contract; it costs us nothing.
-
-**A small flat fee to seal.** Sealing is where the enclave does real work: it decrypts a will, validates it, and signs an attestation. Charging here means some revenue arrives while the owner is alive, without gating the decision to try the product at all.
-
-**0.3% of the estate at distribution, capped.** The fee is one more line in the distribution the enclave computes, so it is signed by the TEE, verified by the contract, and visible on-chain like every other bequest. It cannot be hidden or applied retroactively. A cap keeps it honest on large estates, where a percentage of automated software stops being defensible.
-
-For comparison: probate typically costs 1 to 5 percent and takes months. A solicitor's hour costs more than a decade of vault fees.
-
-**An optional keeper subscription.** After death, someone has to submit the permissionless transactions that claim dormancy, execute, and pay out. Anyone can run a keeper, and the security model never depends on ours being honest, since every action it takes is checked on-chain. Most people will not want to run one. Charging for that is charging for the thing that genuinely costs money.
-
-**White-label, longer term.** The hard problem is not the cryptography, it is distribution. Wallets, exchanges, and custodians already have the users who need this. "Inheritance, powered by Heirloom" inside a wallet someone already trusts converts far better than acquiring holders one at a time.
-
-The line worth defending: **we cannot take custody, so we cannot charge a custody fee. We take a fraction of a percent, once, at the moment the estate pays out, and nothing at all if it never does.**
+Where Heirloom goes after the hackathon, and how it would pay for itself once it gets there.
 
 ---
 
@@ -77,3 +48,38 @@ Inheritance is the demonstration. The primitive is private, programmable rules o
 - **Treasury and business continuity**, where a company's funds have a documented successor without a shared key.
 
 Each is the same machinery with a different trigger, and none of them is possible without an oracle that can prove a payment *did not* happen.
+
+---
+
+## Business model
+
+Heirloom charges nothing today. No fee logic exists in the contract, the allocation engine, or the enclave, so what follows is a proposal rather than a description of something already running. It is written down because "how does this survive after the hackathon" is a fair question, and the answer shapes what gets built next.
+
+### What it costs to run
+
+| | |
+|---|---|
+| Domain, VPS, static hosting | ~$20 a month |
+| The enclave (three small containers on a 1 GB host) | included above |
+| The keeper, if run as a service | negligible per vault, real at scale |
+| Gas | paid by whoever sends the transaction, not by us |
+
+Heirloom never touches user funds, so it has no float, no custody revenue, and no yield to skim. Whatever it charges has to be charged openly.
+
+### The proposal
+
+**Free to create a vault.** The funnel should be as wide as possible at the moment someone is least sure about a system they have just met. A vault is a row in a contract; it costs us nothing.
+
+**A small flat fee to seal.** Sealing is where the enclave does real work: it decrypts a will, validates it, and signs an attestation. Charging here means some revenue arrives while the owner is alive, without gating the decision to try the product at all.
+
+**0.3% of the estate at distribution, capped.** The fee is one more line in the distribution the enclave computes, so it is signed by the TEE, verified by the contract, and visible on-chain like every other bequest. It cannot be hidden or applied retroactively. A cap keeps it honest on large estates, where a percentage of automated software stops being defensible.
+
+For comparison: probate typically costs 1 to 5 percent and takes months. A solicitor's hour costs more than a decade of vault fees.
+
+**An optional keeper subscription.** After death, someone has to submit the permissionless transactions that claim dormancy, execute, and pay out. That someone is a cron job. `scripts/keeper.ts` on a timer watches every vault and acts when one comes due, and anyone can run it, on a spare Raspberry Pi if they like. The security model never depends on ours being honest, because every action it takes is checked on-chain.
+
+What people will not want to do is keep a machine alive and funded with gas for thirty years so that it fires correctly on the one day it matters. That is the real product: not the script, which is free and public, but the promise that it was still running.
+
+**White-label, longer term.** The hard problem is not the cryptography, it is distribution. Wallets, exchanges, and custodians already have the users who need this. "Inheritance, powered by Heirloom" inside a wallet someone already trusts converts far better than acquiring holders one at a time.
+
+The line worth defending: **we cannot take custody, so we cannot charge a custody fee. We take a fraction of a percent, once, at the moment the estate pays out, and nothing at all if it never does.**

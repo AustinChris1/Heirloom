@@ -4,6 +4,7 @@ import { Link, useParams } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { Logo } from "../components/Logo";
 import { DOCS, findDoc } from "../lib/docs";
+import { rewriteDocLinks } from "../lib/docLinks";
 
 /**
  * Documentation, rendered from the repository's own markdown.
@@ -27,35 +28,8 @@ export function Docs() {
 
   const html = useMemo(() => marked.parse(doc.body, { async: false }) as string, [doc.body]);
 
-  // Links between docs are written as relative markdown paths (USAGE.md,
-  // docs/ARCHITECTURE.md). Rewrite them to in-app routes so they don't 404,
-  // and send genuinely external links to a new tab.
   useEffect(() => {
-    const root = contentRef.current;
-    if (!root) return;
-
-    // GitHub gives headings anchor ids; marked does not, add the same slugs
-    // so in-page links (e.g. the Usage glossary) work here too.
-    root.querySelectorAll("h1, h2, h3").forEach((h) => {
-      h.id = (h.textContent ?? "")
-        .toLowerCase()
-        .replace(/[^\w\s-]/g, "")
-        .trim()
-        .replace(/\s+/g, "-");
-    });
-
-    root.querySelectorAll("a").forEach((a) => {
-      const href = a.getAttribute("href") ?? "";
-      if (/^https?:/i.test(href)) {
-        a.setAttribute("target", "_blank");
-        a.setAttribute("rel", "noreferrer");
-        return;
-      }
-      const file = href.split("/").pop()?.replace(/\.md$/i, "").toLowerCase();
-      const match = DOCS.find((d) => d.slug === file || (file === "readme" && d.slug === "overview"));
-      if (match) a.setAttribute("href", `/docs/${match.slug}`);
-    });
-
+    rewriteDocLinks(contentRef.current);
     window.scrollTo(0, 0);
   }, [html]);
 
@@ -187,10 +161,16 @@ export function Docs() {
           </p>
         <nav className="flex flex-wrap items-center gap-5">
           <Link
-            to="/docs/privacy"
+            to="/privacy"
             className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-300 hover:text-white"
           >
             Privacy
+          </Link>
+          <Link
+            to="/terms"
+            className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-300 hover:text-white"
+          >
+            Terms
           </Link>
           <a
             href="https://x.com/heirloom_xrp"

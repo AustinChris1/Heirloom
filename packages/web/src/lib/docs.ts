@@ -4,6 +4,7 @@ import hosting from "../../../../docs/HOSTING.md?raw";
 import privacy from "../../../../docs/PRIVACY.md?raw";
 import roadmap from "../../../../docs/ROADMAP.md?raw";
 import submission from "../../../../docs/SUBMISSION.md?raw";
+import terms from "../../../../docs/TERMS.md?raw";
 import teeDeployment from "../../../../docs/TEE-DEPLOYMENT.md?raw";
 import usage from "../../../../docs/USAGE.md?raw";
 import readme from "../../../../README.md?raw";
@@ -67,19 +68,35 @@ export const DOCS: Doc[] = [
   },
   {
     slug: "roadmap",
-    title: "Business model & roadmap",
-    blurb: "What it would cost, what it charges (nothing yet), and what comes after the hackathon.",
+    title: "Roadmap & business model",
+    blurb: "What comes after the hackathon, and how it would pay for itself.",
     body: roadmap,
-  },
-  {
-    slug: "privacy",
-    title: "Privacy",
-    blurb: "What the app knows, stores, and tells anyone else. Short answer: almost nothing.",
-    body: privacy,
   },
   // docs/DEMO.md is deliberately NOT listed, it is the private run-of-show
   // for recording the demo video, not documentation for a visitor.
 ];
 
+/**
+ * The legal pages live at /privacy and /terms rather than inside the docs
+ * index. They are not documentation, and people look for them at the top level.
+ */
+export const LEGAL: Doc[] = [
+  {
+    slug: "privacy",
+    title: "Privacy policy",
+    blurb: "What the app knows, stores, and tells anyone else. Short answer: almost nothing.",
+    body: privacy,
+  },
+  {
+    slug: "terms",
+    title: "Terms & conditions",
+    blurb: "What Heirloom promises, what it does not, and what stays your responsibility.",
+    body: terms,
+  },
+];
+
 export const findDoc = (slug?: string): Doc =>
   DOCS.find((d) => d.slug === slug) ?? DOCS[0];
+
+export const findLegal = (slug?: string): Doc | undefined =>
+  LEGAL.find((d) => d.slug === slug);

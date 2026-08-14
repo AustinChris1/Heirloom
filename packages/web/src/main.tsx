@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
 import { Docs } from "./routes/Docs";
 import { Landing } from "./routes/Landing";
+import { Legal } from "./routes/Legal";
 import { VaultApp } from "./routes/VaultApp";
 import { ChainSnapshot, readChain } from "./lib/chain";
 import { ToastHost } from "./lib/toast";
@@ -43,6 +44,8 @@ function Root() {
         <Route path="/app" element={<VaultApp chain={chain} refresh={refresh} />} />
         <Route path="/docs" element={<Docs />} />
         <Route path="/docs/:slug" element={<Docs />} />
+        <Route path="/privacy" element={<Legal />} />
+        <Route path="/terms" element={<Legal />} />
         <Route path="*" element={<Landing chain={chain} />} />
       </Routes>
       <ToastHost />
